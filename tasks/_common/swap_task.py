@@ -3,7 +3,7 @@ from web3.types import TxParams
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
-from libs.async_eth_lib.models.swap import SwapInfo, TokenSwapProposal
+from libs.async_eth_lib.models.swap import SwapInfo, SwapProposal
 from tasks._common.utils import Utils, PriceUtils
 
 
@@ -125,7 +125,7 @@ class SwapTask(Utils, PriceUtils):
     async def compute_source_token_amount(
         self,
         swap_info: SwapInfo
-    ) -> TokenSwapProposal:
+    ) -> SwapProposal:
         """
         Compute the source token amount for a given swap.
 
@@ -166,18 +166,18 @@ class SwapTask(Utils, PriceUtils):
                 wei=True
             )
         
-        return TokenSwapProposal(
+        return SwapProposal(
             from_token=from_token,
             amount_from=token_amount
         )
         
     async def compute_min_destination_amount(
         self,
-        swap_request: TokenSwapProposal,
+        swap_request: SwapProposal,
         min_to_amount: int,
         swap_info: SwapInfo,
         is_to_token_price_wei: bool = False
-    ) -> TokenSwapProposal:
+    ) -> SwapProposal:
         """
         Compute the minimum destination amount for a given swap.
 
@@ -206,7 +206,7 @@ class SwapTask(Utils, PriceUtils):
             wei=is_to_token_price_wei
         )
 
-        return TokenSwapProposal(
+        return SwapProposal(
             from_token=swap_request.from_token,
             amount_from=swap_request.amount_from,
             to_token=swap_request.to_token,

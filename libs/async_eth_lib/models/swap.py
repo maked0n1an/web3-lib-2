@@ -13,8 +13,8 @@ class SwapInfo:
         from_token: str,
         to_token: str,
         slippage: float = 0.5,
-        from_network: str | None = None,
-        to_network: str | None = None,
+        src_network_name: str | None = None,
+        dst_network_name: str | None = None,
         amount: float | None = None,
         amount_from: float | None = None,
         amount_to: float | None = None,
@@ -32,8 +32,8 @@ class SwapInfo:
             from_token (str): The token to swap from.
             to_token (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
-            from_network (str | None): The source network for the swap (default is None).
-            to_network (str | None): The target network for the swap (default is None).
+            src_network_name (str | None): The source network for the swap (default is None).
+            dst_network_name (str | None): The destination network for the swap (default is None).
             amount (float | None): The amount to swap (default is None).
             amount_from (float | None): The minimum amount for random amount generation.
             amount_to (float | None): The maximum amount for random amount generation.
@@ -47,8 +47,8 @@ class SwapInfo:
         """
         self.from_token = from_token
         self.to_token = to_token
-        self.from_network = from_network
-        self.to_network = to_network
+        self.src_network_name = src_network_name
+        self.dst_network_name = dst_network_name
         self.amount = amount
         self.slippage = slippage
         self.amount_by_percent = 0
@@ -84,7 +84,7 @@ class SwapInfo:
 
 
 # region Class to prepare swap
-class TokenSwapProposal:
+class SwapProposal:
     """
     Attributes:
         from_token (TokenContract): The contract of the token to swap from.
