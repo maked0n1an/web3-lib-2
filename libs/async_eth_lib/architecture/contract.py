@@ -284,18 +284,13 @@ class Contract:
         """
         Retrieve the decimals of a token contract or contract.
 
-        Parameters:
+        Args:
         - `token_contract` (TokenContract | NativeTokenContract | RawContract | AsyncContract | Contract): 
             The token contract address or contract instance.
 
         Returns:
         - `int`: The number of decimals for the token.
-
-        Example:
-        ```python
-        decimals = await client.contract.get_decimals(token_contract='0x123abc...')
-        print(decimals)
-        # Output: 18
+        
         """
 
         if isinstance(token_contract, ParamsTypes.TokenContract.__args__):
