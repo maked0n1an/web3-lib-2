@@ -61,4 +61,3 @@ class Network:
         if self.coin_symbol:
             self.coin_symbol = self.coin_symbol.upper()
 #endregion Definition class
-

@@ -8,11 +8,11 @@ from typing import Any
 from eth_typing import ChecksumAddress
 
 from async_eth_lib.models.dataclasses import DefaultAbis
-from async_eth_lib.models.others import Autorepr
+from async_eth_lib.models.others import AutoRepr
 
 
 #region RawContract
-class RawContract(Autorepr):
+class RawContract(AutoRepr):
     """
     An instance of a raw contract.
 

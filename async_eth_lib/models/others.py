@@ -9,7 +9,7 @@ from async_eth_lib.models.contract import (
 )
 
 # region Common
-class Autorepr:
+class AutoRepr:
     """Contains a __repr__ function that automatically builds the output of a class using all its variables."""
 
     def __repr__(self) -> str:
