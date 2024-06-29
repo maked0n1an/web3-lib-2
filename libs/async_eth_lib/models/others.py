@@ -137,10 +137,11 @@ class TokenAmount:
 
 
 #region Params types
-ContractUnion = RawContract | AsyncContract | Contract
-TokenContractUnion = TokenContract | NativeTokenContract
-AddressUnion = str | types.Address | types.ChecksumAddress | types.ENS
-AmountUnion = float | int | TokenAmount
-GasPriceUnion = float | int | TokenAmount
-GasLimitUnion = int | TokenAmount
+class ParamsTypes:
+    Contract = RawContract | AsyncContract | Contract
+    TokenContract = TokenContract | NativeTokenContract
+    Address = str | types.Address | types.ChecksumAddress | types.ENS
+    Amount = float | int | TokenAmount
+    GasPrice = float | int | TokenAmount
+    GasLimit = int | TokenAmount
 #endregion Params types

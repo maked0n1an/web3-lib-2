@@ -6,10 +6,7 @@ from eth_typing import ChecksumAddress
 from async_eth_lib.architecture.account_manager import AccountManager
 from async_eth_lib.architecture.transaction import Transaction
 from async_eth_lib.models.dataclasses import CommonValues, DefaultAbis
-from async_eth_lib.models.others import (
-    AddressUnion, AmountUnion, ContractUnion, GasLimitUnion,
-    GasPriceUnion, TokenAmount, TokenContractUnion
-)
+from async_eth_lib.models.others import ParamsTypes, TokenAmount
 from async_eth_lib.models.transaction import TxArgs
 from async_eth_lib.utils.helpers import make_request, text_between
 
@@ -75,7 +72,8 @@ class Contract:
 
     @staticmethod
     async def get_contract_attributes(
-        contract: TokenContractUnion | ContractUnion | AddressUnion
+        contract: ParamsTypes.TokenContract | ParamsTypes.Contract
+            | ParamsTypes.Address
     ) -> tuple[ChecksumAddress, list | None]:
         """
         Get the checksummed contract address and ABI.
@@ -89,7 +87,7 @@ class Contract:
         """
         abi = None
         address = None
-        if isinstance(contract, AddressUnion):
+        if isinstance(contract, ParamsTypes.Address.__args__):
             address = contract
         else:
             address, abi = contract.address, contract.abi
@@ -98,9 +96,9 @@ class Contract:
 
     async def approve(
         self,
-        token_contract: TokenContractUnion | ContractUnion | AddressUnion,
-        spender_address: AddressUnion,
-        amount: AmountUnion | None = None,
+        token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract | ParamsTypes.Address,
+        spender_address: ParamsTypes.Address,
+        amount: ParamsTypes.Amount | None = None,
         tx_params: TxParams | dict | None = None,
         is_approve_infinity: bool = False
     ) -> str | bool:
@@ -117,7 +115,7 @@ class Contract:
         Returns:
             Tx: The transaction params object.
         """
-        if isinstance(token_contract, AddressUnion):
+        if isinstance(token_contract, ParamsTypes.Address.__args__):
             token_address, _ = await self.get_contract_attributes(contract=token_contract)
             token_contract = await self.get_token_contract(
                 token=token_address
@@ -172,7 +170,7 @@ class Contract:
 
     async def get(
         self,
-        contract: ContractUnion,
+        contract: Contract,
         abi: list | str | None = None
     ) -> AsyncContract | Contract:
         """
@@ -204,9 +202,9 @@ class Contract:
 
     async def get_approved_amount(
         self,
-        token_contract: ContractUnion | AddressUnion,
-        spender_address: AddressUnion,
-        owner: AddressUnion | None = None
+        token_contract: ParamsTypes.Contract | ParamsTypes.Address,
+        spender_address: ParamsTypes.Address,
+        owner: ParamsTypes.Address | None = None
     ) -> TokenAmount:
         """
         Get the approved amount of tokens for a spender.
@@ -224,7 +222,7 @@ class Contract:
         if not owner:
             owner = self.account_manager.account.address
 
-        if isinstance(token_contract, AddressUnion):
+        if isinstance(token_contract, ParamsTypes.Address.__args__):
             token_contract = await self.get_token_contract(contract=token_contract)
 
         else:
@@ -241,8 +239,9 @@ class Contract:
 
     async def get_balance(
         self,
-        token_contract: TokenContractUnion | ContractUnion | AddressUnion | None = None,
-        address: AddressUnion | None = None
+        token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract
+            | ParamsTypes.Address | None = None,
+        address: ParamsTypes.Address | None = None
     ) -> TokenAmount:
         """
         Get the balance of an Ethereum address.
@@ -257,7 +256,7 @@ class Contract:
 
         Note:
             If `token_contract` is provided, it retrieves the token balance.
-            If `token_contract` is None, it retrieves the ETH balance.
+            If `token_contract` is None, it retrieves the native token balance.
         """
         if not address:
             address = self.account_manager.account.address
@@ -280,7 +279,7 @@ class Contract:
 
     async def get_decimals(
         self,
-        token_contract: TokenContractUnion | ContractUnion
+        token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract
     ) -> int:
         """
         Retrieve the decimals of a token contract or contract.
@@ -299,7 +298,7 @@ class Contract:
         # Output: 18
         """
 
-        if isinstance(token_contract, TokenContractUnion):
+        if isinstance(token_contract, ParamsTypes.TokenContract.__args__):
             if not token_contract.decimals:
                 contract = self.account_manager.w3.eth.contract(
                     address=token_contract.address,
@@ -322,7 +321,7 @@ class Contract:
 
     def set_gas_price(
         self,
-        gas_price: GasPriceUnion,
+        gas_price: ParamsTypes.GasPrice,
         tx_params: TxParams | dict,
     ) -> TxParams | dict:
         """
@@ -347,7 +346,7 @@ class Contract:
 
     def set_gas_limit(
         self,
-        gas_limit: GasLimitUnion,
+        gas_limit: ParamsTypes.GasLimit,
         tx_params: dict | TxParams,
     ) -> dict | TxParams:
         """
@@ -372,7 +371,7 @@ class Contract:
 
     async def get_token_contract(
         self,
-        token: ContractUnion | AddressUnion
+        token: ParamsTypes.Contract | ParamsTypes.Address
     ) -> Contract | AsyncContract:
         """
         Get a contract instance for the specified token.
@@ -383,7 +382,7 @@ class Contract:
         Returns:
             Contract | AsyncContract: The contract instance.
         """
-        if isinstance(contract, AddressUnion):
+        if isinstance(contract, ParamsTypes.Address.__args__):
             address = Web3.to_checksum_address(token)
             abi = DefaultAbis.Token
         else:
