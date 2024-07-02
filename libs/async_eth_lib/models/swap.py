@@ -1,20 +1,22 @@
 import random
 from typing import List
 
-import async_eth_lib.models.exceptions as exceptions
-from async_eth_lib.models.contract import TokenContract
-from async_eth_lib.models.others import TokenAmount
+import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.models.contract import TokenContract
+from libs.async_eth_lib.models.others import TokenAmount
+from libs.async_eth_lib.architecture.network import Network
+from libs.async_eth_lib.data.networks import Networks
 
 
 # region Class to get info about swap
 class SwapInfo:
     def __init__(
         self,
-        from_token: str,
-        to_token: str,
+        src_token_name: str = None,
+        dst_token_name: str = None,
         slippage: float = 0.5,
-        src_network_name: str | None = None,
-        dst_network_name: str | None = None,
+        src_network: Network = Networks.Goerli,
+        dst_network: Network | None = None,
         amount: float | None = None,
         amount_from: float | None = None,
         amount_to: float | None = None,
@@ -45,10 +47,10 @@ class SwapInfo:
             gas_limit (int | None): Gas limit for the transaction (default is None).
 
         """
-        self.from_token = from_token
-        self.to_token = to_token
-        self.src_network_name = src_network_name
-        self.dst_network_name = dst_network_name
+        self.src_token_name = src_token_name
+        self.dst_token_name = dst_token_name
+        self.src_network = src_network
+        self.dst_network = dst_network
         self.amount = amount
         self.slippage = slippage
         self.amount_by_percent = 0
