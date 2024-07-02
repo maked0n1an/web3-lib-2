@@ -594,7 +594,7 @@ class StargateImplementation(BaseTask):
                 await router_contract.functions.stargateRouter().call()
             )
             router_call_contract = await self.client.contract.get(
-                contract_address=router_call_address,
+                contract=router_call_address,
                 abi=StargateContracts.STARGATE_ROUTER_ABI
             )
 
@@ -684,7 +684,7 @@ class StargateImplementation(BaseTask):
                 adapter_params[30:])
 
             usdv_contract = await self.client.contract.get(
-                contract_address=swap_proposal.to_token
+                contract=swap_proposal.to_token
             )
 
             fee = await self._quote_send_fee(
@@ -813,7 +813,7 @@ class StargateImplementation(BaseTask):
             1,
             self.client.account_manager.account.address,
             '0x',
-            lz_tx_params.list()
+            lz_tx_params.get_list()
         ).call()
 
         return TokenAmount(amount=result[0], wei=True)
@@ -931,7 +931,7 @@ class Stargate(BaseTask):
                     )
                 )
                 break
-
+            
         if not dst_data:
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.WARNING,
