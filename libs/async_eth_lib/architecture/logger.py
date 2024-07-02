@@ -3,8 +3,9 @@ import logging
 import os
 import sys
 from pathlib import Path
+from types import FrameType
 
-from async_eth_lib.models.others import LogStatus
+from libs.async_eth_lib.models.others import LogStatus
 
 
 class CustomLogger:
@@ -99,8 +100,15 @@ class CustomLogger:
 
         return self.LOGGERS[account_id]
 
-    def log_message(self, status: str, message: str) -> None:
-        caller_frame = inspect.currentframe().f_back
+    def log_message(
+        self, 
+        status: str, 
+        message: str, 
+        caller_frame: FrameType = None
+    ) -> None:
+        if not caller_frame:        
+            caller_frame = inspect.currentframe().f_back
+
         calling_line = f"{caller_frame.f_code.co_filename}:{caller_frame.f_lineno}"
         message_with_calling_line = f"{calling_line} - {message}"
         extra = {

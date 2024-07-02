@@ -1,9 +1,8 @@
-import async_eth_lib.models.exceptions as exceptions
+import libs.async_eth_lib.models.exceptions as exceptions
 
-from async_eth_lib.architecture.network import Network
-from async_eth_lib.models.others import (
-    Singleton, TokenSymbol
-)
+from libs.async_eth_lib.architecture.network import Network
+from libs.async_eth_lib.models.others import TokenSymbol
+from libs.pretty_utils.type_functions.classes import Singleton
 
 
 class Networks(metaclass=Singleton):

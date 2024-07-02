@@ -3,7 +3,7 @@ import requests
 from typing import List
 from web3 import Web3
 
-import async_eth_lib.models.exceptions as exceptions
+import libs.async_eth_lib.models.exceptions as exceptions
 
 
 # region Definition class

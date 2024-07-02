@@ -7,8 +7,8 @@ from web3 import (
 from typing import Any
 from eth_typing import ChecksumAddress
 
-from async_eth_lib.models.dataclasses import DefaultAbis
-from async_eth_lib.models.others import AutoRepr
+from libs.async_eth_lib.models.dataclasses import DefaultAbis
+from libs.pretty_utils.type_functions.classes import AutoRepr
 
 
 #region RawContract

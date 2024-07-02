@@ -6,9 +6,9 @@ from eth_account.datastructures import (
     SignedTransaction
 )
 
-from async_eth_lib.architecture.account_manager import AccountManager
-from async_eth_lib.models.others import TokenAmount
-from async_eth_lib.models.transaction import Tx
+from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.models.others import TokenAmount
+from libs.async_eth_lib.models.transaction import Tx
 
 
 class Transaction:

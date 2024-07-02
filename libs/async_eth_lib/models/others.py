@@ -2,32 +2,11 @@ from decimal import Decimal
 from web3 import types
 from web3.contract import AsyncContract, Contract
 
-from async_eth_lib.models.contract import (
+from libs.async_eth_lib.models.contract import (
     NativeTokenContract,
     RawContract,
     TokenContract
 )
-
-# region Common
-class AutoRepr:
-    """Contains a __repr__ function that automatically builds the output of a class using all its variables."""
-
-    def __repr__(self) -> str:
-        values = ('{}={!r}'.format(key, value)
-                  for key, value in vars(self).items())
-        return '{}({})'.format(self.__class__.__name__, ', '.join(values))
-
-
-class Singleton(type):
-    """A class that implements the singleton pattern."""
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(
-                Singleton, cls).__call__(cls, *args, **kwargs)
-        return cls._instances[cls]
-# endregion Common
 
 
 # region Constants
@@ -37,6 +16,7 @@ class TokenSymbol:
     ARB = 'ARB'
     AVAX = 'AVAX'
     BNB = 'BNB'
+    BTC_B = 'BTC_B'
     BUSD = 'BUSD'
     CELO = 'CELO'
     CORE = 'CORE'
@@ -55,6 +35,7 @@ class TokenSymbol:
     USDC_E = 'USDC_E'
     USDV = 'USDV'
     WBTC = 'WBTC'
+    WCORE = 'WCORE'
     WETH = 'WETH'
     XDAI = 'xDAI'
 

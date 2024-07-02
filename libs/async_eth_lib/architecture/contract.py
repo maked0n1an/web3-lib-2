@@ -3,12 +3,12 @@ from web3.contract import Contract, AsyncContract
 from web3.types import TxParams
 from eth_typing import ChecksumAddress
 
-from async_eth_lib.architecture.account_manager import AccountManager
-from async_eth_lib.architecture.transaction import Transaction
-from async_eth_lib.models.dataclasses import CommonValues, DefaultAbis
-from async_eth_lib.models.others import ParamsTypes, TokenAmount
-from async_eth_lib.models.transaction import TxArgs
-from async_eth_lib.utils.helpers import make_request, text_between
+from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.architecture.transaction import Transaction
+from libs.async_eth_lib.models.dataclasses import CommonValues, DefaultAbis
+from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
+from libs.async_eth_lib.models.transaction import TxArgs
+from libs.async_eth_lib.utils.helpers import make_request, text_between
 
 
 class Contract:
@@ -87,7 +87,7 @@ class Contract:
         """
         abi = None
         address = None
-        if isinstance(contract, ParamsTypes.Address.__args__):
+        if type(contract) in ParamsTypes.Address.__args__:
             address = contract
         else:
             address, abi = contract.address, contract.abi
@@ -97,9 +97,8 @@ class Contract:
     async def approve(
         self,
         token_contract: ParamsTypes.TokenContract | ParamsTypes.Contract | ParamsTypes.Address,
-        spender_address: ParamsTypes.Address,
+        tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
-        tx_params: TxParams | dict | None = None,
         is_approve_infinity: bool = False
     ) -> str | bool:
         """
@@ -107,7 +106,6 @@ class Contract:
 
         Args:
             token_contract (TokenContract | NativeTokenContract | RawContract | AsyncContract | Contract | str | Address | ChecksumAddress | ENS): The token contract, contract instance, or address.
-            spender_address (str | Address | ChecksumAddress | ENS): The address of the spender.
             amount (float | int | TokenAmount | None): The amount of tokens to approve (default is None).
             tx_params (TxParams | dict | None): Transaction parameters (default is None).
             is_approve_infinity (bool): If True, approves an infinite amount (default is False).
@@ -115,13 +113,13 @@ class Contract:
         Returns:
             Tx: The transaction params object.
         """
-        if isinstance(token_contract, ParamsTypes.Address.__args__):
+        if type(token_contract) in ParamsTypes.Address.__args__:
             token_address, _ = await self.get_contract_attributes(contract=token_contract)
             token_contract = await self.get_token_contract(
                 token=token_address
             )
 
-        spender_address = Web3.to_checksum_address(spender_address)
+        spender_address = Web3.to_checksum_address(tx_params['to'])
 
         if not amount:
             amount = (
@@ -170,9 +168,9 @@ class Contract:
 
     async def get(
         self,
-        contract: Contract,
+        contract: ParamsTypes.Contract,
         abi: list | str | None = None
-    ) -> AsyncContract | Contract:
+    ) -> Contract | AsyncContract:
         """
         Get a contract instance.
 
@@ -222,11 +220,11 @@ class Contract:
         if not owner:
             owner = self.account_manager.account.address
 
-        if isinstance(token_contract, ParamsTypes.Address.__args__):
+        if type(token_contract) in ParamsTypes.Address.__args__:
             token_contract = await self.get_token_contract(contract=token_contract)
 
         else:
-            token_contract = await self.get(token=token_contract)
+            token_contract = await self.get(contract=token_contract)
 
         amount = await token_contract.functions.allowance(
             owner,
@@ -293,7 +291,7 @@ class Contract:
         
         """
 
-        if isinstance(token_contract, ParamsTypes.TokenContract.__args__):
+        if type(token_contract) in ParamsTypes.TokenContract.__args__:
             if not token_contract.decimals:
                 contract = self.account_manager.w3.eth.contract(
                     address=token_contract.address,
@@ -377,7 +375,7 @@ class Contract:
         Returns:
             Contract | AsyncContract: The contract instance.
         """
-        if isinstance(contract, ParamsTypes.Address.__args__):
+        if type(token) in ParamsTypes.Address.__args__:
             address = Web3.to_checksum_address(token)
             abi = DefaultAbis.Token
         else:

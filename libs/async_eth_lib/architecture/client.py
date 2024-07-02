@@ -1,7 +1,7 @@
-from async_eth_lib.architecture.account_manager import AccountManager
-from async_eth_lib.architecture.contract import Contract
-from async_eth_lib.architecture.network import Network
-from async_eth_lib.data.networks import Networks
+from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.architecture.contract import Contract
+from libs.async_eth_lib.architecture.network import Network
+from libs.async_eth_lib.data.networks import Networks
 
 
 class Client:

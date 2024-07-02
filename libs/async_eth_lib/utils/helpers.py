@@ -8,7 +8,7 @@ from aiohttp import (
     ClientSession
 )
 
-import async_eth_lib.models.exceptions as exceptions
+import libs.async_eth_lib.models.exceptions as exceptions
 
 
 def join_path(path: str | tuple | list) -> str:

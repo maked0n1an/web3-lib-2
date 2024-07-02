@@ -8,9 +8,9 @@ from web3.types import (
     TxData
 )
 
-import async_eth_lib.models.exceptions as exceptions
-from async_eth_lib.architecture.account_manager import AccountManager
-from async_eth_lib.models.others import AutoRepr
+import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.pretty_utils.type_functions.classes import AutoRepr
 
 
 # region TxArgs class
