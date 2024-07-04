@@ -23,16 +23,15 @@ from tasks.config import Config
 # region Settings
 class StargateSettings():
     def __init__(self):
-        json_data = read_json(path=MODULES_SETTINGS_FILE)
-        stargate_section = json_data['stargate_settings']
+        stargate_section = MODULES_SETTINGS_FILE['stargate_settings']
 
         self.bridge_eth_amount: FromTo = FromTo(
             from_=stargate_section['bridge_eth_amount']['from'],
             to_=stargate_section['bridge_eth_amount']['to']
         )
         self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=stargate_section['bridge_native_amount']['min_percent'],
-            to_=stargate_section['bridge_native_amount']['max_percent']
+            from_=stargate_section['bridge_eth_amount']['min_percent'],
+            to_=stargate_section['bridge_eth_amount']['max_percent']
         )
         self.bridge_stables_amount: FromTo = FromTo(
             from_=stargate_section['bridge_stables_amount']['from'],
@@ -47,9 +46,8 @@ class StargateSettings():
 
 class StargateSlippageSettings():
     def __init__(self):
-        json_data = read_json(path=MODULES_SETTINGS_FILE)
         self.slip_and_gas = (
-            json_data['stargate_settings']['slippage_and_gas']
+            MODULES_SETTINGS_FILE['stargate_settings']['slippage_and_gas']
         )
 # endregion Settings
 
@@ -367,22 +365,22 @@ class StargateData(NetworkDataFetcher):
 class StargateImplementation(BaseTask):
     @property
     def src_network_name(self):
-        if self._src_network_name is None:
-            self._src_network_name = (
-                self.client.account_manager.network.name.upper()
-            )
+        """The source network name"""
         return self._src_network_name
-
+    
     @src_network_name.setter
-    def src_network_name(self, name: str):
-        self._src_network_name = name.upper()
+    def src_network_name(self, value: str):
+        self._src_network_name = value.upper()
 
     @property
-    def token_path(self, crosschain_swap_info: SwapInfo) -> str:
-        path = crosschain_swap_info.src_token_name
+    def token_path(self) -> str:
+        return self._token_path
+    
+    @token_path.setter
+    def token_path(self, crosschain_swap_info: SwapInfo):
+        self._token_path = crosschain_swap_info.src_token_name
         if crosschain_swap_info.dst_token_name in StargateData.SPECIAL_COINS:
-            path += crosschain_swap_info.dst_token_name
-        return path
+            self._token_path += crosschain_swap_info.dst_token_name
 
     async def bridge(
         self,
@@ -401,20 +399,21 @@ class StargateImplementation(BaseTask):
             )
 
             return False
-
+        
         self.src_network_name = self.client.account_manager.network.name
-        dst_network_name = crosschain_swap_info.dst_network.name
+        self.token_path = crosschain_swap_info
+        dst_network_name = crosschain_swap_info.dst_network.name.upper()
 
         src_bridge_info = StargateData.get_token_bridge_info(
             network_name=self.src_network_name,
-            token_symbol=self.token_path(crosschain_swap_info)
+            token_symbol=self.token_path
         )
-
+        
         swap_proposal = await self.compute_source_token_amount(crosschain_swap_info)
         swap_proposal = await self.compute_min_destination_amount(
             swap_proposal=swap_proposal,
             min_to_amount=swap_proposal.amount_from.Ether,
-            crosschain_swap_info=crosschain_swap_info,
+            swap_info=crosschain_swap_info,
         )
 
         if dst_fee and isinstance(dst_fee, float):
@@ -425,14 +424,14 @@ class StargateImplementation(BaseTask):
                 amount=dst_fee,
                 decimals=dst_network.decimals
             )
-
+            
         prepared_tx_params, crosschain_swap_info, swap_proposal = await self.get_data_for_crosschain_swap(
             crosschain_swap_info=crosschain_swap_info,
             swap_proposal=swap_proposal,
             src_bridge_info=src_bridge_info,
             dst_fee=dst_fee
         )
-        if not prepared_tx_params['value']:
+        if 'value' not in prepared_tx_params:
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
@@ -505,16 +504,20 @@ class StargateImplementation(BaseTask):
         else:
             prepared_tx_params['value'] += swap_proposal.amount_from.Wei
 
-        tx_params = self.set_all_gas_params(
+        prepared_tx_params = self.set_all_gas_params(
             swap_info=crosschain_swap_info,
-            tx_params=tx_params
+            tx_params=prepared_tx_params
         )
-
+        
         tx = await self.client.contract.transaction.sign_and_send(
-            prepared_tx_params
+            tx_params=prepared_tx_params
         )
-        receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
-
+            
+        receipt = await tx.wait_for_tx_receipt(
+            web3=self.client.account_manager.w3,
+            timeout=240
+        )
+        
         rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
         rounded_amount_to = round(swap_proposal.min_to_amount.Ether, 5)
 
@@ -541,12 +544,11 @@ class StargateImplementation(BaseTask):
         swap_info: SwapInfo
     ) -> SwapInfo:
         settings = StargateSlippageSettings()
-        token_path = self.token_path(swap_info)
 
-        if token_path not in settings.slip_and_gas:
+        if self.token_path not in settings.slip_and_gas:
             slip_and_gas_dict = settings.slip_and_gas['default']
         else:
-            slip_and_gas_dict = settings.slip_and_gas[token_path]
+            slip_and_gas_dict = settings.slip_and_gas[self.token_path]
 
         slippage: FromTo = FromTo(
             from_=slip_and_gas_dict['slippage']['from'] * 10,
@@ -554,7 +556,9 @@ class StargateImplementation(BaseTask):
         )
 
         swap_info.slippage = random.randint(slippage.from_, slippage.to_)
-        if self.src_network_name in slip_and_gas_dict['gas_prices']:
+        gas_prices = slip_and_gas_dict.pop('gas_prices', None)
+        
+        if gas_prices and self.src_network_name in gas_prices:
             swap_info.gas_price = (
                 slip_and_gas_dict['gas_prices'][self.src_network_name]
             )
