@@ -8,10 +8,10 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
-import async_eth_lib.models.exceptions as exceptions
-from async_eth_lib.architecture.logger import CustomLogger
-from async_eth_lib.architecture.network import Network
-from async_eth_lib.data.networks import Networks
+import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.logger import CustomLogger
+from libs.async_eth_lib.architecture.network import Network
+from libs.async_eth_lib.data.networks import Networks
 
 
 class AccountManager:
@@ -31,9 +31,9 @@ class AccountManager:
         self.account_id = account_id
         self.network = network
         self.proxy = proxy
-        
+
         self._init_proxy(check_proxy)
-        self._init_headers()      
+        self._init_headers()
         self._init_web3()
         self._init_account(private_key)
         self._init_logger(create_log_file_per_account)
@@ -64,9 +64,9 @@ class AccountManager:
             'Content-Type': 'application/json',
             'User-Agent': UserAgent().random
         }
-        
+
     def _init_web3(self) -> Web3:
-        w3 = Web3(
+        self.w3 = Web3(
             Web3.AsyncHTTPProvider(
                 endpoint_uri=(
                     random.choice(self.network.rpc)
@@ -81,9 +81,7 @@ class AccountManager:
             modules={'eth': (AsyncEth,)},
             middlewares=[]
         )
-        w3.middleware_onion.inject(async_geth_poa_middleware, layer=0)
-        
-        return w3
+        self.w3.middleware_onion.inject(async_geth_poa_middleware, layer=0)
 
     def _init_account(self, private_key: str | None):
         if private_key:
@@ -98,7 +96,7 @@ class AccountManager:
             self.account = self.w3.eth.account.create(
                 extra_entropy=str(os.urandom(1))
             )
-            
+
     def _init_logger(
         self,
         create_log_file_per_account: bool

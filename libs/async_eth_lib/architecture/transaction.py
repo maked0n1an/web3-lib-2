@@ -141,7 +141,7 @@ class Transaction:
             wei=True
         )
 
-    async def auto_add_params(self, tx_params: TxParams | dict) -> TxParams:
+    async def auto_add_params(self, tx_params: TxParams | dict) -> TxParams | dict:
         """
         Add 'chainId', 'nonce', 'from', 'gasPrice' or 'maxFeePerGas' + 'maxPriorityFeePerGas' and 'gas' parameters to
             transaction parameters if they are missing.
@@ -215,9 +215,20 @@ class Transaction:
 
         Returns:
             Tx: the instance of the sent transaction.
-
         """
         tx_params = await self.auto_add_params(tx_params)
+        return await self.sign_and_send_prepared_tx_params(tx_params)
+    
+    async def sign_and_send_prepared_tx_params(self, tx_params: TxParams) -> Tx:
+        """
+        Signs the prepared transaction parameters and sends the prepared transaction.
+
+        Args:
+            tx_params (TxParams): parameters of the transaction.
+
+        Returns:
+            Tx: the instance of the sent transaction.
+        """
         signed_tx = await self.sign_transaction(tx_params)
         tx_hash = await self.account_manager.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
