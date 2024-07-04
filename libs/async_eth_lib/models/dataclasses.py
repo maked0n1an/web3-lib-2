@@ -1,4 +1,11 @@
+from typing import Union
 from dataclasses import dataclass
+
+
+@dataclass
+class FromTo:
+    from_: Union[int, float]
+    to_: Union[int, float]
 
 
 @dataclass
