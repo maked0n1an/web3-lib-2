@@ -1,0 +1,61 @@
+{
+  "stargate_settings": {
+    "bridge_eth_amount": {
+      "from": 0,
+      "to": 0,
+      "min_percent": 90,
+      "max_percent": 90
+    },
+    "bridge_stables_amount": {
+      "from": 20,
+      "to": 30,
+      "min_percent": 20,
+      "max_percent": 30
+    },
+    "max_bridge_fee_usd": 1.0,
+    "slippage_and_gas": {
+      "ETH": {
+        "slippage": {
+          "from": 0.3,
+          "to": 0.5
+        }
+      },
+      "USDVUSDV": {
+        "slippage": {
+          "from": 0.3,
+          "to": 0.5
+        },
+        "gas_prices": {
+          "BSC": 1
+        }
+      },
+      "USDV": {
+        "slippage": {
+          "from": 0.1,
+          "to": 0.5
+        },
+        "gas_prices": {
+          "BSC": 2.5
+        }
+      },
+      "STG": {
+        "slippage": {
+          "from": 0.1,
+          "to": 0.5
+        },
+        "gas_prices": {
+          "BSC": 3
+        }
+      },
+      "default": {
+        "slippage": {
+          "from": 0.3,
+          "to": 0.5
+        },
+        "gas_prices": {
+          "BSC": 3
+        }
+      }
+    }
+  }
+}
