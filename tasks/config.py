@@ -176,4 +176,28 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDV),
             ],
         },
+    },
+    MUTE_PATHS: dict[Network, dict[str, list[str]]] = {
+        Networks.ZkSync: {
+            TokenSymbol.ETH: [
+                TokenSymbol.USDC,
+                TokenSymbol.USDT,
+                TokenSymbol.WBTC,
+            ],
+            TokenSymbol.USDT: [
+                TokenSymbol.ETH,
+                TokenSymbol.USDC,
+                TokenSymbol.WBTC,
+            ],
+            TokenSymbol.USDC: [
+                TokenSymbol.ETH,
+                TokenSymbol.USDT,
+                TokenSymbol.WBTC,
+            ],
+            TokenSymbol.WBTC: [
+                TokenSymbol.ETH,
+                TokenSymbol.USDT,
+                TokenSymbol.USDC,
+            ],
+        }
     }
