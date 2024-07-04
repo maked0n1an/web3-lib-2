@@ -1,6 +1,7 @@
 import random
 from typing import Tuple
 
+import web3.exceptions as web3_exceptions
 from eth_abi import abi
 from eth_typing import HexStr
 from web3.types import TxParams
@@ -425,13 +426,13 @@ class StargateImplementation(BaseTask):
                 decimals=dst_network.decimals
             )
             
-        prepared_tx_params, crosschain_swap_info, swap_proposal = await self.get_data_for_crosschain_swap(
+        tx_params, crosschain_swap_info, swap_proposal = await self.get_data_for_crosschain_swap(
             crosschain_swap_info=crosschain_swap_info,
             swap_proposal=swap_proposal,
             src_bridge_info=src_bridge_info,
             dst_fee=dst_fee
         )
-        if 'value' not in prepared_tx_params:
+        if 'value' not in tx_params:
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
@@ -443,7 +444,7 @@ class StargateImplementation(BaseTask):
 
         native_balance = await self.client.contract.get_balance()
         value = TokenAmount(
-            amount=prepared_tx_params['value'],
+            amount=tx_params['value'],
             decimals=self.client.account_manager.network.decimals,
             wei=True
         )
@@ -488,7 +489,7 @@ class StargateImplementation(BaseTask):
             hexed_tx_hash = await self.approve_interface(
                 swap_info=crosschain_swap_info,
                 token_contract=swap_proposal.from_token,
-                tx_params=prepared_tx_params,
+                tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
 
@@ -502,42 +503,59 @@ class StargateImplementation(BaseTask):
                 )
                 await sleep(20, 50)
         else:
-            prepared_tx_params['value'] += swap_proposal.amount_from.Wei
+            tx_params['value'] += swap_proposal.amount_from.Wei
 
-        prepared_tx_params = self.set_all_gas_params(
-            swap_info=crosschain_swap_info,
-            tx_params=prepared_tx_params
-        )
-        
-        tx = await self.client.contract.transaction.sign_and_send(
-            tx_params=prepared_tx_params
-        )
+        try:
+            tx_params = self.set_all_gas_params(
+                swap_info=crosschain_swap_info,
+                tx_params=tx_params
+            )
             
-        receipt = await tx.wait_for_tx_receipt(
-            web3=self.client.account_manager.w3,
-            timeout=240
-        )
-        
-        rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
-        rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
+            tx = await self.client.contract.transaction.sign_and_send(
+                tx_params=tx_params
+            )
+                
+            receipt = await tx.wait_for_tx_receipt(
+                web3=self.client.account_manager.w3,
+                timeout=240
+            )
+            
+            rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
+            rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
 
-        if receipt['status']:
-            status = LogStatus.BRIDGED
-            message = f''
-        else:
-            status = LogStatus.FAILED
-            message = f'Failed bridge'
+            if receipt['status']:
+                status = LogStatus.BRIDGED
+                message = ''
+            else:
+                status = LogStatus.FAILED
+                message = f'Failed bridge'
 
-        message += (
-            f'{rounded_amount_from} {crosschain_swap_info.from_token_name} '
-            f'from {self.src_network_name} -> {rounded_amount_to} '
-            f'{crosschain_swap_info.to_token_name} in {dst_network_name}: '
-            f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
-        )
+            message += (
+                f'{rounded_amount_from} {crosschain_swap_info.from_token_name} '
+                f'from {self.src_network_name} -> {rounded_amount_to} '
+                f'{crosschain_swap_info.to_token_name} in {dst_network_name}: '
+                f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
+            )
 
+            self.client.account_manager.custom_logger.log_message(status, message)
+
+            return receipt['status']
+        except web3_exceptions.ContractCustomError as e:
+            status = LogStatus.ERROR
+            message = 'Try to make slippage more'
+        except Exception as e:
+            error = str(e)
+            status = LogStatus.ERROR
+
+            if 'insufficient funds for gas + value' in error:
+                message = 'Insufficient funds for gas + value'
+
+            else:
+                message = error
+                
         self.client.account_manager.custom_logger.log_message(status, message)
 
-        return True
+        return False
 
     def config_slippage_and_gas_price(
         self,
@@ -873,6 +891,7 @@ class Stargate(BaseTask):
         
         for network in random_networks:
             client = Client(
+                account_id=self.client.account_manager.account_id,
                 private_key=self.client.account_manager.account._private_key,
                 network=network,
                 proxy=self.client.account_manager.proxy
