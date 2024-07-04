@@ -246,7 +246,7 @@ class BaseTask(Utils, PriceUtils):
         """
         from_token = ContractsFactory.get_contract(
             network_name=self.client.account_manager.network.name,
-            token_symbol=swap_info.src_token_name
+            token_symbol=swap_info.from_token_name
         )
 
         if from_token.is_native_token:
@@ -258,25 +258,25 @@ class BaseTask(Utils, PriceUtils):
             decimals = balance.decimals
 
         if swap_info.amount:
-            token_amount = TokenAmount(
+            amount_from = TokenAmount(
                 amount=swap_info.amount,
                 decimals=decimals
             )
-            if token_amount.Wei > balance.Wei:
-                token_amount = balance
+            if amount_from.Wei > balance.Wei:
+                amount_from = balance
 
         elif swap_info.amount_by_percent:
-            token_amount = TokenAmount(
+            amount_from = TokenAmount(
                 amount=balance.Wei * swap_info.amount_by_percent,
                 decimals=decimals,
                 wei=True
             )
         else:
-            token_amount = balance
+            amount_from = balance
 
         return SwapProposal(
             from_token=from_token,
-            amount_from=token_amount
+            amount_from=amount_from
         )
 
     async def compute_min_destination_amount(
@@ -302,7 +302,7 @@ class BaseTask(Utils, PriceUtils):
         if not swap_proposal.to_token:
             swap_proposal.to_token = ContractsFactory.get_contract(
                 network_name=self.client.account_manager.network.name,
-                token_symbol=swap_info.dst_token_name
+                token_symbol=swap_info.to_token_name
             )
 
         decimals = await self.client.contract.get_decimals(
@@ -319,6 +319,6 @@ class BaseTask(Utils, PriceUtils):
             from_token=swap_proposal.from_token,
             amount_from=swap_proposal.amount_from,
             to_token=swap_proposal.to_token,
-            min_to_amount=min_amount_out
+            min_amount_to=min_amount_out
         )
 # endregion Base class for actions

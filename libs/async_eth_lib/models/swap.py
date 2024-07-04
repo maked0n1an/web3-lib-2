@@ -12,8 +12,8 @@ from libs.async_eth_lib.data.networks import Networks
 class SwapInfo:
     def __init__(
         self,
-        src_token_name: str = None,
-        dst_token_name: str = None,
+        from_token_name: str = None,
+        to_token_name: str = None,
         slippage: float = 0.5,
         src_network: Network = Networks.Goerli,
         dst_network: Network | None = None,
@@ -31,8 +31,8 @@ class SwapInfo:
         Initialize the SwapInfo class.
 
         Args:
-            from_token (str): The token to swap from.
-            to_token (str): The token to swap to.
+            from_token_name (str): The token to swap from.
+            to_token_name (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
             src_network_name (str | None): The source network for the swap (default is None).
             dst_network_name (str | None): The destination network for the swap (default is None).
@@ -47,8 +47,8 @@ class SwapInfo:
             gas_limit (int | None): Gas limit for the transaction (default is None).
 
         """
-        self.src_token_name = src_token_name
-        self.dst_token_name = dst_token_name
+        self.from_token_name = from_token_name
+        self.to_token_name = to_token_name
         self.src_network = src_network
         self.dst_network = dst_network
         self.amount = amount
@@ -87,21 +87,12 @@ class SwapInfo:
 
 # region Class to prepare swap
 class SwapProposal:
-    """
-    Attributes:
-        from_token (TokenContract): The contract of the token to swap from.
-        to_token (TokenContract): The contract of the token to swap to.
-        amount_from (TokenAmount): The amount of the 'from' token.
-        min_to_amount (TokenAmount | None): The minimum amount of the 'to' token.
-
-    """
-
     def __init__(
         self,
         from_token: TokenContract,
         amount_from: TokenAmount,
         to_token: TokenContract | None = None,
-        min_to_amount: TokenAmount | None = None
+        min_amount_to: TokenAmount | None = None
     ) -> None:
         """
         Initialize the SwapQuery class.
@@ -110,13 +101,13 @@ class SwapProposal:
             from_token (TokenContract): The contract of the token to swap from.
             amount_from (TokenAmount): The amount of the from token.
             to_token (TokenContract | None): The contract of the token to swap to (default is None).
-            min_to_amount (TokenAmount | None): The minimum amount of the to token (default is None).
+            min_amount_to (TokenAmount | None): The minimum amount of the to token (default is None).
 
         """
         self.from_token = from_token
         self.to_token = to_token
         self.amount_from = amount_from
-        self.min_to_amount = min_to_amount
+        self.min_amount_to = min_amount_to
 # endregion Class to prepare swap
 
 
