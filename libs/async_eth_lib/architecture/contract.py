@@ -1,5 +1,8 @@
 from web3 import Web3
-from web3.contract import Contract, AsyncContract
+from web3.contract import (
+    Contract as web3_Contract, 
+    AsyncContract as web3_AsyncContract
+)
 from web3.types import TxParams
 from eth_typing import ChecksumAddress
 
@@ -113,12 +116,12 @@ class Contract:
         Returns:
             Tx: The transaction params object.
         """
-        if type(token_contract) in ParamsTypes.Address.__args__:
+        if type(token_contract) not in ParamsTypes.Address.__args__:
             token_address, _ = await self.get_contract_attributes(contract=token_contract)
-            token_contract = await self.get_token_contract(
-                token=token_address
-            )
-
+        else:
+            token_address = token_contract
+            
+        token_contract = await self.get_token_contract(token=token_address)
         spender_address = Web3.to_checksum_address(tx_params['to'])
 
         if not amount:
@@ -170,7 +173,7 @@ class Contract:
         self,
         contract: ParamsTypes.Contract,
         abi: list | str | None = None
-    ) -> Contract | AsyncContract:
+    ) -> web3_Contract | web3_AsyncContract:
         """
         Get a contract instance.
 
@@ -221,7 +224,7 @@ class Contract:
             owner = self.account_manager.account.address
 
         if type(token_contract) in ParamsTypes.Address.__args__:
-            token_contract = await self.get_token_contract(contract=token_contract)
+            token_contract = await self.get_token_contract(token=token_contract)
 
         else:
             token_contract = await self.get(contract=token_contract)
@@ -365,7 +368,7 @@ class Contract:
     async def get_token_contract(
         self,
         token: ParamsTypes.Contract | ParamsTypes.Address
-    ) -> Contract | AsyncContract:
+    ) -> web3_Contract | web3_AsyncContract:
         """
         Get a contract instance for the specified token.
 

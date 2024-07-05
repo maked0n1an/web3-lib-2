@@ -167,7 +167,7 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDV),
             ],
         },
-    },
+    }
     MUTE_PATHS: dict[Network, dict[str, list[str]]] = {
         Networks.ZkSync: {
             TokenSymbol.ETH: [
@@ -189,9 +189,9 @@ class Config:
                 TokenSymbol.ETH,
                 TokenSymbol.USDT,
                 TokenSymbol.USDC,
-            ],
+            ]
         }
-    },
+    }
     SPACE_FI_PATHS: dict[Network, dict[str, list[str]]] = {
         Networks.ZkSync: {
             TokenSymbol.ETH: [
@@ -209,6 +209,6 @@ class Config:
             TokenSymbol.WBTC: [
                 TokenSymbol.ETH,
                 TokenSymbol.USDC,
-            ],
+            ]
         }
     }

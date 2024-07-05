@@ -341,7 +341,7 @@ class ZkSyncTokenContracts(TokenContractData):
         address=TokenContractData.ZERO_ADDRESS
     )
 
-    ceBUSD = TokenContract(
+    BUSD = TokenContract(
         title=TokenSymbol.BUSD,
         address='0x2039bb4116B4EFc145Ec4f0e2eA75012D6C0f181'
     )
