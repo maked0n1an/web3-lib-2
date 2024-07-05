@@ -1,0 +1,58 @@
+[
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "amountOut",
+                "type": "uint256"
+            },
+            {
+                "name": "path",
+                "type": "address[]"
+            },
+            {
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "name": "deadline",
+                "type": "uint256"
+            }
+        ],
+        "name": "swapExactETHForToken",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "constant": false,
+        "inputs": [
+            {
+                "name": "fromAmount",
+                "type": "uint256"
+            },
+            {
+                "name": "minToAmount",
+                "type": "uint256"
+            },
+            {
+                "name": "path",
+                "type": "address[]"
+            },
+            {
+                "name": "to",
+                "type": "address"
+            },
+            {
+                "name": "deadline",
+                "type": "uint256"
+            }
+        ],
+        "name": "swapExactTokensForETH",
+        "outputs": [],
+        "payable": false,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]

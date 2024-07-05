@@ -1,14 +1,44 @@
 {
+  "space_fi_settings":{
+    "swap_eth_amount": {
+      "from": 0.0006,
+      "to": 0.0006,
+      "min_percent": 40,
+      "max_percent": 50
+    },
+    "swap_stables_amount": {
+      "from": 0,
+      "to": 0,
+      "min_percent": 100,
+      "max_percent": 100
+    },
+    "slippage": 0.5
+  },
+  "mute_settings":{
+    "swap_eth_amount": {
+      "from": 0.0005,
+      "to": 0.0005,
+      "min_percent": 10,
+      "max_percent": 10
+    },
+    "swap_stables_amount": {
+      "from": 0,
+      "to": 0,
+      "min_percent": 100,
+      "max_percent": 100
+    },
+    "slippage": 0.5
+  },
   "stargate_settings": {
     "bridge_eth_amount": {
       "from": 0,
       "to": 0,
-      "min_percent": 90,
-      "max_percent": 90
+      "min_percent": 10,
+      "max_percent": 10
     },
     "bridge_stables_amount": {
-      "from": 20,
-      "to": 30,
+      "from": 0.001,
+      "to": 0.001,
       "min_percent": 20,
       "max_percent": 30
     },

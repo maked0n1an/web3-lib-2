@@ -191,4 +191,24 @@ class Config:
                 TokenSymbol.USDC,
             ],
         }
+    },
+    SPACE_FI_PATHS: dict[Network, dict[str, list[str]]] = {
+        Networks.ZkSync: {
+            TokenSymbol.ETH: [
+                TokenSymbol.USDC,
+                TokenSymbol.USDT,
+                TokenSymbol.WBTC,
+            ],
+            TokenSymbol.USDC: [
+                TokenSymbol.ETH,
+                TokenSymbol.WBTC,
+            ],
+            TokenSymbol.USDT: [
+                TokenSymbol.ETH,
+            ],
+            TokenSymbol.WBTC: [
+                TokenSymbol.ETH,
+                TokenSymbol.USDC,
+            ],
+        }
     }
