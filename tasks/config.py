@@ -88,15 +88,6 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDC_E),
                 (Networks.Optimism, TokenSymbol.USDV),
             ],
-            ## TokenSymbol.BUSD: [
-            ##     (Networks.Arbitrum, TokenSymbol.USDT),
-            ##     (Networks.Arbitrum, TokenSymbol.USDC_E),
-            ##     (Networks.Avalanche,TokenSymbol.USDT),
-            ##     (Networks.Avalanche,TokenSymbol.USDC_E),
-            ##     (Networks.Polygon,  TokenSymbol.USDT),
-            ##     (Networks.Polygon,  TokenSymbol.USDC_E),
-            ##     (Networks.Optimism, TokenSymbol.USDC_E),
-            ## ],
             TokenSymbol.STG: [
                 (Networks.Avalanche,TokenSymbol.STG),
                 (Networks.Arbitrum, TokenSymbol.STG),

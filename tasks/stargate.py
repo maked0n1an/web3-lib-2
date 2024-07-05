@@ -929,7 +929,6 @@ class Stargate(BaseTask):
                     max_percent = settings.bridge_stables_amount_percent.to_
 
                 crosschain_swap_info = SwapInfo(
-                    src_network=network,
                     from_token_name=token_sym,
                     amount_from=amount_from,
                     amount_to=amount_to,

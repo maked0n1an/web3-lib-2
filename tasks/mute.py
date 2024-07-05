@@ -42,6 +42,8 @@ class MuteSettings():
             from_=mute_settings['swap_stables_amount']['min_percent'],
             to_=mute_settings['swap_stables_amount']['max_percent']
         )
+        self.slippage: int = mute_settings['slippage']
+
 
 # region Available routes
 class MuteRoutes(TxPayloadDetailsFetcher):
@@ -311,10 +313,8 @@ class MuteImplementation(BaseTask):
         if swap_info.from_token_name == TokenSymbol.ETH:
             from_token = ZkSyncTokenContracts.WETH
         else:
-            from_token = ZkSyncTokenContracts.get_token(
-                swap_info.from_token_name
-            )
-
+            from_token = swap_proposal.from_token
+        
         if swap_info.to_token_name == TokenSymbol.ETH:
             swap_proposal.to_token = ZkSyncTokenContracts.WETH
         else:
@@ -395,6 +395,7 @@ class Mute(BaseTask):
                 from_token_name=token_symbol,
                 amount_from=amount_from,
                 amount_to=amount_to,
+                slippage=settings.slippage,
                 min_percent=min_percent,
                 max_percent=max_percent
             )
@@ -421,7 +422,7 @@ class Mute(BaseTask):
             self.client.account_manager.custom_logger.log_message(
                 status=LogStatus.WARNING,
                 message=(
-                    'Failed to swap: not found enough balance in native or tokens in any network'
+                    'Failed to swap: not found enough balance in native or tokens'
                 )
             )
             
@@ -429,4 +430,4 @@ class Mute(BaseTask):
         mute = MuteImplementation(client=client)
         
         return await mute.swap(swap_info)
-    # endregion Random function
+# endregion Random function
