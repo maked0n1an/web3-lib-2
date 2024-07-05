@@ -231,17 +231,16 @@ class MuteImplementation(BaseTask):
 
         if not swap_proposal.from_token.is_native_token:
             hexed_tx_hash = await self.approve_interface(
-                token_contract=swap_proposal.from_token,
-                spender_address=contract.address,
-                amount=swap_proposal.amount_from,
                 swap_info=swap_info,
-                tx_params=tx_params
+                token_contract=swap_proposal.from_token,
+                tx_params=tx_params,
+                amount=swap_proposal.amount_from
             )
 
             if hexed_tx_hash:
                 self.client.account_manager.custom_logger.log_message(
                     LogStatus.APPROVED,
-                    message=f"{swap_proposal.from_token.title} {swap_proposal.amount_from.Ether}"
+                    message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
                 )
                 await sleep(8, 15)
         else:
@@ -368,7 +367,10 @@ class Mute(BaseTask):
             if token_contract.is_native_token:
                 balance = await client.contract.get_balance()
 
-                if float(balance.Ether) < settings.swap_eth_amount.from_:
+                if (
+                    float(balance.Ether) <= settings.swap_eth_amount.from_
+                    and settings.swap_eth_amount.from_ == 0
+                ):
                     continue
 
                 amount_from = settings.swap_eth_amount.from_
@@ -378,7 +380,10 @@ class Mute(BaseTask):
             else:
                 balance = await client.contract.get_balance(token_contract)
 
-                if float(balance.Ether) < settings.swap_stables_amount.from_:
+                if (
+                    float(balance.Ether) <= settings.swap_stables_amount.from_
+                    and settings.swap_stables_amount.from_ == 0
+                ):
                     continue
 
                 amount_from = settings.swap_stables_amount.from_
@@ -399,7 +404,7 @@ class Mute(BaseTask):
             found_amount_from = (
                 swap_info.amount
                 if swap_info.amount
-                else round(swap_info.amount_by_percent * float(balance), 6)
+                else round(swap_info.amount_by_percent * float(balance.Ether), 6)
             )
             
             if dst_data:
