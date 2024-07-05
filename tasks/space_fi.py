@@ -213,7 +213,7 @@ class SpaceFiImplementation(BaseTask):
 # endregion Implementation
 
 
-# region Available routes
+# region Available paths
 class SpaceFiRoutes(TxPayloadDetailsFetcher):
     PATHS = {
         TokenSymbol.ETH: {
