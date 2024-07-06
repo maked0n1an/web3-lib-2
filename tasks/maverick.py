@@ -193,7 +193,7 @@ class MaverickData(TxPayloadDetailsFetcher):
         (TokenSymbol.USDC, TokenSymbol.BUSD):
             "0xe799043fb52ff46cc57ce8a8b1ac3f151ba270f7",
         (TokenSymbol.USDC, TokenSymbol.ETH):
-            "0x57681331b6cb8df134dccb4b54dc30e8fcdf0ad8",
+            "0x74a8f079eb015375b5dbb3ee98cbb1b91089323f",
         (TokenSymbol.BUSD, TokenSymbol.ETH):
             "0x3ae63fb198652e294b8de4c2ef659d95d5ff28be"
     }
