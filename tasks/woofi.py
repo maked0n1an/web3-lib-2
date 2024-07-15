@@ -145,9 +145,9 @@ class WooFi(BaseTask):
         )
 
         min_to_amount = await contract.functions.tryQuerySwap(
-            swap_query.source_token.address,
+            swap_query.from_token.address,
             to_token.address,
-            swap_query.source_amount.Wei
+            swap_query.amount_from.Wei
         ).call()
 
         return await self.compute_min_destination_amount(
