@@ -16,7 +16,7 @@ from libs.async_eth_lib.models.others import (
     LogStatus, TokenSymbol
 )
 from libs.async_eth_lib.models.swap import (
-    SwapInfo, SwapProposal, TxPayloadDetails, TxPayloadDetailsFetcher
+    OperationInfo, SwapProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
 from tasks._common.utils import BaseTask
 from tasks.config import Config
@@ -58,7 +58,7 @@ class SpaceFiImplementation(BaseTask):
 
     async def swap(
         self,
-        swap_info: SwapInfo
+        swap_info: OperationInfo
     ) -> bool:
         check_message = self.validate_swap_inputs(
             first_arg=swap_info.from_token_name,
@@ -189,7 +189,7 @@ class SpaceFiImplementation(BaseTask):
     
     async def _create_swap_proposal(
         self,
-        swap_info: SwapInfo
+        swap_info: OperationInfo
     ) -> SwapProposal:
         swap_proposal = await self.compute_source_token_amount(
             swap_info=swap_info
@@ -350,7 +350,7 @@ class SpaceFi(BaseTask):
                 min_percent = settings.swap_stables_amount_percent.from_
                 max_percent = settings.swap_stables_amount_percent.to_
 
-            swap_info = SwapInfo(
+            swap_info = OperationInfo(
                 from_token_name=token_symbol,
                 amount_from=amount_from,
                 amount_to=amount_to,

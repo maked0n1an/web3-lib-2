@@ -14,7 +14,7 @@ from libs.async_eth_lib.models.bridge import NetworkData, NetworkDataFetcher, To
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.dataclasses import FromTo
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import SwapInfo, SwapProposal
+from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.utils import BaseTask
@@ -378,14 +378,14 @@ class StargateImplementation(BaseTask):
         return self._token_path
     
     @token_path.setter
-    def token_path(self, crosschain_swap_info: SwapInfo):
+    def token_path(self, crosschain_swap_info: OperationInfo):
         self._token_path = crosschain_swap_info.from_token_name
         if crosschain_swap_info.to_token_name in StargateData.SPECIAL_COINS:
             self._token_path += crosschain_swap_info.to_token_name
 
     async def bridge(
         self,
-        crosschain_swap_info: SwapInfo,
+        crosschain_swap_info: OperationInfo,
         max_fee: float = 0.7,
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
@@ -560,8 +560,8 @@ class StargateImplementation(BaseTask):
 
     def config_slippage_and_gas_price(
         self,
-        swap_info: SwapInfo
-    ) -> SwapInfo:
+        swap_info: OperationInfo
+    ) -> OperationInfo:
         settings = StargateSlippageSettings()
 
         if self.token_path not in settings.slip_and_gas:
@@ -586,11 +586,11 @@ class StargateImplementation(BaseTask):
 
     async def get_data_for_crosschain_swap(
         self,
-        crosschain_swap_info: SwapInfo,
+        crosschain_swap_info: OperationInfo,
         swap_proposal: SwapProposal,
         src_bridge_info: TokenBridgeInfo,
         dst_fee: TokenAmount | None = None
-    ) -> Tuple[TxParams, SwapInfo, SwapProposal]:
+    ) -> Tuple[TxParams, OperationInfo, SwapProposal]:
         if crosschain_swap_info.to_token_name in StargateData.SPECIAL_COINS:
             dst_chain_id = StargateData.get_chain_id(
                 network_name=crosschain_swap_info.dst_network.name
@@ -929,7 +929,7 @@ class Stargate(BaseTask):
                     min_percent = settings.bridge_stables_amount_percent.from_
                     max_percent = settings.bridge_stables_amount_percent.to_
 
-                crosschain_swap_info = SwapInfo(
+                crosschain_swap_info = OperationInfo(
                     from_token_name=token_sym,
                     amount_from=amount_from,
                     amount_to=amount_to,

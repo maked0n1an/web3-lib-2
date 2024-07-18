@@ -5,7 +5,7 @@ from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes
-from libs.async_eth_lib.models.swap import SwapInfo, SwapProposal
+from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.utils import BaseTask
@@ -61,7 +61,7 @@ class WoofiContracts:
 class WooFi(BaseTask):
     async def swap(
         self,
-        swap_info: SwapInfo
+        swap_info: OperationInfo
     ) -> str:
         check_message = self.validate_swap_inputs(
             first_arg=self.client.account_manager.network.name,
@@ -135,7 +135,7 @@ class WooFi(BaseTask):
     async def create_swap_query(
         self,
         contract: ParamsTypes.Contract,
-        swap_info: SwapInfo
+        swap_info: OperationInfo
     ) -> SwapProposal:
         swap_query = await self.compute_source_token_amount(swap_info=swap_info)
 

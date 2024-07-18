@@ -8,8 +8,8 @@ from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.networks import Networks
 
 
-# region Class to get info about swap
-class SwapInfo:
+# region Class to get info about operations like swap, add liquidity, remove liquidity etc.
+class OperationInfo:
     def __init__(
         self,
         from_token_name: str = None,
@@ -28,7 +28,7 @@ class SwapInfo:
         multiplier_of_gas: float | None = None
     ) -> None:
         """
-        Initialize the SwapInfo class.
+        Initialize the OperationInfo class.
 
         Args:
             from_token_name (str): The token to swap from.
