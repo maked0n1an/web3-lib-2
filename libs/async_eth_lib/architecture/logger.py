@@ -76,7 +76,7 @@ class CustomLogger:
         caller_frame = inspect.currentframe().f_back
         calling_line = f"{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}"
 
-        message_with_calling_line = f"{calling_line:<25} | {message}"
+        message_with_calling_line = f"{calling_line:<15} | {message}"
         extra = {
             "account_id": self.account_id,
             "address": self.masked_address,
