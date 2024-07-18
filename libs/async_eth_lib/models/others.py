@@ -114,7 +114,7 @@ class TokenAmount:
             str: A string representation of the TokenAmount.
 
         """
-        return str(self.Wei)
+        return str(self.Ether)
 
 
 #region Params types
