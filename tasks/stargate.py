@@ -413,8 +413,9 @@ class StargateImplementation(BaseTask):
         swap_proposal = await self.compute_source_token_amount(crosschain_swap_info)
         swap_proposal = await self.compute_min_destination_amount(
             swap_proposal=swap_proposal,
-            min_to_amount=swap_proposal.amount_from.Ether,
+            min_to_amount=swap_proposal.amount_from.Wei,
             swap_info=crosschain_swap_info,
+            is_to_token_price_wei=True
         )
 
         if dst_fee and isinstance(dst_fee, float):

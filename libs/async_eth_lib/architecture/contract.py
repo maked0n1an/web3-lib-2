@@ -263,11 +263,10 @@ class Contract:
             address = self.account_manager.account.address
 
         if token_contract:
-            decimals = await self.get_decimals(token_contract=token_contract)
             contract = await self.get_token_contract(token=token_contract)
 
             amount = await contract.functions.balanceOf(address).call()
-
+            decimals = await self.get_decimals(token_contract=token_contract)
         else:
             amount = await self.account_manager.w3.eth.get_balance(account=address)
             decimals = self.account_manager.network.decimals
