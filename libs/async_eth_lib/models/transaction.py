@@ -9,7 +9,7 @@ from web3.types import (
 )
 
 import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.architecture.client import Client
 from libs.pretty_utils.type_functions.classes import AutoRepr
 
 
@@ -96,20 +96,20 @@ class Tx(AutoRepr):
         self.function_identifier = None
         self.input_data = None
 
-    async def parse_params(self, account_manager: AccountManager) -> dict[str, Any]:
+    async def parse_params(self, client: Client) -> dict[str, Any]:
         """
         Parse the parameters of a sent transaction.
 
         Args:
-            account_manager (AccountManager): the AccountManager instance.
+            client (Client): the Client instance.
 
         Returns:
             Dict[str, Any]: the parameters of a sent transaction.
 
         """
-        tx_data: TxData = await account_manager.w3.eth.get_transaction(transaction_hash=self.hash)
+        tx_data: TxData = await client.w3.eth.get_transaction(transaction_hash=self.hash)
         self.params = {
-            'chainId': account_manager.network.chain_id,
+            'chainId': client.network.chain_id,
             'nonce': int(tx_data.get('nonce')),
             'gasPrice': int(tx_data.get('gasPrice')),
             'gas': int(tx_data.get('gas')),

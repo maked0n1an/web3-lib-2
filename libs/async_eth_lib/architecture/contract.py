@@ -1,23 +1,36 @@
 from web3 import Web3
+from web3.types import TxParams
 from web3.contract import (
     Contract as web3_Contract, 
     AsyncContract as web3_AsyncContract
 )
-from web3.types import TxParams
 from eth_typing import ChecksumAddress
+from eth_account.signers.local import LocalAccount
 
-from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.architecture.transaction import Transaction
-from libs.async_eth_lib.models.dataclasses import CommonValues, DefaultAbis
+from libs.async_eth_lib.models.dataclasses import (
+    CommonValues, DefaultAbis
+)
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.helpers import make_request, text_between
+from libs.async_eth_lib.utils.helpers import (
+    make_request, text_between
+)
 
 
-class Contract:
-    def __init__(self, account_manager: AccountManager):
-        self.account_manager = account_manager
-        self.transaction = Transaction(account_manager)
+class Contract(Transaction):
+    def __init__(
+        self, 
+        account: LocalAccount,
+        network: Network,
+        w3: Web3,
+    ):
+        super.__init__(
+            account=account,
+            network=network,
+            web3=w3
+        )
 
     @staticmethod
     async def get_signature(hex_signature: str) -> list | None:
@@ -161,9 +174,9 @@ class Contract:
             'data': data
         })
 
-        tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
+        tx = await self.sign_and_send(tx_params=new_tx_params)
         receipt = await tx.wait_for_tx_receipt(
-            web3=self.account_manager.w3,
+            web3=self.w3,
             timeout=240
         )
 
@@ -195,8 +208,34 @@ class Contract:
         if not abi:
             abi = contract_abi
 
-        contract = self.account_manager.w3.eth.contract(
+        contract = self.w3.eth.contract(
             address=contract_address, abi=abi
+        )
+
+        return contract
+    
+    async def get_token_contract(
+        self,
+        token: ParamsTypes.Contract | ParamsTypes.Address
+    ) -> web3_Contract | web3_AsyncContract:
+        """
+        Get a contract instance for the specified token.
+
+        Args:
+            token (RawContract | AsyncContract | Contract | str | Address | ChecksumAddress | ENS): The token contract or its address.
+
+        Returns:
+            Contract | AsyncContract: The contract instance.
+        """
+        if type(token) in ParamsTypes.Address.__args__:
+            address = Web3.to_checksum_address(token)
+            abi = DefaultAbis.Token
+        else:
+            address = Web3.to_checksum_address(token.address)
+            abi = token.abi if token.abi else DefaultAbis.Token
+
+        contract = self.w3.eth.contract(
+            address=address, abi=abi
         )
 
         return contract
@@ -221,7 +260,7 @@ class Contract:
         spender_address = Web3.to_checksum_address(spender_address)
 
         if not owner:
-            owner = self.account_manager.account.address
+            owner = self.account.address
 
         if type(token_contract) in ParamsTypes.Address.__args__:
             token_contract = await self.get_token_contract(token=token_contract)
@@ -260,7 +299,7 @@ class Contract:
             If `token_contract` is None, it retrieves the native token balance.
         """
         if not address:
-            address = self.account_manager.account.address
+            address = self.account.address
 
         if token_contract:
             contract = await self.get_token_contract(token=token_contract)
@@ -268,8 +307,8 @@ class Contract:
             amount = await contract.functions.balanceOf(address).call()
             decimals = await self.get_decimals(token_contract=token_contract)
         else:
-            amount = await self.account_manager.w3.eth.get_balance(account=address)
-            decimals = self.account_manager.network.decimals
+            amount = await self.w3.eth.get_balance(account=address)
+            decimals = self.network.decimals
 
         return TokenAmount(
             amount=amount,
@@ -295,7 +334,7 @@ class Contract:
 
         if type(token_contract) in ParamsTypes.TokenContract.__args__:
             if not token_contract.decimals:
-                contract = self.account_manager.w3.eth.contract(
+                contract = self.w3.eth.contract(
                     address=token_contract.address,
                     abi=token_contract.abi
                 )
@@ -333,7 +372,7 @@ class Contract:
         if isinstance(gas_price, float | int):
             gas_price = TokenAmount(
                 amount=gas_price,
-                decimals=self.account_manager.network.decimals,
+                decimals=self.network.decimals,
                 set_gwei=True
             )
         tx_params['gasPrice'] = gas_price.GWei
@@ -358,34 +397,8 @@ class Contract:
         if isinstance(gas_limit, int):
             gas_limit = TokenAmount(
                 amount=gas_limit,
-                decimals=self.account_manager.network.decimals,
+                decimals=self.network.decimals,
                 wei=True
             )
         tx_params['gas'] = gas_limit.Wei
         return tx_params
-
-    async def get_token_contract(
-        self,
-        token: ParamsTypes.Contract | ParamsTypes.Address
-    ) -> web3_Contract | web3_AsyncContract:
-        """
-        Get a contract instance for the specified token.
-
-        Args:
-            token (RawContract | AsyncContract | Contract | str | Address | ChecksumAddress | ENS): The token contract or its address.
-
-        Returns:
-            Contract | AsyncContract: The contract instance.
-        """
-        if type(token) in ParamsTypes.Address.__args__:
-            address = Web3.to_checksum_address(token)
-            abi = DefaultAbis.Token
-        else:
-            address = Web3.to_checksum_address(token.address)
-            abi = token.abi if token.abi else DefaultAbis.Token
-
-        contract = self.account_manager.w3.eth.contract(
-            address=address, abi=abi
-        )
-
-        return contract

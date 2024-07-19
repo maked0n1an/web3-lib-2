@@ -1,3 +1,4 @@
+from web3 import Web3
 from web3.types import (
     TxParams
 )
@@ -5,15 +6,23 @@ from eth_typing import ChecksumAddress
 from eth_account.datastructures import (
     SignedTransaction
 )
+from eth_account.signers.local import LocalAccount
 
-from libs.async_eth_lib.architecture.account_manager import AccountManager
+from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.models.others import TokenAmount
 from libs.async_eth_lib.models.transaction import Tx
 
 
 class Transaction:
-    def __init__(self, account_manager: AccountManager) -> None:
-        self.account_manager = account_manager
+    def __init__(
+        self, 
+        account: LocalAccount,
+        network: Network,
+        w3: Web3,
+    ) -> None:
+        self.account = account
+        self.network = network
+        self.w3 = w3
 
     @staticmethod
     async def decode_input_data():
@@ -32,9 +41,9 @@ class Transaction:
 
         """
         if not address:
-            address = self.account_manager.account.address
+            address = self.account.address
 
-        nonce = await self.account_manager.w3.eth.get_transaction_count(address)
+        nonce = await self.w3.eth.get_transaction_count(address)
         return nonce
 
     async def get_gas_price(self) -> TokenAmount:
@@ -45,16 +54,16 @@ class Transaction:
             Wei 
 
         """
-        amount = await self.account_manager.w3.eth.gas_price
+        amount = await self.w3.eth.gas_price
 
         return TokenAmount(
             amount=amount,
-            decimals=self.account_manager.network.decimals,
+            decimals=self.network.decimals,
             wei=True
         )
 
     async def get_base_fee(self, increase_gas: float = 1.):
-        last_block = await self.account_manager.w3.eth.get_block('latest')
+        last_block = await self.w3.eth.get_block('latest')
         return int(last_block['baseFeePerGas'] * increase_gas)
 
     async def get_max_priority_fee_(
@@ -69,11 +78,11 @@ class Transaction:
 
         """
         if not block:
-            block = await self.account_manager.w3.eth.get_block('latest')
+            block = await self.w3.eth.get_block('latest')
 
         block_number = block['number']
         latest_block_transaction_count = (
-            await self.account_manager.w3.eth.get_block_transaction_count(
+            await self.w3.eth.get_block_transaction_count(
                 block_number)
         )
         max_priority_fee_per_gas_lst = []
@@ -81,7 +90,7 @@ class Transaction:
         for i in range(latest_block_transaction_count):
             try:
                 transaction = (
-                    await self.account_manager.w3.eth.get_transaction_by_block(
+                    await self.w3.eth.get_transaction_by_block(
                         block_number, i
                     )
                 )
@@ -102,7 +111,7 @@ class Transaction:
 
         return TokenAmount(
             amount=max_priority_fee_per_gas,
-            decimals=self.account_manager.network.decimals,
+            decimals=self.network.decimals,
             wei=True
         )
 
@@ -114,11 +123,11 @@ class Transaction:
             Wei: the current max priority fee
 
         """
-        max_priority_fee = await self.account_manager.w3.eth.max_priority_fee
+        max_priority_fee = await self.w3.eth.max_priority_fee
 
         return TokenAmount(
             max_priority_fee,
-            decimals=self.account_manager.network.decimals,
+            decimals=self.network.decimals,
             wei=True
         )
 
@@ -133,11 +142,11 @@ class Transaction:
             Wei: the estimate gas.
 
         """
-        gas_price = await self.account_manager.w3.eth.estimate_gas(transaction=tx_params)
+        gas_price = await self.w3.eth.estimate_gas(transaction=tx_params)
 
         return TokenAmount(
             gas_price,
-            decimals=self.account_manager.network.decimals,
+            decimals=self.network.decimals,
             wei=True
         )
 
@@ -154,15 +163,15 @@ class Transaction:
 
         """
         if 'chainId' not in tx_params:
-            tx_params['chainId'] = self.account_manager.network.chain_id
+            tx_params['chainId'] = self.network.chain_id
 
         if 'nonce' not in tx_params:
             tx_params['nonce'] = await self.get_nonce()
 
         if 'from' not in tx_params:
-            tx_params['from'] = self.account_manager.account.address
+            tx_params['from'] = self.account.address
 
-        is_eip_1559_tx_type = self.account_manager.network.tx_type == 2
+        is_eip_1559_tx_type = self.network.tx_type == 2
         current_gas_price = await self.get_gas_price()
 
         if is_eip_1559_tx_type:
@@ -197,8 +206,7 @@ class Transaction:
             SignedTransaction: the signed transaction.
 
         """
-        signed_tx = self.account_manager.account.sign_transaction(
-            transaction_dict=tx_params)
+        signed_tx = self.account.sign_transaction(tx_params)
 
         return signed_tx
 
@@ -230,6 +238,6 @@ class Transaction:
             Tx: the instance of the sent transaction.
         """
         signed_tx = await self.sign_transaction(tx_params)
-        tx_hash = await self.account_manager.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
+        tx_hash = await self.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
         return Tx(tx_hash=tx_hash, params=tx_params)

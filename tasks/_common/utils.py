@@ -211,7 +211,7 @@ class BaseTask(Utils, PriceUtils):
         approved = await self.client.contract.get_approved_amount(
             token_contract=token_contract,
             spender_address=tx_params['to'],
-            owner=self.client.account_manager.account.address
+            owner=self.client.account.address
         )
 
         if amount.Wei <= approved.Wei:
@@ -245,7 +245,7 @@ class BaseTask(Utils, PriceUtils):
             TokenSwapProposal: The prepared proposal for the swap.
         """
         from_token = ContractsFactory.get_contract(
-            network_name=self.client.account_manager.network.name,
+            network_name=self.client.network.name,
             token_symbol=swap_info.from_token_name
         )
 
@@ -301,7 +301,7 @@ class BaseTask(Utils, PriceUtils):
 
         if not swap_proposal.to_token:
             swap_proposal.to_token = ContractsFactory.get_contract(
-                network_name=self.client.account_manager.network.name,
+                network_name=self.client.network.name,
                 token_symbol=swap_info.to_token_name
             )
 
