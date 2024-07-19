@@ -5,8 +5,8 @@ from web3.types import TxParams
 
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
-from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import SwapInfo, SwapProposal
+from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 
 
 # region To construct tx
@@ -147,7 +147,7 @@ class BaseTask(Utils, PriceUtils):
 
     def set_all_gas_params(
         self,
-        swap_info: SwapInfo,
+        swap_info: OperationInfo,
         tx_params: dict | TxParams
     ) -> dict | TxParams:
         """
@@ -180,7 +180,7 @@ class BaseTask(Utils, PriceUtils):
 
     async def approve_interface(
         self,
-        swap_info: SwapInfo,
+        swap_info: OperationInfo,
         token_contract: ParamsTypes.TokenContract,
         tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
@@ -233,7 +233,7 @@ class BaseTask(Utils, PriceUtils):
 
     async def compute_source_token_amount(
         self,
-        swap_info: SwapInfo
+        swap_info: OperationInfo
     ) -> SwapProposal:
         """
         Compute the source token amount for a given swap.
@@ -283,7 +283,7 @@ class BaseTask(Utils, PriceUtils):
         self,
         swap_proposal: SwapProposal,
         min_to_amount: int,
-        swap_info: SwapInfo,
+        swap_info: OperationInfo,
         is_to_token_price_wei: bool = False
     ) -> SwapProposal:
         """
