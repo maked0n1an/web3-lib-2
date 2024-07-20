@@ -114,7 +114,7 @@ class Maverick(BaseTask):
         for address in tx_payload_details.swap_path:
             encoded_path_payload += Web3.to_bytes(hexstr=HexStr(address))
 
-        account_address = self.client.account_manager.account.address
+        account_address = self.client.account.address
         contract = await self.client.contract.get(
             contract=self.MAVERICK_ROUTER
         )       
@@ -123,7 +123,7 @@ class Maverick(BaseTask):
             recipient_address = TokenContractData.ZERO_ADDRESS
             second_data = contract.encodeABI('unwrapWETH9', args=[
                 swap_proposal.min_amount_to.Wei,
-                self.client.account_manager.account.address,
+                self.client.account.address,
             ])
             
         else:    
@@ -165,7 +165,7 @@ class Maverick(BaseTask):
             )
 
             if hexed_tx_hash:
-                self.client.account_manager.custom_logger.log_message(
+                self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
                 )
@@ -179,16 +179,16 @@ class Maverick(BaseTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.contract.transaction.sign_and_send(
+            tx = await self.client.contract.sign_and_send(
                 tx_params=tx_params
             )
             receipt = await tx.wait_for_tx_receipt(
-                web3=self.client.account_manager.w3
+                web3=self.client.w3
             )
 
             full_path = (
-                self.client.account_manager.network.explorer
-                + self.client.account_manager.network.TX_PATH
+                self.client.network.explorer
+                + self.client.network.TX_PATH
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
@@ -198,8 +198,8 @@ class Maverick(BaseTask):
                 message = ''
 
             else:
-                status = LogStatus.ERROR
-                message = f'Failed swap'
+                status = LogStatus.FAILED
+                message = f'Swap'
 
             message += (
                 f'{rounded_amount_from} {swap_proposal.from_token.title}'
@@ -207,7 +207,7 @@ class Maverick(BaseTask):
                 f'{full_path + tx.hash.hex()}'
             )
 
-            self.client.account_manager.custom_logger.log_message(
+            self.client.custom_logger.log_message(
                 status, message)
 
             return receipt['status']
@@ -224,7 +224,7 @@ class Maverick(BaseTask):
             else:
                 message = error
 
-        self.client.account_manager.custom_logger.log_message(status, message)
+        self.client.custom_logger.log_message(status, message)
 
         return False
 # endregion Implementation

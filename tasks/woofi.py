@@ -64,12 +64,12 @@ class WooFi(BaseTask):
         swap_info: OperationInfo
     ) -> str:
         check_message = self.validate_swap_inputs(
-            first_arg=self.client.account_manager.network.name,
+            first_arg=self.client.network.name,
             second_arg=swap_info.to_network,
             param_type='networks'
         )
         if check_message:
-            self.client.account_manager.custom_logger.log_message(
+            self.client.custom_logger.log_message(
                 status=LogStatus.ERROR, message=check_message
             )
 
@@ -77,19 +77,19 @@ class WooFi(BaseTask):
 
         dex_contract = WoofiContracts.get_dex_contract(
             name='WooRouterV2',
-            network=self.client.account_manager.network.name
+            network=self.client.network.name
         )
 
         contract = await self.client.contract.get(contract=dex_contract)
-        swap_query = await self.create_swap_query(contract=contract, swap_info=swap_info)
+        swap_query = await self.create_swap_proposal(contract=contract, swap_info=swap_info)
 
         args = TxArgs(
-            fromToken=swap_query.source_token.address,
-            toToken=swap_query.target_token.address,
-            fromAmount=swap_query.source_amount.Wei,
-            minToAmount=swap_query.min_target_amount.Wei,
-            to=self.client.account_manager.account.address,
-            rebateTo=self.client.account_manager.account.address
+            fromToken=swap_query.from_token.address,
+            toToken=swap_query.to_token.address,
+            fromAmount=swap_query.amount_from.Wei,
+            minToAmount=swap_query.min_amount_to.Wei,
+            to=self.client.account.address,
+            rebateTo=self.client.account.address
         )
 
         tx_params = TxParams(
@@ -102,37 +102,38 @@ class WooFi(BaseTask):
             tx_params=tx_params
         )
 
-        if not swap_query.source_token.is_native_token:
+        if not swap_query.from_token.is_native_token:
             await self.approve_interface(
-                token_contract=swap_query.source_token,
+                token_contract=swap_query.from_token,
                 spender_address=contract.address,
-                amount=swap_query.source_amount,
+                amount=swap_query.amount_from,
                 tx_params=tx_params
             )
             await sleep(15, 30)
         else:
-            tx_params['value'] = swap_query.source_amount.Wei
+            tx_params['value'] = swap_query.amount_from.Wei
 
-        tx = await self.client.contract.transaction.sign_and_send(tx_params)
-        receipt = await tx.wait_for_tx_receipt(self.client.account_manager.w3)
+        tx = await self.client.contract.sign_and_send(tx_params)
+        receipt = await tx.wait_for_tx_receipt(self.client.w3)
 
         if receipt:
-            account_network = self.client.account_manager.network
+            account_network = self.client.network
             full_path = account_network.explorer + account_network.TX_PATH
             return (
-                f'{swap_query.source_amount.Ether} {swap_query.source_token.title} was swapped to '
-                f'{swap_query.min_target_amount.Ether} {swap_query.target_token.title} '
+                f'{swap_query.amount_from.Ether} {swap_query.from_token.title} was swapped to '
+                f'{swap_query.min_amount_to.Ether} {swap_query.to_token.title} '
                 f'via {dex_contract.title}: '
                 f'{full_path + tx.hash.hex()}'
             )
 
         return (
-            f'Failed swap {swap_query.source_amount.Ether} to {swap_query.target_token.title} '
+            f'Failed swap {swap_query.amount_from.Ether} '
+            f'to {swap_query.from_token.title} {swap_query.to_token.title} '
             f'via {dex_contract.title}: '
             f'{full_path + tx.hash.hex()}'
         )
 
-    async def create_swap_query(
+    async def create_swap_proposal(
         self,
         contract: ParamsTypes.Contract,
         swap_info: OperationInfo
@@ -140,7 +141,7 @@ class WooFi(BaseTask):
         swap_query = await self.compute_source_token_amount(swap_info=swap_info)
 
         to_token = ContractsFactory.get_contract(
-            network_name=self.client.account_manager.network.name,
+            network_name=self.client.network.name,
             token_symbol=swap_info.to_token_name
         )
 

@@ -4,12 +4,11 @@ import time
 import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
-from data.config import MODULES_SETTINGS_FILE
+from data.config import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ContractsFactory, ZkSyncTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.dataclasses import FromTo
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
@@ -18,13 +17,14 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.swap import (
     OperationInfo, SwapProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
+from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
 from tasks.config import Config
 
 # region Settings
 class MuteSettings():
     def __init__(self):
-        mute_settings = MODULES_SETTINGS_FILE['mute_settings']
+        mute_settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
 
         self.swap_eth_amount: FromTo = FromTo(
             from_=mute_settings['swap_eth_amount']['from'],
@@ -66,7 +66,7 @@ class MuteImplementation(BaseTask):
             param_type='tokens'
         )
         if check_message:
-            self.client.account_manager.custom_logger.log_message(
+            self.client.custom_logger.log_message(
                 status=LogStatus.ERROR, message=check_message
             )
 
@@ -89,7 +89,7 @@ class MuteImplementation(BaseTask):
         params = TxArgs(
             amountOutMin=swap_proposal.min_amount_to.Wei,
             path=tx_payload_details.swap_path,
-            to=self.client.account_manager.account.address,
+            to=self.client.account.address,
             deadline=int(time.time() + 20 * 60),
             stable=tx_payload_details.bool_list
         )
@@ -119,7 +119,7 @@ class MuteImplementation(BaseTask):
             )
 
             if hexed_tx_hash:
-                self.client.account_manager.custom_logger.log_message(
+                self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
                 )
@@ -133,16 +133,16 @@ class MuteImplementation(BaseTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.contract.transaction.sign_and_send(
+            tx = await self.client.contract.sign_and_send(
                 tx_params=tx_params
             )
             receipt = await tx.wait_for_tx_receipt(
-                web3=self.client.account_manager.w3
+                web3=self.client.w3
             )
 
             full_path = (
-                self.client.account_manager.network.explorer
-                + self.client.account_manager.network.TX_PATH
+                self.client.network.explorer
+                + self.client.network.TX_PATH
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
@@ -152,8 +152,8 @@ class MuteImplementation(BaseTask):
                 message = ''
 
             else:
-                status = LogStatus.ERROR
-                message = f'Failed swap'
+                status = LogStatus.FAILED
+                message = f'Swap'
 
             message += (
                 f'{rounded_amount_from} {swap_info.from_token_name}'
@@ -161,7 +161,7 @@ class MuteImplementation(BaseTask):
                 f'{full_path + tx.hash.hex()}'
             )
 
-            self.client.account_manager.custom_logger.log_message(
+            self.client.custom_logger.log_message(
                 status, message)
 
             return receipt['status']
@@ -178,7 +178,7 @@ class MuteImplementation(BaseTask):
             else:
                 message = error
 
-        self.client.account_manager.custom_logger.log_message(status, message)
+        self.client.custom_logger.log_message(status, message)
 
         return False
 
@@ -342,17 +342,17 @@ class MuteRoutes(TxPayloadDetailsFetcher):
 class Mute(BaseTask):
     async def swap(
         self,
-    ):
+    ) -> bool:
         settings = MuteSettings()
         dst_swap_data = Config.MUTE_PATHS
         
         client = Client(
-            account_id=self.client.account_manager.account_id,
-            private_key=self.client.account_manager.account._private_key,
+            account_id=self.client.account_id,
+            private_key=self.client.account._private_key,
             network=Networks.ZkSync,
-            proxy=self.client.account_manager.proxy
+            proxy=self.client.proxy
         )
-        client.account_manager.custom_logger.log_message(
+        client.custom_logger.log_message(
             status=LogStatus.INFO,
             message='Started to search enough balance for swap'
         )
@@ -410,7 +410,7 @@ class Mute(BaseTask):
             )
             
             if dst_data:
-                self.client.account_manager.custom_logger.log_message(
+                self.client.custom_logger.log_message(
                     status=LogStatus.INFO,
                     message=(
                         f'Found {found_amount_from} '
@@ -420,12 +420,13 @@ class Mute(BaseTask):
                 break
              
         if not dst_data:
-            self.client.account_manager.custom_logger.log_message(
+            self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
                 message=(
                     'Failed to swap: not found enough balance in native or tokens'
                 )
             )
+            return False
             
         swap_info.to_token_name = random.choice(dst_data)
         mute = MuteImplementation(client=client)

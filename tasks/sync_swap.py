@@ -173,7 +173,7 @@ class SyncSwap(BaseTask):
 
             else:
                 log_status = LogStatus.FAILED
-                message = f'Failed swap '
+                message = f'Swap '
 
             message += (
                 f'{rounded_amount} {swap_info.from_token_name}'
