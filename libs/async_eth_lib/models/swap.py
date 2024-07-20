@@ -15,8 +15,8 @@ class OperationInfo:
         from_token_name: str = None,
         to_token_name: str = None,
         slippage: float = 0.5,
-        src_network: Network = Networks.Goerli,
-        dst_network: Network | None = None,
+        from_network: Network = Networks.Goerli,
+        to_network: Network | None = None,
         amount: float | None = None,
         amount_from: float | None = None,
         amount_to: float | None = None,
@@ -34,8 +34,8 @@ class OperationInfo:
             from_token_name (str): The token to swap from.
             to_token_name (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
-            src_network_name (str | None): The source network for the swap (default is None).
-            dst_network_name (str | None): The destination network for the swap (default is None).
+            from_network (Network | None): The source network for the swap (default is None).
+            to_network (Network | None): The destination network for the swap (default is None).
             amount (float | None): The amount to swap (default is None).
             amount_from (float | None): The minimum amount for random amount generation.
             amount_to (float | None): The maximum amount for random amount generation.
@@ -49,8 +49,8 @@ class OperationInfo:
         """
         self.from_token_name = from_token_name
         self.to_token_name = to_token_name
-        self.src_network = src_network
-        self.dst_network = dst_network
+        self.from_network = from_network
+        self.to_network = to_network
         self.amount = amount
         self.slippage = slippage
         self.amount_by_percent = 0
