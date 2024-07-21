@@ -24,25 +24,26 @@ from tasks.config import get_space_fi_paths
 # region Settings
 class SpaceFiSettings():
     def __init__(self):
-        space_fi_settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['stargate_settings']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['space_fi']
 
         self.swap_eth_amount: FromTo = FromTo(
-            from_=space_fi_settings['swap_eth_amount']['from'],
-            to_=space_fi_settings['swap_eth_amount']['to']
+            from_=settings['swap_eth_amount']['from'],
+            to_=settings['swap_eth_amount']['to']
         )
         self.swap_eth_amount_percent: FromTo = FromTo(
-            from_=space_fi_settings['swap_eth_amount']['min_percent'],
-            to_=space_fi_settings['swap_eth_amount']['max_percent']
+            from_=settings['swap_eth_amount']['min_percent'],
+            to_=settings['swap_eth_amount']['max_percent']
         )
         self.swap_stables_amount: FromTo = FromTo(
-            from_=space_fi_settings['swap_stables_amount']['from'],
-            to_=space_fi_settings['swap_stables_amount']['to']
+            from_=settings['swap_stables_amount']['from'],
+            to_=settings['swap_stables_amount']['to']
         )
         self.swap_stables_amount_percent: FromTo = FromTo(
-            from_=space_fi_settings['swap_stables_amount']['min_percent'],
-            to_=space_fi_settings['swap_stables_amount']['max_percent']
+            from_=settings['swap_stables_amount']['min_percent'],
+            to_=settings['swap_stables_amount']['max_percent']
         )
-        self.slippage: int = space_fi_settings['slippage']
+        
+        self.slippage: float = settings['slippage']
 
 
 # region Implementation    

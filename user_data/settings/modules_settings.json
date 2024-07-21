@@ -1,20 +1,5 @@
 {
-  "space_fi_settings":{
-    "swap_eth_amount": {
-      "from": 0.0006,
-      "to": 0.0006,
-      "min_percent": 40,
-      "max_percent": 50
-    },
-    "swap_stables_amount": {
-      "from": 0,
-      "to": 0,
-      "min_percent": 100,
-      "max_percent": 100
-    },
-    "slippage": 0.5
-  },
-  "mute_settings":{
+  "mute":{
     "swap_eth_amount": {
       "from": 0.0005,
       "to": 0.0005,
@@ -29,7 +14,22 @@
     },
     "slippage": 0.5
   },
-  "stargate_settings": {
+  "space_fi":{
+    "swap_eth_amount": {
+      "from": 0.0005,
+      "to": 0.0005,
+      "min_percent": 10,
+      "max_percent": 10
+    },
+    "swap_stables_amount": {
+      "from": 0,
+      "to": 0,
+      "min_percent": 100,
+      "max_percent": 100
+    },
+    "slippage": 0.5
+  },
+  "stargate": {
     "bridge_eth_amount": {
       "from": 0,
       "to": 0,
@@ -87,5 +87,27 @@
         }
       }
     }
+  },
+  "coredao": {
+    "bridge_eth_amount": {
+      "from": 0.0001,
+      "to": 0.001,
+      "min_percent": 10,
+      "max_percent": 30
+    },
+    "bridge_token_amount": {
+      "from": 0.01,
+      "to": 0.03,
+      "min_percent": 20,
+      "max_percent": 30
+    },
+    "slippage": 0.5
+  },
+  "testnet_bridge": {
+    "bridge_eth_amount": {
+      "from": 1e-05,
+      "to": 3e-05
+    },
+    "slippage": 0.5
   }
 }

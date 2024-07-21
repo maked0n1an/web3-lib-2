@@ -24,25 +24,26 @@ from tasks.config import get_mute_paths
 # region Settings
 class MuteSettings():
     def __init__(self):
-        mute_settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)('mute')
 
         self.swap_eth_amount: FromTo = FromTo(
-            from_=mute_settings['swap_eth_amount']['from'],
-            to_=mute_settings['swap_eth_amount']['to']
+            from_=settings['swap_eth_amount']['from'],
+            to_=settings['swap_eth_amount']['to']
         )
         self.swap_eth_amount_percent: FromTo = FromTo(
-            from_=mute_settings['swap_eth_amount']['min_percent'],
-            to_=mute_settings['swap_eth_amount']['max_percent']
+            from_=settings['swap_eth_amount']['min_percent'],
+            to_=settings['swap_eth_amount']['max_percent']
         )
         self.swap_stables_amount: FromTo = FromTo(
-            from_=mute_settings['swap_stables_amount']['from'],
-            to_=mute_settings['swap_stables_amount']['to']
+            from_=settings['swap_stables_amount']['from'],
+            to_=settings['swap_stables_amount']['to']
         )
         self.swap_stables_amount_percent: FromTo = FromTo(
-            from_=mute_settings['swap_stables_amount']['min_percent'],
-            to_=mute_settings['swap_stables_amount']['max_percent']
+            from_=settings['swap_stables_amount']['min_percent'],
+            to_=settings['swap_stables_amount']['max_percent']
         )
-        self.slippage: int = mute_settings['slippage']
+        
+        self.slippage: float = settings['slippage']
 # endregion Settings
 
 

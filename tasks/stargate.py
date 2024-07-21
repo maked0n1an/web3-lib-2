@@ -24,25 +24,25 @@ from tasks.config import get_stargate_routes
 # region Settings
 class StargateSettings():
     def __init__(self):
-        stargate_section = read_json(path=MODULES_SETTINGS_FILE_PATH)['stargate']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['stargate']
 
         self.bridge_eth_amount: FromTo = FromTo(
-            from_=stargate_section['bridge_eth_amount']['from'],
-            to_=stargate_section['bridge_eth_amount']['to']
+            from_=settings['bridge_eth_amount']['from'],
+            to_=settings['bridge_eth_amount']['to']
         )
         self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=stargate_section['bridge_eth_amount']['min_percent'],
-            to_=stargate_section['bridge_eth_amount']['max_percent']
+            from_=settings['bridge_eth_amount']['min_percent'],
+            to_=settings['bridge_eth_amount']['max_percent']
         )
         self.bridge_stables_amount: FromTo = FromTo(
-            from_=stargate_section['bridge_stables_amount']['from'],
-            to_=stargate_section['bridge_stables_amount']['to']
+            from_=settings['bridge_stables_amount']['from'],
+            to_=settings['bridge_stables_amount']['to']
         )
         self.bridge_stables_amount_percent: FromTo = FromTo(
-            from_=stargate_section['bridge_stables_amount']['min_percent'],
-            to_=stargate_section['bridge_stables_amount']['max_percent']
+            from_=settings['bridge_stables_amount']['min_percent'],
+            to_=settings['bridge_stables_amount']['max_percent']
         )
-        self.max_bridge_fee_usd: float = stargate_section['max_bridge_fee_usd']
+        self.max_bridge_fee_usd: float = settings['max_bridge_fee_usd']
 
 
 class StargateSlippageSettings():

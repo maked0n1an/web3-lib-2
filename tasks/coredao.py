@@ -22,24 +22,26 @@ from tasks.config import get_coredao_bridge_routes
 # region Settings
 class CoreDaoSettings():
     def __init__(self):
-        json_data = read_json(path=MODULES_SETTINGS_FILE_PATH)['coredao']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['coredao']
 
         self.bridge_eth_amount: FromTo = FromTo(
-            from_=json_data['bridge_eth_amount']['from'],
-            to_=json_data['bridge_eth_amount']['to']
+            from_=settings['bridge_eth_amount']['from'],
+            to_=settings['bridge_eth_amount']['to']
         )
         self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=json_data['bridge_eth_amount']['min_percent'],
-            to_=json_data['bridge_eth_amount']['max_percent']
+            from_=settings['bridge_eth_amount']['min_percent'],
+            to_=settings['bridge_eth_amount']['max_percent']
         )
         self.bridge_token_amount: FromTo = FromTo(
-            from_=json_data['bridge_token_amount']['from'],
-            to_=json_data['bridge_token_amount']['to']
+            from_=settings['bridge_token_amount']['from'],
+            to_=settings['bridge_token_amount']['to']
         )
         self.bridge_token_amount_percent: FromTo = FromTo(
-            from_=json_data['bridge_token_amount']['min_percent'],
-            to_=json_data['bridge_token_amount']['max_percent']
+            from_=settings['bridge_token_amount']['min_percent'],
+            to_=settings['bridge_token_amount']['max_percent']
         )
+        
+        self.slippage: float = settings['slippage']
 # endregion Settings
 
 
