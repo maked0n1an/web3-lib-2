@@ -18,7 +18,7 @@ from libs.async_eth_lib.models.swap import (
 )
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
-from tasks.config import Config
+from tasks.config import get_space_fi_paths
 
 
 # region Settings
@@ -301,7 +301,7 @@ class SpaceFi(BaseTask):
         self,
     ):
         settings = SpaceFiSettings()
-        dst_swap_data = Config.SPACE_FI_PATHS
+        dst_swap_data = get_space_fi_paths()
         
         client = Client(
             account_id=self.client.account_id,

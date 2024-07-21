@@ -18,7 +18,7 @@ from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
-from tasks.config import Config
+from tasks.config import get_stargate_routes
 
 
 # region Settings
@@ -878,7 +878,7 @@ class Stargate(BaseTask):
         self,
     ):
         settings = StargateSettings()
-        src_bridge_data = Config.STARGATE_ROUTES_FOR_BRIDGE
+        src_bridge_data = get_stargate_routes()
 
         random_networks = list(src_bridge_data.keys())
         random.shuffle(random_networks)

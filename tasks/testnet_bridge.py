@@ -15,7 +15,7 @@ from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
-from tasks.config import Config
+from tasks.config import get_testnet_bridge_routes
 
 # region Settings
 class TestnetBridgeSettings():
@@ -263,7 +263,7 @@ class TestnetBridge(BaseTask):
         self,
     ):
         settings = TestnetBridgeSettings()
-        bridge_routes = Config.TESTNET_BRIDGE_ROUTES
+        bridge_routes = get_testnet_bridge_routes()
 
         random_networks = list(bridge_routes.keys())
         random.shuffle(random_networks)

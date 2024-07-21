@@ -19,7 +19,7 @@ from libs.async_eth_lib.models.swap import (
 )
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
-from tasks.config import Config
+from tasks.config import get_mute_paths
 
 # region Settings
 class MuteSettings():
@@ -111,14 +111,14 @@ class MuteImplementation(BaseTask):
         )
 
         if not swap_proposal.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
+            is_approved = await self.approve_interface(
                 swap_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from
             )
 
-            if hexed_tx_hash:
+            if is_approved:
                 self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
@@ -161,8 +161,7 @@ class MuteImplementation(BaseTask):
                 f'{full_path + tx.hash.hex()}'
             )
 
-            self.client.custom_logger.log_message(
-                status, message)
+            self.client.custom_logger.log_message(status, message)
 
             return receipt['status']
         except web3_exceptions.ContractCustomError as e:
@@ -171,12 +170,7 @@ class MuteImplementation(BaseTask):
         except Exception as e:
             error = str(e)
             status = LogStatus.ERROR
-
-            if 'insufficient funds for gas + value' in error:
-                message = 'Insufficient funds for gas + value'
-
-            else:
-                message = error
+            message = error
 
         self.client.custom_logger.log_message(status, message)
 
@@ -344,7 +338,7 @@ class Mute(BaseTask):
         self,
     ) -> bool:
         settings = MuteSettings()
-        dst_swap_data = Config.MUTE_PATHS
+        swap_paths = get_mute_paths()
         
         client = Client(
             account_id=self.client.account_id,
@@ -357,8 +351,8 @@ class Mute(BaseTask):
             message='Started to search enough balance for swap'
         )
         
-        dst_data = None
-        token_paths = list(dst_swap_data[Networks.ZkSync].keys())
+        found_path = None
+        token_paths = list(swap_paths[Networks.ZkSync].keys())
         random.shuffle(token_paths)
         
         for token_symbol in token_paths:
@@ -401,7 +395,7 @@ class Mute(BaseTask):
                 max_percent=max_percent
             )
             
-            dst_data = dst_swap_data[Networks.ZkSync][token_symbol]
+            found_path = swap_paths[Networks.ZkSync][token_symbol]
             found_token_symbol = swap_info.from_token_name
             found_amount_from = (
                 swap_info.amount
@@ -409,7 +403,7 @@ class Mute(BaseTask):
                 else round(swap_info.amount_by_percent * float(balance.Ether), 6)
             )
             
-            if dst_data:
+            if found_path:
                 self.client.custom_logger.log_message(
                     status=LogStatus.INFO,
                     message=(
@@ -419,7 +413,7 @@ class Mute(BaseTask):
                 )
                 break
              
-        if not dst_data:
+        if not found_path:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
                 message=(
@@ -428,7 +422,7 @@ class Mute(BaseTask):
             )
             return False
             
-        swap_info.to_token_name = random.choice(dst_data)
+        swap_info.to_token_name = random.choice(found_path)
         mute = MuteImplementation(client=client)
         
         return await mute.swap(swap_info)

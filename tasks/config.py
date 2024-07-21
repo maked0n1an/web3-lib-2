@@ -3,8 +3,69 @@ from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.others import TokenSymbol
 
 
-class Config:
-    STARGATE_ROUTES_FOR_BRIDGE: dict[Network, dict[str, list[tuple[Network, str]]]] = {
+def get_coredao_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
+    return {
+        Networks.Arbitrum: {
+            TokenSymbol.USDT: [
+                (Networks.Core, TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Core, TokenSymbol.USDC)
+            ]
+        },
+        Networks.Avalanche: {
+            TokenSymbol.USDT: [
+                (Networks.Core, TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Core, TokenSymbol.USDC)
+            ]
+        },
+        Networks.BSC: {
+            TokenSymbol.USDT: [
+                (Networks.Core, TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Core, TokenSymbol.USDC)
+            ]
+        },
+        Networks.Optimism: {
+            TokenSymbol.USDT: [
+                (Networks.Core, TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Core, TokenSymbol.USDC)
+            ]
+        },
+        Networks.Polygon: {
+            TokenSymbol.USDT: [
+                (Networks.Core, TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Core, TokenSymbol.USDC)
+            ]
+        },
+        Networks.Core: {
+            TokenSymbol.USDT: [
+                (Networks.Arbitrum,     TokenSymbol.USDT),
+                (Networks.Avalanche,    TokenSymbol.USDT),
+                (Networks.BSC,          TokenSymbol.USDT),
+                (Networks.Optimism,     TokenSymbol.USDT),
+                (Networks.Polygon,      TokenSymbol.USDT),
+            ],
+            TokenSymbol.USDC: [
+                (Networks.Arbitrum,     TokenSymbol.USDC),
+                (Networks.Avalanche,    TokenSymbol.USDC),
+                (Networks.BSC,          TokenSymbol.USDC),
+                (Networks.Optimism,     TokenSymbol.USDC),
+                (Networks.Polygon,      TokenSymbol.USDC),
+            ],
+        }
+    }
+
+
+def get_stargate_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
+    return {
         Networks.Avalanche: {
             TokenSymbol.USDT: [
                 (Networks.Arbitrum, TokenSymbol.USDT),
@@ -43,8 +104,8 @@ class Config:
                 (Networks.Optimism, TokenSymbol.ETH),
             ],
             TokenSymbol.USDT: [
-                (Networks.Avalanche,TokenSymbol.USDC),
-                (Networks.Avalanche,TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDC),
+                (Networks.Avalanche, TokenSymbol.USDT),
                 (Networks.BSC,      TokenSymbol.BUSD),
                 (Networks.BSC,      TokenSymbol.USDT),
                 (Networks.Polygon,  TokenSymbol.USDT),
@@ -52,8 +113,8 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDC_E),
             ],
             TokenSymbol.USDC_E: [
-                (Networks.Avalanche,TokenSymbol.USDT),
-                (Networks.Avalanche,TokenSymbol.USDC_E),
+                (Networks.Avalanche, TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDC_E),
                 (Networks.BSC,      TokenSymbol.BUSD),
                 (Networks.BSC,      TokenSymbol.USDT),
                 (Networks.Polygon,  TokenSymbol.USDT),
@@ -61,7 +122,7 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDC_E),
             ],
             TokenSymbol.STG: [
-                (Networks.Avalanche,TokenSymbol.STG),
+                (Networks.Avalanche, TokenSymbol.STG),
                 (Networks.BSC,      TokenSymbol.STG),
                 (Networks.Fantom,   TokenSymbol.STG),
                 (Networks.Optimism, TokenSymbol.STG),
@@ -79,9 +140,9 @@ class Config:
                 (Networks.Arbitrum, TokenSymbol.USDT),
                 (Networks.Arbitrum, TokenSymbol.USDC_E),
                 (Networks.Arbitrum, TokenSymbol.USDV),
-                (Networks.Avalanche,TokenSymbol.USDC),
-                (Networks.Avalanche,TokenSymbol.USDT),
-                (Networks.Avalanche,TokenSymbol.USDV),
+                (Networks.Avalanche, TokenSymbol.USDC),
+                (Networks.Avalanche, TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDV),
                 (Networks.Polygon,  TokenSymbol.USDT),
                 (Networks.Polygon,  TokenSymbol.USDC_E),
                 (Networks.Polygon,  TokenSymbol.USDV),
@@ -89,9 +150,9 @@ class Config:
                 (Networks.Optimism, TokenSymbol.USDV),
             ],
             TokenSymbol.STG: [
-                (Networks.Avalanche,TokenSymbol.STG),
+                (Networks.Avalanche, TokenSymbol.STG),
                 (Networks.Arbitrum, TokenSymbol.STG),
-                ## (Networks.Fantom,   TokenSymbol.STG),
+                # (Networks.Fantom,   TokenSymbol.STG),
                 (Networks.Optimism, TokenSymbol.STG),
                 (Networks.Polygon,  TokenSymbol.STG),
             ],
@@ -110,9 +171,9 @@ class Config:
                 (Networks.Arbitrum, TokenSymbol.USDT),
                 (Networks.Arbitrum, TokenSymbol.USDC_E),
                 (Networks.Arbitrum, TokenSymbol.USDV),
-                (Networks.Avalanche,TokenSymbol.USDC),
-                (Networks.Avalanche,TokenSymbol.USDT),
-                (Networks.Avalanche,TokenSymbol.USDV),
+                (Networks.Avalanche, TokenSymbol.USDC),
+                (Networks.Avalanche, TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDV),
                 (Networks.BSC,      TokenSymbol.USDC_E),
                 (Networks.BSC,      TokenSymbol.BUSD),
                 (Networks.BSC,      TokenSymbol.USDV),
@@ -121,15 +182,15 @@ class Config:
                 (Networks.Polygon,  TokenSymbol.USDV),
             ],
             TokenSymbol.STG: [
-                (Networks.Avalanche,TokenSymbol.STG),
+                (Networks.Avalanche, TokenSymbol.STG),
                 (Networks.Arbitrum, TokenSymbol.STG),
-                ## (Networks.Fantom, TokenSymbol.STG),
+                # (Networks.Fantom, TokenSymbol.STG),
                 (Networks.BSC,      TokenSymbol.STG),
                 (Networks.Polygon,  TokenSymbol.STG),
             ],
             TokenSymbol.USDV: [
                 (Networks.Arbitrum, TokenSymbol.USDV),
-                (Networks.Avalanche,TokenSymbol.USDV),
+                (Networks.Avalanche, TokenSymbol.USDV),
                 (Networks.BSC,      TokenSymbol.USDV),
                 (Networks.Polygon,  TokenSymbol.USDV),
             ],
@@ -138,25 +199,25 @@ class Config:
             TokenSymbol.USDC_E: [
                 (Networks.Arbitrum, TokenSymbol.USDT),
                 (Networks.Arbitrum, TokenSymbol.USDC_E),
-                (Networks.Avalanche,TokenSymbol.USDC),
-                (Networks.Avalanche,TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDC),
+                (Networks.Avalanche, TokenSymbol.USDT),
                 (Networks.BSC,      TokenSymbol.USDT),
-                ## (Networks.BSC,      TokenSymbol.BUSD),
+                # (Networks.BSC,      TokenSymbol.BUSD),
                 (Networks.Optimism, TokenSymbol.USDC_E),
             ],
             TokenSymbol.USDT: [
                 (Networks.Arbitrum, TokenSymbol.USDT),
                 (Networks.Arbitrum, TokenSymbol.USDC_E),
-                (Networks.Avalanche,TokenSymbol.USDC),
-                (Networks.Avalanche,TokenSymbol.USDT),
+                (Networks.Avalanche, TokenSymbol.USDC),
+                (Networks.Avalanche, TokenSymbol.USDT),
                 (Networks.BSC,      TokenSymbol.USDT),
-                ## (Networks.BSC,      TokenSymbol.BUSD),
+                # (Networks.BSC,      TokenSymbol.BUSD),
                 (Networks.Optimism, TokenSymbol.USDC_E),
             ],
             TokenSymbol.STG: [
-                (Networks.Avalanche,TokenSymbol.STG),
+                (Networks.Avalanche, TokenSymbol.STG),
                 (Networks.Arbitrum, TokenSymbol.STG),
-                ## (Networks.Fantom,   TokenSymbol.STG),
+                # (Networks.Fantom,   TokenSymbol.STG),
                 (Networks.BSC,      TokenSymbol.STG),
                 (Networks.Optimism, TokenSymbol.STG),
             ],
@@ -165,10 +226,34 @@ class Config:
                 (Networks.Avalanche, TokenSymbol.USDV),
                 (Networks.BSC,      TokenSymbol.USDV),
                 (Networks.Optimism, TokenSymbol.USDV),
+            ]
+        }
+    }
+
+
+def get_testnet_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
+    return {
+        Networks.Arbitrum: {
+            TokenSymbol.ETH: [
+                (Networks.Sepolia, TokenSymbol.ETH),
             ],
         },
+        Networks.Optimism: {
+            TokenSymbol.ETH: [
+                (Networks.Sepolia, TokenSymbol.ETH),
+            ],
+        },
+        Networks.Sepolia: {
+            TokenSymbol.ETH: [
+                (Networks.Optimism, TokenSymbol.ETH),
+                (Networks.Arbitrum, TokenSymbol.ETH),
+            ],
+        }
     }
-    MUTE_PATHS: dict[Network, dict[str, list[str]]] = {
+
+
+def get_mute_paths() -> dict[Network, dict[str, list[str]]]:
+    return {
         Networks.ZkSync: {
             TokenSymbol.ETH: [
                 TokenSymbol.USDC,
@@ -192,7 +277,10 @@ class Config:
             ]
         }
     }
-    SPACE_FI_PATHS: dict[Network, dict[str, list[str]]] = {
+
+
+def get_space_fi_paths() -> dict[Network, dict[str, list[str]]]:
+    return {
         Networks.ZkSync: {
             TokenSymbol.ETH: [
                 TokenSymbol.USDC,

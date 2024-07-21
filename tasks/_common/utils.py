@@ -147,7 +147,7 @@ class BaseTask(Utils, PriceUtils):
 
     def set_all_gas_params(
         self,
-        swap_info: OperationInfo,
+        operation_info: OperationInfo,
         tx_params: dict | TxParams
     ) -> dict | TxParams:
         """
@@ -170,9 +170,9 @@ class BaseTask(Utils, PriceUtils):
         }
 
         for attr, method_name in method_mappings.items():
-            if getattr(swap_info, attr):
+            if getattr(operation_info, attr):
                 tx_params = getattr(self.client.contract, method_name)(
-                    getattr(swap_info, attr),
+                    getattr(operation_info, attr),
                     tx_params=tx_params
                 )
 
@@ -218,18 +218,18 @@ class BaseTask(Utils, PriceUtils):
             return True
 
         tx_params = self.set_all_gas_params(
-            swap_info=swap_info,
+            operation_info=swap_info,
             tx_params=tx_params
         )
 
-        tx = await self.client.contract.approve(
+        optional_tx_hash = await self.client.contract.approve(
             token_contract=token_contract,
             tx_params=tx_params,
             amount=amount,
             is_approve_infinity=is_approve_infinity
         )
 
-        return tx
+        return optional_tx_hash
 
     async def compute_source_token_amount(
         self,
