@@ -385,13 +385,13 @@ class StargateImplementation(BaseTask):
 
     async def bridge(
         self,
-        crosschain_swap_info: OperationInfo,
+        bridge_info: OperationInfo,
         max_fee: float = 0.7,
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
         check_message = self.validate_swap_inputs(
             first_arg=self.client.network.name,
-            second_arg=crosschain_swap_info.to_network.name,
+            second_arg=bridge_info.to_network.name,
             param_type='networks'
         )
         if check_message:
@@ -402,19 +402,19 @@ class StargateImplementation(BaseTask):
             return False
         
         self.src_network_name = self.client.network.name
-        self.token_path = crosschain_swap_info
-        dst_network_name = crosschain_swap_info.to_network.name.upper()
+        self.token_path = bridge_info
+        dst_network_name = bridge_info.to_network.name.upper()
 
         src_bridge_info = StargateData.get_token_bridge_info(
             network_name=self.src_network_name,
             token_symbol=self.token_path
         )
         
-        swap_proposal = await self.compute_source_token_amount(crosschain_swap_info)
+        swap_proposal = await self.compute_source_token_amount(bridge_info)
         swap_proposal = await self.compute_min_destination_amount(
             swap_proposal=swap_proposal,
             min_to_amount=swap_proposal.amount_from.Wei,
-            swap_info=crosschain_swap_info,
+            swap_info=bridge_info,
             is_to_token_price_wei=True
         )
 
@@ -427,8 +427,8 @@ class StargateImplementation(BaseTask):
                 decimals=dst_network.decimals
             )
             
-        tx_params, crosschain_swap_info, swap_proposal = await self.get_data_for_crosschain_swap(
-            crosschain_swap_info=crosschain_swap_info,
+        tx_params, bridge_info, swap_proposal = await self.get_data_for_crosschain_swap(
+            crosschain_swap_info=bridge_info,
             swap_proposal=swap_proposal,
             src_bridge_info=src_bridge_info,
             dst_fee=dst_fee
@@ -454,7 +454,8 @@ class StargateImplementation(BaseTask):
                 status=LogStatus.ERROR,
                 message=(
                     f'Too low balance: balance: '
-                    f'{native_balance.Ether}; value: {value.Ether}'
+                    f'balance - {round(native_balance.Ether, 5)}; '
+                    f'value - {round(value.Ether, 5)}'
                 )
             )
 
@@ -486,14 +487,14 @@ class StargateImplementation(BaseTask):
             return False
 
         if not swap_proposal.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
-                swap_info=crosschain_swap_info,
+            optional_tx_hash = await self.approve_interface(
+                swap_info=bridge_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
 
-            if hexed_tx_hash:
+            if optional_tx_hash:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
@@ -507,13 +508,11 @@ class StargateImplementation(BaseTask):
 
         try:
             tx_params = self.set_all_gas_params(
-                swap_info=crosschain_swap_info,
+                operation_info=bridge_info,
                 tx_params=tx_params
             )
             
-            tx = await self.client.contract.sign_and_send(
-                tx_params=tx_params
-            )
+            tx = await self.client.contract.sign_and_send(tx_params)
                 
             receipt = await tx.wait_for_tx_receipt(
                 web3=self.client.w3,
@@ -531,9 +530,9 @@ class StargateImplementation(BaseTask):
                 message = f'Bridge'
 
             message += (
-                f'{rounded_amount_from} {crosschain_swap_info.from_token_name} '
+                f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.src_network_name} -> {rounded_amount_to} '
-                f'{crosschain_swap_info.to_token_name} in {dst_network_name}: '
+                f'{bridge_info.to_token_name} in {dst_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
 

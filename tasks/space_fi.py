@@ -9,7 +9,6 @@ from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ContractsFactory, ZkSyncTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
     LogStatus, TokenSymbol
@@ -115,14 +114,14 @@ class SpaceFiImplementation(BaseTask):
         )
 
         if not swap_proposal.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
+            is_approved = await self.approve_interface(
                 swap_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
 
-            if hexed_tx_hash:
+            if is_approved:
                 self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
@@ -133,7 +132,7 @@ class SpaceFiImplementation(BaseTask):
             
         try:
             tx_params = self.set_all_gas_params(
-                swap_info=swap_info,
+                operation_info=swap_info,
                 tx_params=tx_params
             )
 

@@ -157,14 +157,14 @@ class Maverick(BaseTask):
         )
         
         if not swap_proposal.from_token.is_native_token:
-            hexed_tx_hash = await self.approve_interface(
+            is_approved = await self.approve_interface(
                 swap_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
 
-            if hexed_tx_hash:
+            if is_approved:
                 self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
@@ -175,7 +175,7 @@ class Maverick(BaseTask):
 
         try:
             tx_params = self.set_all_gas_params(
-                swap_info=swap_info,
+                operation_info=swap_info,
                 tx_params=tx_params
             )
 
@@ -207,8 +207,7 @@ class Maverick(BaseTask):
                 f'{full_path + tx.hash.hex()}'
             )
 
-            self.client.custom_logger.log_message(
-                status, message)
+            self.client.custom_logger.log_message(status, message)
 
             return receipt['status']
         except web3_exceptions.ContractCustomError as e:
@@ -217,12 +216,7 @@ class Maverick(BaseTask):
         except Exception as e:
             error = str(e)
             status = LogStatus.ERROR
-
-            if 'insufficient funds for gas + value' in error:
-                message = 'Insufficient funds for gas + value'
-
-            else:
-                message = error
+            message = error
 
         self.client.custom_logger.log_message(status, message)
 

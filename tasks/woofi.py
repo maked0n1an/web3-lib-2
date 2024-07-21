@@ -98,7 +98,7 @@ class WooFi(BaseTask):
         )
 
         tx_params = self.set_all_gas_params(
-            swap_info=swap_info,
+            operation_info=swap_info,
             tx_params=tx_params
         )
 

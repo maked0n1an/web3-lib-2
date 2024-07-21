@@ -1,6 +1,6 @@
-import asyncio
 import random
 
+import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 from eth_abi import abi
 
@@ -13,7 +13,7 @@ from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.helpers import read_json
+from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
 from tasks.config import Config
@@ -143,11 +143,11 @@ class CoreDaoData(BridgeContractDataFetcher):
 class CoreDaoBridgeImplementation(BaseTask):
     async def bridge(
         self,
-        swap_info: OperationInfo
+        bridge_info: OperationInfo
     ) -> str:
         check_message = self.validate_swap_inputs(
             first_arg=self.client.network.name,
-            second_arg=swap_info.to_network,
+            second_arg=bridge_info.to_network.name,
             param_type='networks'
         )
         if check_message:
@@ -158,26 +158,25 @@ class CoreDaoBridgeImplementation(BaseTask):
             return False
         
         from_network_name = self.client.network.name.capitalize()
-        to_network_name = swap_info.to_network.name.capitalize()
+        to_network_name = bridge_info.to_network.name.capitalize()
 
-        failed_text = (
-            f'CoreDao | Failed to bridge {from_network_name} {swap_info.from_token_name.upper()}' 
-            f' to {to_network_name} {swap_info.to_token_name}'
-        )
-        
         bridge_raw_contract = CoreDaoData.get_only_contract_for_bridge(
             network_name=from_network_name,
-            token_symbol=swap_info.from_token_name
+            token_symbol=bridge_info.from_token_name
         )
 
-        swap_query = await self.compute_source_token_amount(swap_info)
+        swap_proposal = await self.compute_source_token_amount(bridge_info)
 
         tx_params = await self._prepare_params(
-            bridge_raw_contract, swap_query, swap_info
+            bridge_raw_contract, swap_proposal, bridge_info
         )
 
         if not tx_params['value']:
-            return (f'{failed_text} | Can not get fee to bridge in {from_network_name.capitalize}')
+            self.client.custom_logger.log_message(
+                status=LogStatus.ERROR,
+                message=f'Can not get fee to bridge in {from_network_name.capitalize()}'
+            )
+            return False
 
         native_balance = await self.client.contract.get_balance()
         value = TokenAmount(
@@ -187,42 +186,74 @@ class CoreDaoBridgeImplementation(BaseTask):
         )
 
         if native_balance.Wei < value.Wei:
-            return (
-                f'{failed_text} | Too low balance for paying fee to bridge: '
-                f'balance - {round(native_balance.Ether, 2)}; '
-                f'value - {round(value.Ether, 2)}'
+            self.client.custom_logger.log_message(
+                status=LogStatus.ERROR,
+                message=(
+                    f'Too low balance for paying fee to bridge: '
+                    f'balance - {round(native_balance.Ether, 5)}; '
+                    f'value - {round(value.Ether, 5)}'
+                )
             )
+            return False
 
-        if not swap_query.from_token.is_native_token:
+        if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                token_address=swap_query.from_token.address,
+                token_address=swap_proposal.from_token.address,
                 spender=tx_params['to'],
-                amount=swap_query.amount_from,
+                amount=swap_proposal.amount_from,
             )
 
             if is_approved:
-                await asyncio.sleep(20, 50)
+                self.client.custom_logger.log_message(
+                    status=LogStatus.APPROVED,
+                    message=(
+                        f'{swap_proposal.from_token.title}'
+                        f'{swap_proposal.amount_from.Ether}'
+                    )
+                )
+                await sleep(20, 50)
+        else:
+            tx_params['value'] += swap_proposal.amount_from.Wei
+        
+        try:
+            tx_params = self.set_all_gas_params(
+                operation_info=bridge_info,
+                tx_params=tx_params
+            )
+            tx = await self.client.contract.sign_and_send(tx_params)
+            receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
+
+            rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
+            rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
+            
+            if receipt['status']:
+                status = LogStatus.BRIDGED
+                message = ''
             else:
-                return f'{failed_text} | Can not approve'
-        else:
-            tx_params['value'] += swap_query.amount_from.Wei
-        
-        tx = await self.client.contract.sign_and_send(tx_params)
-        receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
+                status = LogStatus.FAILED
+                message = f'Bridge'
 
-        rounded_amount_from = round(swap_query.amount_from.Ether, 5)
-        
-        if receipt['status']:
-            message = f'CoreDao | Bridged {rounded_amount_from} {swap_info.from_token_name}'
-        else:
-            message = f'CoreDao | Failed bridge {rounded_amount_from} {swap_info.from_token_name}'
+            message += (
+                f'{rounded_amount_from} {bridge_info.from_token_name} '
+                f'from {from_network_name} -> {rounded_amount_to} '
+                f'{bridge_info.to_token_name} in {to_network_name}: '
+                f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
+            )
 
-        message += (
-            f' from {from_network_name} in {to_network_name}: '
-            f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
-        )
-        
-        return message
+            self.client.custom_logger.log_message(status, message)
+
+            return receipt['status']
+        except web3_exceptions.ContractCustomError as e:
+            status = LogStatus.ERROR
+            message = 'Try to make slippage more'
+        except Exception as e:
+            error = str(e)
+            status = LogStatus.ERROR
+            message = error
+                
+        self.client.custom_logger.log_message(status, message)
+
+        return False
 
     async def _prepare_params(
         self,
@@ -300,6 +331,7 @@ class CoreDaoBridgeImplementation(BaseTask):
 
         return tx_params
 # endregion Coredao
+
 
 # region Random function
 class CoreDaoBridge(BaseTask):
@@ -389,6 +421,7 @@ class CoreDaoBridge(BaseTask):
                     'Failed to bridge: not found enough balance in native or tokens in any network'
                 )
             )
+            return False
 
         random_dst_data = random.choice(dst_data)
         bridge_info.to_network = random_dst_data[0]
