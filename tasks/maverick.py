@@ -11,7 +11,7 @@ from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.swap import OperationInfo, TxPayloadDetails, TxPayloadDetailsFetcher
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
-from libs.async_eth_lib.utils.helpers import read_json, sleep
+from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
 
 
@@ -78,9 +78,7 @@ class Maverick(BaseTask):
     MAVERICK_ROUTER = RawContract(
         title="Maverick Router",
         address="0x39E098A153Ad69834a9Dac32f0FCa92066aD03f4",
-        abi=read_json(
-            path=("data", "abis", "zksync", "maverick", "router_abi.json")
-        ),
+        abi_path=("data", "abis", "zksync", "maverick", "router_abi.json")
     )
 
     @validate_swap_tokens(MaverickData.PATHS.keys(), 'Maverick')

@@ -51,9 +51,7 @@ class SpaceFiImplementation(BaseTask):
     SPACE_FI_ROUTER = RawContract(
         title='SpaceFiRouter',
         address='0xbE7D1FD1f6748bbDefC4fbaCafBb11C6Fc506d1d',
-        abi=read_json(
-            path=('data', 'abis', 'zksync', 'space_fi', 'abi.json')
-        )
+        abi_path=('data', 'abis', 'zksync', 'space_fi', 'abi.json')
     )
 
     async def swap(
