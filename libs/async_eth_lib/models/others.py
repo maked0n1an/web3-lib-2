@@ -119,7 +119,7 @@ class TokenAmount:
 
 #region Params types
 class ParamsTypes:
-    Contract = RawContract | AsyncContract | Contract
+    Web3Contract = AsyncContract | Contract
     TokenContract = TokenContract | NativeTokenContract
     Address = str | types.Address | types.ChecksumAddress | types.ENS
     Amount = float | int | TokenAmount

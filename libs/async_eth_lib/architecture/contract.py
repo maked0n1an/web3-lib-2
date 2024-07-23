@@ -239,13 +239,13 @@ class Contract(Transaction):
 
     async def get_token_contract(
         self,
-        token: RawContract | ParamsTypes.Address
+        token: RawContract | ParamsTypes.TokenContract | ParamsTypes.Address
     ) -> web3_Contract | web3_AsyncContract:
         """
         Get a contract instance for the specified token.
 
         Args:
-            token (RawContract | str | Address | ChecksumAddress | ENS): The token contract or its address.
+            token (RawContract | TokenContract | NativeTokenContract | str | Address | ChecksumAddress | ENS): The token contract or its address.
 
         Returns:
             Contract | AsyncContract: The contract instance.
@@ -264,7 +264,7 @@ class Contract(Transaction):
 
     async def get_approved_amount(
         self,
-        token_contract: RawContract | ParamsTypes.Address,
+        token_contract: RawContract | ParamsTypes.TokenContract | ParamsTypes.Address,
         spender_address: ParamsTypes.Address,
         owner: ParamsTypes.Address | None = None
     ) -> TokenAmount:
@@ -301,7 +301,8 @@ class Contract(Transaction):
 
     async def get_balance(
         self,
-        token_contract: RawContract | ParamsTypes.Web3Contract | ParamsTypes.Address | None = None,
+        token_contract: RawContract | ParamsTypes.TokenContract
+            | ParamsTypes.Web3Contract | ParamsTypes.Address | None = None,
         address: ParamsTypes.Address | None = None
     ) -> TokenAmount:
         """
@@ -344,7 +345,7 @@ class Contract(Transaction):
 
     async def get_decimals(
         self,
-        contract: RawContract | TokenContract | ParamsTypes.Web3Contract
+        contract: RawContract | ParamsTypes.TokenContract | ParamsTypes.Web3Contract
     ) -> int:
         """
         Retrieve the decimals of a token contract or contract.
