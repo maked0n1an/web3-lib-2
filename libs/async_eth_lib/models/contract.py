@@ -49,7 +49,7 @@ class TokenContract(RawContract):
         Args:
             title (str): a contract title.
             address (str): a contract address.
-            abi_path (tuple | list | str]): a path to get contract ABI from file.
+            abi_path (tuple | list | str): a path to get contract ABI from file.
             decimals (int): a contract decimals.
             is_native_token (bool): is this contract native token of network (False).
         """
