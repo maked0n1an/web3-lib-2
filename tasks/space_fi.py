@@ -13,8 +13,8 @@ from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
     LogStatus, TokenSymbol
 )
-from libs.async_eth_lib.models.swap import (
-    OperationInfo, SwapProposal, TxPayloadDetails, TxPayloadDetailsFetcher
+from libs.async_eth_lib.models.operation import (
+    OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
@@ -114,7 +114,7 @@ class SpaceFiImplementation(BaseTask):
 
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                swap_info=swap_info,
+                operation_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
@@ -188,9 +188,9 @@ class SpaceFiImplementation(BaseTask):
     async def _create_swap_proposal(
         self,
         swap_info: OperationInfo
-    ) -> SwapProposal:
+    ) -> OperationProposal:
         swap_proposal = await self.compute_source_token_amount(
-            swap_info=swap_info
+            operation_info=swap_info
         )
 
         swap_proposal.to_token = ZkSyncTokenContracts.get_token(
@@ -204,9 +204,9 @@ class SpaceFiImplementation(BaseTask):
             / second_token_price
 
         return await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
+            operation_proposal=swap_proposal,
             min_to_amount=min_to_amount,
-            swap_info=swap_info
+            operation_info=swap_info
         )
 # endregion Implementation
 

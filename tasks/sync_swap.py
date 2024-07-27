@@ -10,7 +10,7 @@ from libs.async_eth_lib.data.token_contracts import (
 )
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo
+from libs.async_eth_lib.models.operation import OperationInfo
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
@@ -48,7 +48,7 @@ class SyncSwap(BaseTask):
             return False
 
         contract = await self.client.contract.get(contract=self.SYNC_SWAP_ROUTER)
-        swap_proposal = await self.compute_source_token_amount(swap_info=swap_info)
+        swap_proposal = await self.compute_source_token_amount(operation_info=swap_info)
 
         is_from_token_eth = swap_info.from_token_name == TokenSymbol.ETH
 
@@ -69,9 +69,9 @@ class SyncSwap(BaseTask):
             / second_token_price
 
         swap_proposal = await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
+            operation_proposal=swap_proposal,
             min_to_amount=min_to_amount,
-            swap_info=swap_info
+            operation_info=swap_info
         )
 
         pool = self.LIQUIDITY_POOLS.get(
@@ -137,7 +137,7 @@ class SyncSwap(BaseTask):
                 token_contract=swap_proposal.from_token,
                 spender_address=contract.address,
                 amount=swap_proposal.amount_from,
-                swap_info=swap_info,
+                operation_info=swap_info,
                 tx_params=tx_params,
             )
             if approved:

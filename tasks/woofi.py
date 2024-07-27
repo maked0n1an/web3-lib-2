@@ -5,7 +5,7 @@ from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes
-from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
@@ -133,8 +133,8 @@ class WooFi(BaseTask):
         self,
         contract: ParamsTypes.Web3Contract,
         swap_info: OperationInfo
-    ) -> SwapProposal:
-        swap_query = await self.compute_source_token_amount(swap_info=swap_info)
+    ) -> OperationProposal:
+        swap_query = await self.compute_source_token_amount(operation_info=swap_info)
 
         to_token = ContractsFactory.get_contract(
             network_name=self.client.network.name,
@@ -150,5 +150,5 @@ class WooFi(BaseTask):
         return await self.compute_min_destination_amount(
             swap_query=swap_query,
             min_to_amount=min_to_amount,
-            swap_info=swap_info
+            operation_info=swap_info
         )

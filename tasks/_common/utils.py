@@ -6,7 +6,7 @@ from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 
 
 # region To construct tx
@@ -180,7 +180,7 @@ class BaseTask(Utils, PriceUtils):
 
     async def approve_interface(
         self,
-        swap_info: OperationInfo,
+        operation_info: OperationInfo,
         token_contract: RawContract,
         tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
@@ -218,7 +218,7 @@ class BaseTask(Utils, PriceUtils):
             return True
 
         tx_params = self.set_all_gas_params(
-            operation_info=swap_info,
+            operation_info=operation_info,
             tx_params=tx_params
         )
 
@@ -233,8 +233,8 @@ class BaseTask(Utils, PriceUtils):
 
     async def compute_source_token_amount(
         self,
-        swap_info: OperationInfo
-    ) -> SwapProposal:
+        operation_info: OperationInfo
+    ) -> OperationProposal:
         """
         Compute the source token amount for a given swap.
 
@@ -246,7 +246,7 @@ class BaseTask(Utils, PriceUtils):
         """
         from_token = ContractsFactory.get_contract(
             network_name=self.client.network.name,
-            token_symbol=swap_info.from_token_name
+            token_symbol=operation_info.from_token_name
         )
 
         if from_token.is_native_token:
@@ -257,68 +257,68 @@ class BaseTask(Utils, PriceUtils):
             balance = await self.client.contract.get_balance(from_token)
             decimals = balance.decimals
 
-        if swap_info.amount:
+        if operation_info.amount:
             amount_from = TokenAmount(
-                amount=swap_info.amount,
+                amount=operation_info.amount,
                 decimals=decimals
             )
             if amount_from.Wei > balance.Wei:
                 amount_from = balance
 
-        elif swap_info.amount_by_percent:
+        elif operation_info.amount_by_percent:
             amount_from = TokenAmount(
-                amount=balance.Wei * swap_info.amount_by_percent,
+                amount=balance.Wei * operation_info.amount_by_percent,
                 decimals=decimals,
                 wei=True
             )
         else:
             amount_from = balance
 
-        return SwapProposal(
+        return OperationProposal(
             from_token=from_token,
             amount_from=amount_from
         )
 
     async def compute_min_destination_amount(
         self,
-        swap_proposal: SwapProposal,
+        operation_proposal: OperationProposal,
         min_to_amount: int,
-        swap_info: OperationInfo,
+        operation_info: OperationInfo,
         is_to_token_price_wei: bool = False
-    ) -> SwapProposal:
+    ) -> OperationProposal:
         """
         Compute the minimum destination amount for a swap proposal.
 
         Args:
-            swap_proposal (SwapProposal): The initial swap proposal.
+            operation_proposal (OperationProposal): The initial operation proposal.
             min_to_amount (int): The minimum amount of the destination token.
-            swap_info (SwapInfo): Information about the swap.
+            operation_info (OperationInfo): Information about the operation.
             is_to_token_price_wei (bool, optional): Whether the price of the destination token is in wei. Defaults to False.
 
         Returns:
             SwapProposal: The updated swap proposal with the minimum destination amount.
         """
 
-        if not swap_proposal.to_token:
-            swap_proposal.to_token = ContractsFactory.get_contract(
+        if not operation_proposal.to_token:
+            operation_proposal.to_token = ContractsFactory.get_contract(
                 network_name=self.client.network.name,
-                token_symbol=swap_info.to_token_name
+                token_symbol=operation_info.to_token_name
             )
 
         decimals = await self.client.contract.get_decimals(
-            contract=swap_proposal.to_token
+            contract=operation_proposal.to_token
         )
 
         min_amount_out = TokenAmount(
-            amount=float(min_to_amount) * (1 - swap_info.slippage / 100),
+            amount=float(min_to_amount) * (1 - operation_info.slippage / 100),
             decimals=decimals,
             wei=is_to_token_price_wei
         )
 
-        return SwapProposal(
-            from_token=swap_proposal.from_token,
-            amount_from=swap_proposal.amount_from,
-            to_token=swap_proposal.to_token,
+        return OperationProposal(
+            from_token=operation_proposal.from_token,
+            amount_from=operation_proposal.amount_from,
+            to_token=operation_proposal.to_token,
             min_amount_to=min_amount_out
         )
 # endregion Base class for actions

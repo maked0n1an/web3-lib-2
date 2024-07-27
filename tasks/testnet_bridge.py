@@ -10,7 +10,7 @@ from libs.async_eth_lib.data.token_contracts import TokenContractData
 from libs.async_eth_lib.models.bridge import BridgeContractDataFetcher, NetworkData
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
@@ -104,17 +104,17 @@ class TestnetBridgeImplementation(BaseTask):
             contract=bridge_raw_contract
         )
 
-        swap_proposal = await self.compute_source_token_amount(bridge_info)
-        swap_proposal = await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
-            min_to_amount=swap_proposal.amount_from.Wei,
-            swap_info=bridge_info,
+        bridge_proposal = await self.compute_source_token_amount(bridge_info)
+        bridge_proposal = await self.compute_min_destination_amount(
+            operation_proposal=bridge_proposal,
+            min_to_amount=bridge_proposal.amount_from.Wei,
+            operation_info=bridge_info,
             is_to_token_price_wei=True
         )
 
         args = TxArgs(
-            _amountIn=swap_proposal.amount_from.Wei,
-            _amountOutMin=swap_proposal.min_amount_to.Wei,
+            _amountIn=bridge_proposal.amount_from.Wei,
+            _amountOutMin=bridge_proposal.min_amount_to.Wei,
             _dstChainId=dst_chain_id,
             _to=self.client.account.address,
             _refundAddress=self.client.account.address,
@@ -125,7 +125,7 @@ class TestnetBridgeImplementation(BaseTask):
         value = await self._get_estimateSendFee(
             dst_chain_id=dst_chain_id,
             contract=contract,
-            swap_proposal=swap_proposal,
+            bridge_proposal=bridge_proposal,
         )
 
         tx_params = TxParams(
@@ -134,21 +134,22 @@ class TestnetBridgeImplementation(BaseTask):
             value=value.Wei
         )
         
-        if not swap_proposal.from_token.is_native_token:
+        if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                token_address=swap_proposal.from_token.address,
-                spender=tx_params['to'],
-                amount=swap_proposal.amount_from,
+                operation_info=bridge_info,
+                token_contract=bridge_proposal.from_token,
+                tx_params=tx_params,
+                amount=bridge_proposal.amount_from,
             )
 
             if is_approved:
                 self.client.custom_logger.log_message(
                     LogStatus.APPROVED,
-                    message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
+                    message=f"{bridge_proposal.amount_from.Ether} {bridge_proposal.from_token.title}"
                 )
                 await sleep(8, 15)
         else:
-            tx_params['value'] += swap_proposal.amount_from.Wei      
+            tx_params['value'] += bridge_proposal.amount_from.Wei      
         
         try:
             tx_params = self.set_all_gas_params(
@@ -163,7 +164,7 @@ class TestnetBridgeImplementation(BaseTask):
                 web3=self.client.w3
             )
 
-            rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
+            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
 
             if receipt['status']:
                 status = LogStatus.BRIDGED
@@ -203,7 +204,7 @@ class TestnetBridgeImplementation(BaseTask):
         self,
         dst_chain_id: int,
         contract: ParamsTypes.Web3Contract,
-        swap_proposal: SwapProposal,
+        bridge_proposal: OperationProposal,
     ) -> TokenAmount:
         contract_to_get_fee = await contract.functions.oft().call()
 
@@ -215,7 +216,7 @@ class TestnetBridgeImplementation(BaseTask):
         result = await estimate_fee_contract.functions.estimateSendFee(
             dst_chain_id,
             self.client.account.address,
-            swap_proposal.amount_from.Wei,
+            bridge_proposal.amount_from.Wei,
             False,
             '0x'
         ).call()
