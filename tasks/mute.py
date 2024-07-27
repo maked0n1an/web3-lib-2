@@ -24,7 +24,7 @@ from tasks.config import get_mute_paths
 # region Settings
 class MuteSettings():
     def __init__(self):
-        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)('mute')
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['mute']
 
         self.swap_eth_amount: FromTo = FromTo(
             from_=settings['swap_eth_amount']['from'],
@@ -52,9 +52,7 @@ class MuteImplementation(BaseTask):
     MUTE_UNIVERSAL = RawContract(
         title='Mute',
         address='0x8b791913eb07c32779a16750e3868aa8495f5964',
-        abi=read_json(
-            path=('data', 'abis', 'zksync', 'mute', 'abi.json')
-        )
+        abi_path=('data', 'abis', 'zksync', 'mute', 'abi.json')
     )
 
     async def swap(
@@ -179,7 +177,7 @@ class MuteImplementation(BaseTask):
 
     async def _create_swap_proposal(
         self,
-        contract: ParamsTypes.Contract,
+        contract: ParamsTypes.Web3Contract,
         swap_info: OperationInfo
     ) -> SwapProposal:
         swap_proposal = await self.compute_source_token_amount(swap_info=swap_info)

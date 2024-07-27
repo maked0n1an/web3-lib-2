@@ -37,35 +37,33 @@ class TestnetBridgeSettings():
 
 # region Contracts
 class TestnetBridgeContracts:
-    ABI = read_json(
-        path=('data', 'abis', 'testnet_bridge', 'abi.json')
-    )
-    GET_FEE_ABI = read_json(
-        path=('data', 'abis', 'testnet_bridge', 'get_fee_abi.json')
+    ABI = ('data', 'abis', 'testnet_bridge', 'abi.json')
+    GET_FEE_ABI_PATH = (
+        'data', 'abis', 'testnet_bridge', 'get_fee_abi.json'
     )
     
     ARBITRUM_GET_FEE = RawContract(
         title='LayerZero: GETH Token (Arbitrum GETH_LZ)',
         address='0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
-        abi=GET_FEE_ABI
+        abi_path=GET_FEE_ABI_PATH
     )
     
     ARBITRUM_ETH = RawContract(
         title='SwapAndBridgeUniswapV3 (Arbitrum ETH)',
         address='0xfca99f4b5186d4bfbdbd2c542dca2eca4906ba45',
-        abi=ABI
+        abi_path=ABI
     )
     
     OPTIMISM_GET_FEE = RawContract(
         title='LayerZero: GETH Token (Optimism GETH_LZ)',
         address='0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
-        abi=GET_FEE_ABI
+        abi_path=GET_FEE_ABI_PATH
     )
     
     OPTIMISM_ETH = RawContract(
         title='SwapAndBridgeUniswapV3 (Arbitrum ETH)',
         address='0x8352C746839699B1fc631fddc0C3a00d4AC71A17',
-        abi=ABI
+        abi_path=ABI
     )
     
     @classmethod
@@ -204,14 +202,14 @@ class TestnetBridgeImplementation(BaseTask):
     async def _get_estimateSendFee(
         self,
         dst_chain_id: int,
-        contract: ParamsTypes.Contract,
+        contract: ParamsTypes.Web3Contract,
         swap_proposal: SwapProposal,
     ) -> TokenAmount:
         contract_to_get_fee = await contract.functions.oft().call()
 
         estimate_fee_contract = await self.client.contract.get(
             contract=contract_to_get_fee,
-            abi=TestnetBridgeContracts.GET_FEE_ABI
+            abi_or_path=TestnetBridgeContracts.GET_FEE_ABI_PATH
         )
         
         result = await estimate_fee_contract.functions.estimateSendFee(

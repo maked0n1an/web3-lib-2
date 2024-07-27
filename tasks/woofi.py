@@ -7,40 +7,36 @@ from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes
 from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.helpers import read_json, sleep
+from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
 
 # region Contracts
 class WoofiContracts:
-    WOOFI_ROUTER_V2_ABI = read_json(
-        path=('data', 'abis', 'woofi', 'abi.json')
-    )
+    WOOFI_ROUTER_V2_ABI_PATH = ('data', 'abis', 'woofi', 'abi.json')
 
     contracts_dict = {
         'WooRouterV2': {
             Networks.Arbitrum.name: RawContract(
                 title='WooRouterV2_Arbitrum',
                 address='0x9aed3a8896a85fe9a8cac52c9b402d092b629a30',
-                abi=WOOFI_ROUTER_V2_ABI
+                abi_path=WOOFI_ROUTER_V2_ABI_PATH
             ),
             Networks.Polygon.name: RawContract(
                 title='WooRouterV2_Polygon',
                 address='0x817Eb46D60762442Da3D931Ff51a30334CA39B74',
-                abi=WOOFI_ROUTER_V2_ABI
+                abi_path=WOOFI_ROUTER_V2_ABI_PATH
             ),
             Networks.BSC.name: RawContract(
                 title='WooRouterV2_BSC',
                 address='0x4f4fd4290c9bb49764701803af6445c5b03e8f06',
-                abi=WOOFI_ROUTER_V2_ABI
+                abi_path=WOOFI_ROUTER_V2_ABI_PATH
             )
         },
         'AggregationRouterV5': {
             Networks.Polygon.name: RawContract(
                 title='AggregationRouterV5_Polygon',
                 address='0x1111111254EEB25477B68fb85Ed929f73A960582',
-                abi=read_json(
-                    path=('data', 'abis', '1inch', 'router_v5.json')
-                )
+                abi_path=('data', 'abis', '1inch', 'router_v5.json')
             )
         }
     }
@@ -135,7 +131,7 @@ class WooFi(BaseTask):
 
     async def create_swap_proposal(
         self,
-        contract: ParamsTypes.Contract,
+        contract: ParamsTypes.Web3Contract,
         swap_info: OperationInfo
     ) -> SwapProposal:
         swap_query = await self.compute_source_token_amount(swap_info=swap_info)

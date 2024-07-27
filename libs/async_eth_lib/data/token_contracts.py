@@ -2,35 +2,14 @@ import libs.async_eth_lib.models.exceptions as exceptions
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.contract import NativeTokenContract, TokenContract
 from libs.async_eth_lib.models.others import TokenSymbol
-from libs.pretty_utils.type_functions.classes import Singleton
-from libs.async_eth_lib.utils.helpers import read_json
 
-
-class ContractsFactory:
-    @staticmethod
-    def get_contract(network_name: str, token_symbol: str) -> TokenContract:
-        supported_networks = {
-            Networks.Ethereum.name: EthereumTokenContracts,
-            Networks.Arbitrum.name: ArbitrumTokenContracts,
-            Networks.Avalanche.name: AvalancheTokenContracts,
-            Networks.BSC.name: BscTokenContracts,
-            Networks.Fantom.name: FantomTokenContracts,
-            Networks.Kava.name: KavaTokenContracts,
-            Networks.Optimism.name: OptimismTokenContracts,
-            Networks.Polygon.name: PolygonTokenContracts,
-            Networks.ZkSync.name: ZkSyncTokenContracts,
-        }
-        
-        if network_name not in supported_networks:
-            raise ValueError("Network not supported")
-
-        return supported_networks[network_name].get_token(token_symbol)
-
-# region All token contracts
-class TokenContractData(metaclass=Singleton):
+class TokenContractData:
     NATIVE_ETH = NativeTokenContract(title=TokenSymbol.ETH)
-
     ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
+    
+    @classmethod
+    def _initialize_tokens(cls):
+        pass
 
     @classmethod
     def get_token(
@@ -52,13 +31,28 @@ class TokenContractData(metaclass=Singleton):
 
         return getattr(cls, contract_name)
 
+class ContractsFactory:
+    @staticmethod
+    def get_contract(network_name: str, token_symbol: str) -> TokenContract:
+        supported_networks: dict[str, TokenContractData] = {
+            Networks.Ethereum.name: EthereumTokenContracts,
+            Networks.Arbitrum.name: ArbitrumTokenContracts,
+            Networks.Avalanche.name: AvalancheTokenContracts,
+            Networks.BSC.name: BscTokenContracts,
+            Networks.Fantom.name: FantomTokenContracts,
+            Networks.Kava.name: KavaTokenContracts,
+            Networks.Optimism.name: OptimismTokenContracts,
+            Networks.Polygon.name: PolygonTokenContracts,
+            Networks.ZkSync.name: ZkSyncTokenContracts,
+        }
+        
+        if network_name not in supported_networks:
+            raise ValueError("Network not supported")
 
-class OmnichainTokenContracts:
-    USDV = TokenContract(
-        title=TokenSymbol.USDV,
-        address='0x323665443CEf804A3b5206103304BD4872EA4253',
-    )
+        supported_networks[network_name]._initialize_tokens()
+        return supported_networks[network_name].get_token(token_symbol)
 
+# region All token contracts
 
 class EthereumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
@@ -99,9 +93,7 @@ class ArbitrumTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'stargate', 'usdv_abi.json')
-        )
+        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     DAI = TokenContract(
@@ -150,9 +142,7 @@ class AvalancheTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'stargate', 'usdv_abi.json')
-        )
+        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     FRAX = TokenContract(
@@ -193,9 +183,7 @@ class BscTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'stargate', 'usdv_abi.json')
-        ),
+        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json'),
         decimals=6,
     )
 
@@ -277,9 +265,7 @@ class OptimismTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'stargate', 'usdv_abi.json')
-        )
+        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
     
     STG = TokenContract(
@@ -313,9 +299,7 @@ class PolygonTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi=read_json(
-            path=('data', 'abis', 'stargate', 'usdv_abi.json')
-        )
+        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     DAI = TokenContract(
@@ -349,9 +333,7 @@ class ZkSyncTokenContracts(TokenContractData):
     WETH = TokenContract(
         title=TokenSymbol.WETH,
         address='0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
-        abi=read_json(
-            path=('data', 'abis', 'zksync', 'weth_abi.json')
-        )
+        abi_path=('data', 'abis', 'zksync', 'weth_abi.json')
     )
 
     WBTC = TokenContract(

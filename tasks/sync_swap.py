@@ -12,7 +12,7 @@ from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.swap import OperationInfo
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.helpers import read_json, sleep
+from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
 
 
@@ -20,9 +20,7 @@ class SyncSwap(BaseTask):
     SYNC_SWAP_ROUTER = RawContract(
         title="SyncSwap Router",
         address="0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295",
-        abi=read_json(
-            path=("data", "abis", "zksync", "sync_swap", "abi.json")
-        ),
+        abi_path=("data", "abis", "zksync", "sync_swap", "abi.json")
     )
 
     LIQUIDITY_POOLS = {

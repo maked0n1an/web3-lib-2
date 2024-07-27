@@ -1,10 +1,10 @@
 import asyncio
-import inspect
 import aiohttp
 from web3.types import TxParams
 
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
+from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
 
@@ -181,7 +181,7 @@ class BaseTask(Utils, PriceUtils):
     async def approve_interface(
         self,
         swap_info: OperationInfo,
-        token_contract: ParamsTypes.TokenContract,
+        token_contract: RawContract,
         tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
         is_approve_infinity: bool = None
@@ -306,7 +306,7 @@ class BaseTask(Utils, PriceUtils):
             )
 
         decimals = await self.client.contract.get_decimals(
-            token_contract=swap_proposal.to_token
+            contract=swap_proposal.to_token
         )
 
         min_amount_out = TokenAmount(
