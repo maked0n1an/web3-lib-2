@@ -27,17 +27,29 @@ class Utils:
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
 
-    def to_cut_hex_prefix_and_zfill(self, data: str, length: int = 64):
+    @staticmethod
+    def to_cut_hex_prefix_and_zfill(hex_data: str, length: int = 64):
         """
-        Convert the string to lowercase and fill it with zeros to the specified length.
+        Convert the hex string to lowercase, remove the '0x' prefix, and fill it with zeros to the specified length.
 
         Args:
-            length (int): The desired length of the string after filling.
+            hex_data (str): The original hex string.
+            length (int): The desired length of the string after filling. The default is 64.
 
         Returns:
-            str: The modified string.
+            str: The modified string with '0x' prefix removed and zero-filled to the specified length.
         """
-        return data[2:].zfill(length)
+        if hex_data.startswith('0x'):
+            hex_data = hex_data[2:]
+        else:
+            raise ValueError("Hex address must start with '0x'")
+        
+        return hex_data.zfill(length)
+    
+    @staticmethod
+    def normalize_non_evm_hex_value(hex_value: str, length: int = 64) -> str:
+        hex_value = BaseTask.to_cut_hex_prefix_and_zfill(hex_value, length)
+        return '0x' + hex_value
 
     @staticmethod
     def parse_params(
