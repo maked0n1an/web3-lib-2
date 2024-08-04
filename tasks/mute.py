@@ -14,8 +14,8 @@ from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
     LogStatus, ParamsTypes, TokenSymbol
 )
-from libs.async_eth_lib.models.swap import (
-    OperationInfo, SwapProposal, TxPayloadDetails, TxPayloadDetailsFetcher
+from libs.async_eth_lib.models.operation import (
+    OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 from tasks._common.utils import BaseTask
@@ -111,7 +111,7 @@ class MuteImplementation(BaseTask):
 
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                swap_info=swap_info,
+                operation_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from
@@ -179,8 +179,8 @@ class MuteImplementation(BaseTask):
         self,
         contract: ParamsTypes.Web3Contract,
         swap_info: OperationInfo
-    ) -> SwapProposal:
-        swap_proposal = await self.compute_source_token_amount(swap_info=swap_info)
+    ) -> OperationProposal:
+        swap_proposal = await self.compute_source_token_amount(swap_info)
 
         if swap_info.from_token_name == TokenSymbol.ETH:
             from_token = ZkSyncTokenContracts.WETH
@@ -201,9 +201,9 @@ class MuteImplementation(BaseTask):
         ).call()
 
         return await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
+            operation_proposal=swap_proposal,
             min_to_amount=min_amount_out[0],
-            swap_info=swap_info,
+            operation_info=swap_info,
             is_to_token_price_wei=True
         )
 # endregion Implementation

@@ -13,7 +13,7 @@ from libs.async_eth_lib.data.token_contracts import ContractsFactory, TokenContr
 from libs.async_eth_lib.models.bridge import NetworkData, NetworkDataFetcher, TokenBridgeInfo
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
@@ -397,11 +397,11 @@ class StargateImplementation(BaseTask):
             token_symbol=self.token_path
         )
         
-        swap_proposal = await self.compute_source_token_amount(bridge_info)
-        swap_proposal = await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
-            min_to_amount=swap_proposal.amount_from.Wei,
-            swap_info=bridge_info,
+        bridge_proposal = await self.compute_source_token_amount(bridge_info)
+        bridge_proposal = await self.compute_min_destination_amount(
+            operation_proposal=bridge_proposal,
+            min_to_amount=bridge_proposal.amount_from.Wei,
+            operation_info=bridge_info,
             is_to_token_price_wei=True
         )
 
@@ -414,9 +414,9 @@ class StargateImplementation(BaseTask):
                 decimals=dst_network.decimals
             )
             
-        tx_params, bridge_info, swap_proposal = await self.get_data_for_crosschain_swap(
+        tx_params, bridge_info, bridge_proposal = await self.get_data_for_crosschain_swap(
             crosschain_swap_info=bridge_info,
-            swap_proposal=swap_proposal,
+            bridge_proposal=bridge_proposal,
             src_bridge_info=src_bridge_info,
             dst_fee=dst_fee
         )
@@ -473,25 +473,25 @@ class StargateImplementation(BaseTask):
 
             return False
 
-        if not swap_proposal.from_token.is_native_token:
+        if not bridge_proposal.from_token.is_native_token:
             optional_tx_hash = await self.approve_interface(
-                swap_info=bridge_info,
-                token_contract=swap_proposal.from_token,
+                operation_info=bridge_info,
+                token_contract=bridge_proposal.from_token,
                 tx_params=tx_params,
-                amount=swap_proposal.amount_from,
+                amount=bridge_proposal.amount_from,
             )
 
             if optional_tx_hash:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{swap_proposal.from_token.title}'
-                        f'{swap_proposal.amount_from.Ether}'
+                        f'{bridge_proposal.from_token.title}'
+                        f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
                 await sleep(20, 50)
         else:
-            tx_params['value'] += swap_proposal.amount_from.Wei
+            tx_params['value'] += bridge_proposal.amount_from.Wei
 
         try:
             tx_params = self.set_all_gas_params(
@@ -506,8 +506,8 @@ class StargateImplementation(BaseTask):
                 timeout=240
             )
             
-            rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
-            rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
+            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
+            rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
 
             if receipt['status']:
                 status = LogStatus.BRIDGED
@@ -572,10 +572,10 @@ class StargateImplementation(BaseTask):
     async def get_data_for_crosschain_swap(
         self,
         crosschain_swap_info: OperationInfo,
-        swap_proposal: SwapProposal,
+        bridge_proposal: OperationProposal,
         src_bridge_info: TokenBridgeInfo,
         dst_fee: TokenAmount | None = None
-    ) -> Tuple[TxParams, OperationInfo, SwapProposal]:
+    ) -> Tuple[TxParams, OperationInfo, OperationProposal]:
         if crosschain_swap_info.to_token_name in StargateData.SPECIAL_COINS:
             dst_chain_id = StargateData.get_chain_id(
                 network_name=crosschain_swap_info.to_network.name
@@ -615,8 +615,8 @@ class StargateImplementation(BaseTask):
                 _dstChainId=dst_chain_id,
                 _refundAddress=address,
                 _toAddress=address,
-                _amountLD=swap_proposal.amount_from.Wei,
-                _minAmountLd=swap_proposal.min_amount_to.Wei,
+                _amountLD=bridge_proposal.amount_from.Wei,
+                _minAmountLd=bridge_proposal.min_amount_to.Wei,
             )
 
             tx_params['data'] = router_contract.encodeABI(
@@ -651,7 +651,7 @@ class StargateImplementation(BaseTask):
 
             fee = await self._quote_send_fee(
                 router_contract=router_contract,
-                swap_proposal=swap_proposal,
+                bridge_proposal=bridge_proposal,
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
@@ -659,8 +659,8 @@ class StargateImplementation(BaseTask):
             tx_args = TxArgs(
                 _param=TxArgs(
                     to=abi.encode(["address"], [address]),
-                    amountLD=swap_proposal.amount_from.Wei,
-                    minAmountLD=swap_proposal.min_amount_to.Wei,
+                    amountLD=bridge_proposal.amount_from.Wei,
+                    minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
                 ).get_tuple(),
                 _extraOptions=adapter_params,
@@ -692,27 +692,27 @@ class StargateImplementation(BaseTask):
                 adapter_params[30:])
 
             usdv_contract = await self.client.contract.get(
-                contract=swap_proposal.to_token
+                contract=bridge_proposal.to_token
             )
 
             fee = await self._quote_send_fee(
                 router_contract=usdv_contract,
-                swap_proposal=swap_proposal,
+                bridge_proposal=bridge_proposal,
                 dst_chain_id=dst_chain_id,
                 adapter_params=adapter_params
             )
 
             tx_args = TxArgs(
                 _swapParam=TxArgs(
-                    _fromToken=swap_proposal.from_token.address,
-                    _fromTokenAmount=swap_proposal.amount_from.Wei,
-                    _minUSDVOut=swap_proposal.min_amount_to.Wei
+                    _fromToken=bridge_proposal.from_token.address,
+                    _fromTokenAmount=bridge_proposal.amount_from.Wei,
+                    _minUSDVOut=bridge_proposal.min_amount_to.Wei
                 ).get_tuple(),
                 _color=color,
                 _param=TxArgs(
                     to=abi.encode(['address'], [address]),
-                    amountLD=swap_proposal.amount_from.Wei,
-                    minAmountLD=swap_proposal.min_amount_to.Wei,
+                    amountLD=bridge_proposal.amount_from.Wei,
+                    minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
                 ).get_tuple(),
                 _extraOptions=adapter_params,
@@ -750,7 +750,7 @@ class StargateImplementation(BaseTask):
             tx_args = TxArgs(
                 _dstChainId=dst_chain_id,
                 _to=address,
-                _qty=swap_proposal.amount_from.Wei,
+                _qty=bridge_proposal.amount_from.Wei,
                 zroPaymentAddress=TokenContractData.ZERO_ADDRESS,
                 adapterParam=adapter_params
             )
@@ -781,8 +781,8 @@ class StargateImplementation(BaseTask):
                 _srcPoolId=src_bridge_info.pool_id,
                 _dstPoolId=dst_pool_id,
                 _refundAddress=address,
-                _amountLD=swap_proposal.amount_from.Wei,
-                _minAmountLd=swap_proposal.min_amount_to.Wei,
+                _amountLD=bridge_proposal.amount_from.Wei,
+                _minAmountLd=bridge_proposal.min_amount_to.Wei,
                 _lzTxParams=lz_tx_params.get_tuple(),
                 _to=address,
                 _payload='0x'
@@ -794,7 +794,7 @@ class StargateImplementation(BaseTask):
 
         tx_params['value'] = int(fee.Wei * l0_multiplier_fee)
 
-        return tx_params, crosschain_swap_info, swap_proposal
+        return tx_params, crosschain_swap_info, bridge_proposal
 
     async def _estimate_send_tokens_fee(
         self,
@@ -829,7 +829,7 @@ class StargateImplementation(BaseTask):
     async def _quote_send_fee(
         self,
         router_contract: ParamsTypes.Web3Contract,
-        swap_proposal: SwapProposal,
+        bridge_proposal: OperationProposal,
         dst_chain_id: int,
         adapter_params: str,
         use_lz_token: bool = False,
@@ -842,8 +842,8 @@ class StargateImplementation(BaseTask):
         result = await router_contract.functions.quoteSendFee(
             [
                 address,
-                swap_proposal.amount_from.Wei,
-                swap_proposal.min_amount_to.Wei,
+                bridge_proposal.amount_from.Wei,
+                bridge_proposal.min_amount_to.Wei,
                 dst_chain_id
             ],
             adapter_params,

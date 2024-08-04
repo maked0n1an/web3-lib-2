@@ -11,7 +11,7 @@ from libs.async_eth_lib.data.token_contracts import ContractsFactory, TokenContr
 from libs.async_eth_lib.models.bridge import BridgeContractDataFetcher, NetworkData
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo, SwapProposal
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
@@ -162,10 +162,10 @@ class CoreDaoBridgeImplementation(BaseTask):
             token_symbol=bridge_info.from_token_name
         )
 
-        swap_proposal = await self.compute_source_token_amount(bridge_info)
+        bridge_proposal = await self.compute_source_token_amount(bridge_info)
 
         tx_params = await self._prepare_params(
-            bridge_raw_contract, swap_proposal, bridge_info
+            bridge_raw_contract, bridge_proposal, bridge_info
         )
 
         if not tx_params['value']:
@@ -193,24 +193,24 @@ class CoreDaoBridgeImplementation(BaseTask):
             )
             return False
 
-        if not swap_proposal.from_token.is_native_token:
+        if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                token_address=swap_proposal.from_token.address,
+                token_address=bridge_proposal.from_token.address,
                 spender=tx_params['to'],
-                amount=swap_proposal.amount_from,
+                amount=bridge_proposal.amount_from,
             )
 
             if is_approved:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{swap_proposal.from_token.title}'
-                        f'{swap_proposal.amount_from.Ether}'
+                        f'{bridge_proposal.from_token.title}'
+                        f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
                 await sleep(20, 50)
         else:
-            tx_params['value'] += swap_proposal.amount_from.Wei
+            tx_params['value'] += bridge_proposal.amount_from.Wei
         
         try:
             tx_params = self.set_all_gas_params(
@@ -220,8 +220,8 @@ class CoreDaoBridgeImplementation(BaseTask):
             tx = await self.client.contract.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
 
-            rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
-            rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
+            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
+            rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
             
             if receipt['status']:
                 status = LogStatus.BRIDGED
@@ -255,7 +255,7 @@ class CoreDaoBridgeImplementation(BaseTask):
     async def _prepare_params(
         self,
         bridge_raw_contract: RawContract,
-        swap_proposal: SwapProposal,
+        bridge_proposal: OperationProposal,
         bridge_info: OperationInfo,
     ) -> TxParams:
         contract = await self.client.contract.get(bridge_raw_contract)
@@ -277,9 +277,9 @@ class CoreDaoBridgeImplementation(BaseTask):
             )
 
             args = TxArgs(
-                localToken=swap_proposal.from_token.address,
+                localToken=bridge_proposal.from_token.address,
                 remoteChainId=dst_chain_id,
-                amount=swap_proposal.amount_from.Wei,
+                amount=bridge_proposal.amount_from.Wei,
                 to=self.client.account.address,
                 unwrapWeth=False,
                 callParams=callParams.get_tuple(),
@@ -296,8 +296,8 @@ class CoreDaoBridgeImplementation(BaseTask):
             multiplier = 1.03
         else:
             args = TxArgs(
-                token=swap_proposal.from_token.address,
-                amountLd=swap_proposal.amount_from.Wei,
+                token=bridge_proposal.from_token.address,
+                amountLd=bridge_proposal.amount_from.Wei,
                 to=self.client.account.address,
                 callParams=callParams.get_tuple(),
                 adapterParams=adapter_params

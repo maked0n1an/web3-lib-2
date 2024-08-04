@@ -85,8 +85,8 @@ class OperationInfo:
 # endregion Class to get info about swap
 
 
-# region Class to prepare swap
-class SwapProposal:
+# region Class to prepare data for swap/bridge/deposit/borrow etc.
+class OperationProposal:
     def __init__(
         self,
         from_token: TokenContract,

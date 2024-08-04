@@ -8,7 +8,7 @@ import web3.exceptions as web3_exceptions
 from libs.async_eth_lib.data.token_contracts import TokenContractData, ZkSyncTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
-from libs.async_eth_lib.models.swap import OperationInfo, TxPayloadDetails, TxPayloadDetailsFetcher
+from libs.async_eth_lib.models.operation import OperationInfo, TxPayloadDetails, TxPayloadDetailsFetcher
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
@@ -89,7 +89,7 @@ class Maverick(BaseTask):
         is_src_token_eth = swap_info.from_token_name == TokenSymbol.ETH
         
         swap_proposal = await self.compute_source_token_amount(
-            swap_info=swap_info
+            operation_info=swap_info
         )
 
         from_token_price = await self.get_binance_ticker_price(swap_info.from_token_name)
@@ -99,9 +99,9 @@ class Maverick(BaseTask):
             / second_token_price
 
         swap_proposal = await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
+            operation_proposal=swap_proposal,
             min_to_amount=min_to_amount,
-            swap_info=swap_info
+            operation_info=swap_info
         )
 
         tx_payload_details = MaverickData.get_tx_payload_details(
@@ -156,7 +156,7 @@ class Maverick(BaseTask):
         
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                swap_info=swap_info,
+                operation_info=swap_info,
                 token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,

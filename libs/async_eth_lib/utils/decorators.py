@@ -1,5 +1,5 @@
 from libs.async_eth_lib.architecture.logger import console_logger
-from libs.async_eth_lib.models.swap import OperationInfo
+from libs.async_eth_lib.models.operation import OperationInfo
 
 def validate_swap_tokens(
     available_tokens: list[str],
