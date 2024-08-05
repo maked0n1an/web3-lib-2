@@ -39,6 +39,7 @@ class ContractsFactory:
             Networks.Arbitrum.name: ArbitrumTokenContracts,
             Networks.Avalanche.name: AvalancheTokenContracts,
             Networks.BSC.name: BscTokenContracts,
+            Networks.Core.name: CoreTokenContracts,
             Networks.Fantom.name: FantomTokenContracts,
             Networks.Kava.name: KavaTokenContracts,
             Networks.Optimism.name: OptimismTokenContracts,
