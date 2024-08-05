@@ -59,7 +59,7 @@ class WooFi(BaseTask):
         self,
         swap_info: OperationInfo
     ) -> str:
-        check_message = self.validate_swap_inputs(
+        check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=swap_info.to_network,
             param_type='networks'

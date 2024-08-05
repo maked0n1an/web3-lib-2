@@ -26,7 +26,7 @@ def read_txt(path: str | tuple | list) -> List[str]:
 def read_json(
     path: str | tuple | list,
     encoding: str | None = None
-) -> list | dict:
+) -> dict:
     path = join_path(path)
     return json.load(open(path, encoding=encoding))
 

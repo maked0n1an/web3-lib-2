@@ -72,10 +72,20 @@ class CustomLogger:
 
         return self.LOGGERS[account_id]
 
-    def log_message(self, status: str, message: str) -> None:
-        caller_frame = inspect.currentframe().f_back
-        calling_line = f"{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}"
-
+    def log_message(
+        self, 
+        status: str, 
+        message: str,
+        call_depth_or_custom_call_place: str | int = 1,
+    ) -> None:
+        if isinstance(call_depth_or_custom_call_place, int):
+            caller_frame = inspect.currentframe()
+            for _ in range(call_depth_or_custom_call_place):
+                caller_frame = caller_frame.f_back
+            calling_line = f"{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}"
+        else:
+            calling_line = call_depth_or_custom_call_place
+            
         message_with_calling_line = f"{calling_line:<15} | {message}"
         extra = {
             "account_id": self.account_id,
