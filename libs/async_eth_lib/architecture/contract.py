@@ -227,14 +227,14 @@ class Contract(Transaction):
             contract=contract
         )
 
-        if not abi_or_path or not contract_abi_path:
+        if not contract_abi_path:
             # # todo: сделаем подгрузку abi из эксплорера (в том числе через proxy_address)
             # raise ValueError("Can not get contract ABI")
-            contract_abi_or_path = contract_abi_path
+            contract_abi_path = abi_or_path
 
         return self.get_web3_contract(
             address=contract_address, 
-            abi_or_path=contract_abi_or_path
+            abi_or_path=contract_abi_path
         )
 
     async def get_token_contract(
