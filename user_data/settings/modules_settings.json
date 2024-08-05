@@ -1,48 +1,54 @@
 {
-  "mute":{
-    "swap_eth_amount": {
-      "from": 0.0005,
-      "to": 0.0005,
-      "min_percent": 10,
-      "max_percent": 10
-    },
-    "swap_stables_amount": {
-      "from": 0,
-      "to": 0,
-      "min_percent": 100,
-      "max_percent": 100
-    },
-    "slippage": 0.5
+  "mute": {
+    "swap": {
+      "eth_amount": {
+        "from": 0,
+        "to": 0,
+        "min_percent": 0,
+        "max_percent": 0
+      },
+      "token_amount": {
+        "from": 0,
+        "to": 0,
+        "min_percent": 100,
+        "max_percent": 100
+      },
+      "slippage": 0.5
+    }
   },
-  "space_fi":{
-    "swap_eth_amount": {
-      "from": 0.0005,
-      "to": 0.0005,
-      "min_percent": 10,
-      "max_percent": 10
-    },
-    "swap_stables_amount": {
-      "from": 0,
-      "to": 0,
-      "min_percent": 100,
-      "max_percent": 100
-    },
-    "slippage": 0.5
+  "space_fi": {
+    "swap": {
+      "eth_amount": {
+        "from": 0.0005,
+        "to": 0.0005,
+        "min_percent": 10,
+        "max_percent": 10
+      },
+      "token_amount": {
+        "from": 0,
+        "to": 0,
+        "min_percent": 100,
+        "max_percent": 100
+      },
+      "slippage": 0.5
+    }
   },
   "stargate": {
-    "bridge_eth_amount": {
-      "from": 0,
-      "to": 0,
-      "min_percent": 10,
-      "max_percent": 10
+    "bridge": {
+      "eth_amount": {
+        "from": 0.0,
+        "to": 0.0,
+        "min_percent": 10,
+        "max_percent": 50
+      },
+      "token_amount": {
+        "from": 0,
+        "to": 0,
+        "min_percent": 20,
+        "max_percent": 30
+      },
+      "max_fee_in_usd": 0.6     
     },
-    "bridge_stables_amount": {
-      "from": 0.001,
-      "to": 0.001,
-      "min_percent": 20,
-      "max_percent": 30
-    },
-    "max_bridge_fee_usd": 1.0,
     "slippage_and_gas": {
       "ETH": {
         "slippage": {
@@ -89,25 +95,29 @@
     }
   },
   "coredao": {
-    "bridge_eth_amount": {
-      "from": 0.0001,
-      "to": 0.001,
-      "min_percent": 10,
-      "max_percent": 30
-    },
-    "bridge_token_amount": {
-      "from": 0.01,
-      "to": 0.03,
-      "min_percent": 20,
-      "max_percent": 30
-    },
-    "slippage": 0.5
+    "bridge": {
+      "eth_amount": {
+        "from": 0.0,
+        "to": 0.0,
+        "min_percent": 10,
+        "max_percent": 50
+      },
+      "token_amount": {
+        "from": 0.001,
+        "to": 2,
+        "min_percent": 100,
+        "max_percent": 100
+      },
+      "slippage": 0.5
+    }
   },
   "testnet_bridge": {
-    "bridge_eth_amount": {
-      "from": 1e-05,
-      "to": 3e-05
-    },
-    "slippage": 0.5
+    "bridge": {
+      "eth_amount": {
+        "from": 1e-05,
+        "to": 3e-05
+      },
+      "slippage": 0.5
+    }
   }
 }
