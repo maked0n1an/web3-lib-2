@@ -18,11 +18,11 @@ class OperationInfo:
         from_network: Network = Networks.Goerli,
         to_network: Network | None = None,
         amount: float | None = None,
-        amount_from: float | None = None,
+        amount_from: float = 0.0,
         amount_to: float | None = None,
         ndigits: int = 5,
-        min_percent: int | None = None,
-        max_percent: int | None = None,
+        min_percent: float = 0.0,
+        max_percent: float = 100.0,
         gas_price: float | None = None,
         gas_limit: int | None = None,
         multiplier_of_gas: float | None = None
@@ -57,10 +57,10 @@ class OperationInfo:
         self.gas_price = gas_price
         self.gas_limit = gas_limit
         self.multiplier_of_gas = multiplier_of_gas
-        if amount_from and amount_to:
+        if amount_to:
             self.amount = self._get_random_amount(
                 amount_from, amount_to, ndigits)
-        if min_percent and max_percent:
+        if max_percent:
             self.amount_by_percent = self._get_random_amount_by_percent(
                 min_percent, max_percent, ndigits
             )
@@ -80,7 +80,7 @@ class OperationInfo:
         max_percent: int,
         ndigits: int
     ) -> float:
-        random_percent_amount = random.uniform(min_percent, max_percent) / 100
+        random_percent_amount = random.uniform(min_percent, max_percent) % 100 / 100
         return round(random_percent_amount, ndigits)
 # endregion Class to get info about swap
 
