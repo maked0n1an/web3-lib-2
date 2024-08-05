@@ -81,7 +81,7 @@ class Maverick(BaseTask):
         abi_path=("data", "abis", "zksync", "maverick", "router_abi.json")
     )
 
-    @validate_swap_tokens(MaverickData.PATHS.keys(), 'Maverick')
+    @validate_swap_tokens(MaverickData.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo

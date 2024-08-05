@@ -224,7 +224,7 @@ class StandardSettings:
 
 # region RandomChoice
 # To get token for operation random from available options
-class RandomChoiceClass:
+class RandomChoiceHelper:
     @staticmethod
     async def get_random_token_for_operation(
         op_name: str,
@@ -245,7 +245,7 @@ class RandomChoiceClass:
             if token_contract.is_native_token:
                 balance = await client.contract.get_balance()
                 
-                operation_info = RandomChoiceClass._get_operation_info(
+                operation_info = RandomChoiceHelper._get_operation_info(
                     balance=balance,
                     amount_setting=op_settings.eth_amount,
                     amount_percent_setting=op_settings.eth_amount_percent,
@@ -255,7 +255,7 @@ class RandomChoiceClass:
             else:
                 balance = await client.contract.get_balance(token_contract)
                 
-                operation_info = RandomChoiceClass._get_operation_info(
+                operation_info = RandomChoiceHelper._get_operation_info(
                     balance=balance,
                     amount_setting=op_settings.token_amount,
                     amount_percent_setting=op_settings.token_amount_percent,

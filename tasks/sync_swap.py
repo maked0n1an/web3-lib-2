@@ -12,9 +12,18 @@ from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo
 from libs.async_eth_lib.models.transaction import TxArgs
+from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.utils import BaseTask
 
+
+SYNCSWAP_SWAP_TOKENS = {
+    TokenSymbol.ETH,
+    TokenSymbol.USDT,
+    TokenSymbol.USDC,
+    TokenSymbol.BUSD,
+    TokenSymbol.WBTC
+}
 
 class SyncSwap(BaseTask):
     SYNC_SWAP_ROUTER = RawContract(
@@ -33,20 +42,9 @@ class SyncSwap(BaseTask):
         (TokenSymbol.ETH, TokenSymbol.WBTC):
             "0xb3479139e07568ba954c8a14d5a8b3466e35533d",
     }
-
+    
+    @validate_swap_tokens(SYNCSWAP_SWAP_TOKENS)
     async def swap(self, swap_info: OperationInfo) -> bool:
-        message = self.validate_swap_inputs(
-            first_arg=swap_info.from_token_name,
-            second_arg=swap_info.to_token_name,
-            param_type="tokens",
-        )
-        if message:
-            self.client.custom_logger.log_message(
-                status=LogStatus.ERROR, message=message
-            )
-
-            return False
-
         contract = await self.client.contract.get(contract=self.SYNC_SWAP_ROUTER)
         swap_proposal = await self.compute_source_token_amount(operation_info=swap_info)
 

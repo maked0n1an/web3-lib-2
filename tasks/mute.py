@@ -18,7 +18,7 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
-from tasks._common.utils import BaseTask, RandomChoiceClass, StandardSettings
+from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
 from tasks.config import get_mute_paths
 
 # region Settings

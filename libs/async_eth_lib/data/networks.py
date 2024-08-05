@@ -96,7 +96,7 @@ class Networks(metaclass=Singleton):
         tx_type=2,
         coin_symbol=TokenSymbol.XDAI,
         decimals=18,
-        explorer='https://gnosisscan.io/',
+        explorer='https://gnosisscan.io',
     )
 
     Heco = Network(
@@ -189,7 +189,7 @@ class Networks(metaclass=Singleton):
         tx_type=2,
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
-        explorer='https://explorer.zksync.io/'
+        explorer='https://explorer.zksync.io'
     )
 
     @classmethod

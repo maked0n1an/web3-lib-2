@@ -14,7 +14,7 @@ from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from tasks._common.utils import BaseTask, RandomChoiceClass, StandardSettings
+from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
 from tasks.config import get_coredao_bridge_routes
 
 
