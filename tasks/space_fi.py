@@ -17,7 +17,7 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
-from tasks._common.utils import BaseTask, RandomChoiceClass, StandartSettings
+from tasks._common.utils import BaseTask, RandomChoiceClass, StandardSettings
 from tasks.config import get_space_fi_paths
 
 
@@ -32,6 +32,88 @@ class SpaceFiSettings():
         )
 
 
+# region Available paths
+class SpaceFiRoutes(TxPayloadDetailsFetcher):
+    PATHS = {
+        TokenSymbol.ETH: {
+            TokenSymbol.USDC: TxPayloadDetails(
+                method_name='swapExactETHForToken',
+                addresses=[
+                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncTokenContracts.USDC.address
+                ],
+                function_signature="0x7ff36ab5"
+            ),
+            TokenSymbol.USDT: TxPayloadDetails(
+                method_name='swapExactETHForToken',
+                addresses=[
+                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncTokenContracts.USDT.address
+                ],
+                function_signature="0x7ff36ab5"
+            ),
+            TokenSymbol.WBTC: TxPayloadDetails(
+                method_name='swapExactETHForToken',
+                addresses=[
+                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncTokenContracts.WBTC.address
+                ],
+                function_signature="0x7ff36ab5"
+            )
+        },
+        TokenSymbol.USDC: {
+            TokenSymbol.ETH: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    ZkSyncTokenContracts.USDC.address,
+                    ZkSyncTokenContracts.SPACE.address,
+                    ZkSyncTokenContracts.WETH.address
+                ],
+                function_signature="0x18cbafe5"
+            ),
+            TokenSymbol.WBTC: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    ZkSyncTokenContracts.USDC.address,
+                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncTokenContracts.WBTC.address
+                ],
+                function_signature='0x38ed1739'
+            )
+        },
+        TokenSymbol.USDT: {
+            TokenSymbol.ETH: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    ZkSyncTokenContracts.USDT.address,
+                    # ZkSyncTokenContracts.SPACE.address,
+                    ZkSyncTokenContracts.WETH.address
+                ],
+                function_signature="0x18cbafe5"
+            )
+        },
+        TokenSymbol.WBTC: {
+            TokenSymbol.ETH: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    ZkSyncTokenContracts.WBTC.address,
+                    ZkSyncTokenContracts.USDC.address,
+                    ZkSyncTokenContracts.WETH.address
+                ],
+                function_signature="0x18cbafe5"
+            ),
+            TokenSymbol.USDC: TxPayloadDetails(
+                method_name='swapExactTokensForETH',
+                addresses=[
+                    ZkSyncTokenContracts.WBTC.address,
+                    ZkSyncTokenContracts.USDC.address
+                ],
+                function_signature='0x38ed1739'
+            )
+        }
+    }
+# endregion Available routes
+
 
 # region Implementation    
 class SpaceFiImplementation(BaseTask):
@@ -41,22 +123,11 @@ class SpaceFiImplementation(BaseTask):
         abi_path=('data', 'abis', 'zksync', 'space_fi', 'abi.json')
     )
 
+    @validate_swap_tokens(SpaceFiRoutes.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo
     ) -> bool:
-        check_message = self.validate_swap_inputs(
-            first_arg=swap_info.from_token_name,
-            second_arg=swap_info.to_token_name,
-            param_type='tokens'
-        )
-        if check_message:
-            self.client.custom_logger.log_message(
-                status=LogStatus.ERROR, message=check_message
-            )
-
-            return False
-
         contract = await self.client.contract.get(
             contract=self.SPACE_FI_ROUTER
         )
@@ -198,97 +269,12 @@ class SpaceFiImplementation(BaseTask):
 # endregion Implementation
 
 
-# region Available paths
-class SpaceFiRoutes(TxPayloadDetailsFetcher):
-    PATHS = {
-        TokenSymbol.ETH: {
-            TokenSymbol.USDC: TxPayloadDetails(
-                method_name='swapExactETHForToken',
-                addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.USDC.address
-                ],
-                function_signature="0x7ff36ab5"
-            ),
-            TokenSymbol.USDT: TxPayloadDetails(
-                method_name='swapExactETHForToken',
-                addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.USDT.address
-                ],
-                function_signature="0x7ff36ab5"
-            ),
-            TokenSymbol.WBTC: TxPayloadDetails(
-                method_name='swapExactETHForToken',
-                addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.WBTC.address
-                ],
-                function_signature="0x7ff36ab5"
-            )
-        },
-        TokenSymbol.USDC: {
-            TokenSymbol.ETH: TxPayloadDetails(
-                method_name='swapExactTokensForETH',
-                addresses=[
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.SPACE.address,
-                    ZkSyncTokenContracts.WETH.address
-                ],
-                function_signature="0x18cbafe5"
-            ),
-            TokenSymbol.WBTC: TxPayloadDetails(
-                method_name='swapExactTokensForETH',
-                addresses=[
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.WBTC.address
-                ],
-                function_signature='0x38ed1739'
-            )
-        },
-        TokenSymbol.USDT: {
-            TokenSymbol.ETH: TxPayloadDetails(
-                method_name='swapExactTokensForETH',
-                addresses=[
-                    ZkSyncTokenContracts.USDT.address,
-                    # ZkSyncTokenContracts.SPACE.address,
-                    ZkSyncTokenContracts.WETH.address
-                ],
-                function_signature="0x18cbafe5"
-            )
-        },
-        TokenSymbol.WBTC: {
-            TokenSymbol.ETH: TxPayloadDetails(
-                method_name='swapExactTokensForETH',
-                addresses=[
-                    ZkSyncTokenContracts.WBTC.address,
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.WETH.address
-                ],
-                function_signature="0x18cbafe5"
-            ),
-            TokenSymbol.USDC: TxPayloadDetails(
-                method_name='swapExactTokensForETH',
-                addresses=[
-                    ZkSyncTokenContracts.WBTC.address,
-                    ZkSyncTokenContracts.USDC.address
-                ],
-                function_signature='0x38ed1739'
-            )
-        }
-    }
-# endregion Available routes
-
-
 # region Random function
 class SpaceFi(BaseTask):
     async def swap(
         self,
     ):
         settings = SpaceFiSettings()
-        dst_swap_data = get_space_fi_paths()
-        
         client = Client(
             account_id=self.client.account_id,
             private_key=self.client.account._private_key,
@@ -300,66 +286,12 @@ class SpaceFi(BaseTask):
             message='Started to search enough balance for swap'
         )
         
-        dst_data = None
-        token_paths = list(dst_swap_data[Networks.ZkSync].keys())
-        random.shuffle(token_paths)
-        
-        for token_symbol in token_paths:
-            token_contract = ContractsFactory.get_contract(
-                Networks.ZkSync.name, token_symbol
-            )
-            if token_contract.is_native_token:
-                balance = await client.contract.get_balance()
-
-                if (
-                    float(balance.Ether) < settings.swap_eth_amount.from_
-                    and settings.swap_eth_amount.from_ == 0
-                ):
-                    continue
-
-                amount_from = settings.swap_eth_amount.from_
-                amount_to = min(float(balance.Ether), settings.swap_eth_amount.to_)
-                min_percent = settings.swap_eth_amount_percent.from_
-                max_percent = settings.swap_eth_amount_percent.to_
-            else:
-                balance = await client.contract.get_balance(token_contract)
-
-                if (
-                    float(balance.Ether) <= settings.swap_stables_amount.from_
-                    and settings.swap_stables_amount.from_ == 0
-                ):
-                    continue
-
-                amount_from = settings.swap_stables_amount.from_
-                amount_to = min(float(balance.Ether), settings.swap_stables_amount.to_)
-                min_percent = settings.swap_stables_amount_percent.from_
-                max_percent = settings.swap_stables_amount_percent.to_
-
-            swap_info = OperationInfo(
-                from_token_name=token_symbol,
-                amount_from=amount_from,
-                amount_to=amount_to,
-                slippage=settings.slippage,
-                min_percent=min_percent,
-                max_percent=max_percent
-            )
-            
-            dst_data = dst_swap_data[Networks.ZkSync][token_symbol]
-            found_token_symbol = swap_info.from_token_name
-            found_amount_from = (
-                swap_info.amount
-                if swap_info.amount
-                else round(swap_info.amount_by_percent * float(balance.Ether), 6)
-            )
-            
-            if dst_data:
-                self.client.custom_logger.log_message(
-                    status=LogStatus.INFO,
-                    message=(
-                        f'Found {found_amount_from} {found_token_symbol} for swap!'
-                    )
-                )
-                break
+        (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+            op_name='swap',
+            op_data=get_space_fi_paths(),
+            op_settings=settings.swap,
+            client=client
+        )
              
         if not dst_data:
             self.client.custom_logger.log_message(
@@ -370,8 +302,8 @@ class SpaceFi(BaseTask):
             )
             return False
             
-        swap_info.to_token_name = random.choice(dst_data)
+        operation_info.to_token_name = random.choice(dst_data)
         space_fi = SpaceFiImplementation(client=client)
         
-        return await space_fi.swap(swap_info)
+        return await space_fi.swap(operation_info)
 # endregion Random function

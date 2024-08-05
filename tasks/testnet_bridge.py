@@ -13,8 +13,7 @@ from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from libs.pretty_utils.type_functions.dataclasses import FromTo
-from tasks._common.utils import BaseTask
+from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
 from tasks.config import get_testnet_bridge_routes
 
 # region Settings
@@ -260,58 +259,22 @@ class TestnetBridge(BaseTask):
             status=LogStatus.INFO,
             message='Started to search enough balance for bridge'
         )
-        for network in random_networks:   
-            if network == Networks.Sepolia:
-                continue
-                     
+        for network in random_networks:
             client = Client(
+                account_id=self.client.account_id,
                 private_key=self.client.account._private_key,
                 network=network,
                 proxy=self.client.proxy
             )
 
-            found_path = None
-            random_tokens = list(bridge_routes[network].keys())
-            random.shuffle(random_tokens)
-
-            found_token_symbol, found_amount_from = None, 0
-
-            for token_sym in random_tokens:
-                balance = await client.contract.get_balance()
-
-                if float(balance.Ether) < settings.bridge_eth_amount.from_:
-                    continue
-
-                amount_from = settings.bridge_eth_amount.from_
-                amount_to = settings.bridge_eth_amount.to_
-
-                bridge_info = OperationInfo(
-                    from_network=network,
-                    from_token=token_sym,
-                    amount_from=amount_from,
-                    amount_to=amount_to,
-                )
-                client = client
-                found_path = bridge_routes[network][token_sym]
-                found_token_symbol = bridge_info.from_token_name
-                found_amount_from = (
-                    bridge_info.amount
-                    if bridge_info.amount
-                    else round(bridge_info.amount_by_percent * float(balance.Ether), 6)
-                )
-
-            if found_path:
-                self.client.custom_logger.log_message(
-                    status=LogStatus.INFO,
-                    message=(
-                        f'Found {found_amount_from} '
-                        f'{found_token_symbol} in {network.name.capitalize()}'
-                    )
-                )
-                break
-                
-
-        if not found_path:
+            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+                op_name='bridge',
+                op_data=get_testnet_bridge_routes(),
+                op_settings=settings.bridge,
+                client=client
+            )
+            
+        if not dst_data:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
                 message=(
@@ -320,10 +283,10 @@ class TestnetBridge(BaseTask):
             )
             return False
 
-        random_dst_data = random.choice(found_path)
-        bridge_info.to_network = random_dst_data[0]
-        bridge_info.to_token_name = random_dst_data[1]
+        random_dst_data = random.choice(dst_data)
+        operation_info.to_network = random_dst_data[0]
+        operation_info.to_token_name = random_dst_data[1]
         testnet_bridge = TestnetBridgeImplementation(client)
 
-        return await testnet_bridge.bridge(bridge_info)
+        return await testnet_bridge.bridge(operation_info)
 # endregion Random function

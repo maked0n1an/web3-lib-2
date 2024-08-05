@@ -14,7 +14,7 @@ from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from tasks._common.utils import BaseTask, RandomChoiceClass, StandartSettings
+from tasks._common.utils import BaseTask, RandomChoiceClass, StandardSettings
 from tasks.config import get_coredao_bridge_routes
 
 
@@ -76,7 +76,7 @@ class CoreDaoBridgeContracts:
 
 # region Supported networks
 class CoreDaoData(BridgeContractDataFetcher):
-    networks_data = {
+    NETWORKS_DATA = {
         Networks.Arbitrum.name: NetworkData(
             chain_id=110,
             bridge_dict={
@@ -128,7 +128,7 @@ class CoreDaoBridgeImplementation(BaseTask):
         self,
         bridge_info: OperationInfo
     ) -> str:
-        check_message = self.validate_swap_inputs(
+        check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
             param_type='networks'
@@ -323,7 +323,7 @@ class CoreDaoBridge(BaseTask):
     async def bridge(
         self,
     ):
-        settings = CoreDaoSettings()
+        settings = CoreDaoBridgeSettings()
         bridge_data = get_coredao_bridge_routes()
 
         random_networks = list(bridge_data.keys())
@@ -341,62 +341,15 @@ class CoreDaoBridge(BaseTask):
                 network=network,
                 proxy=self.client.proxy
             )
-
-            dst_data = None
-            random_tokens = list(bridge_data[network].keys())
-            random.shuffle(random_tokens)
-
-            found_token_symbol, found_amount_from = None, 0
-
-            for token_sym in random_tokens:
-                token_contract = ContractsFactory.get_contract(
-                    network.name, token_sym
-                )
-                if token_contract.is_native_token:
-                    balance = await client.contract.get_balance()
-
-                    if float(balance.Ether) < settings.bridge_eth_amount.from_:
-                        continue
-
-                    amount_from = settings.bridge_eth_amount.from_
-                    amount_to = min(float(balance.Ether), settings.bridge_eth_amount.to_)
-                    min_percent = settings.bridge_eth_amount_percent.from_
-                    max_percent = settings.bridge_eth_amount_percent.to_
-                else:
-                    balance = await client.contract.get_balance(token_contract)
-
-                    if float(balance.Ether) < settings.bridge_token_amount.from_:
-                        continue
-
-                    amount_from = settings.bridge_token_amount.from_
-                    amount_to = min(float(balance.Ether), settings.bridge_token_amount.to_)
-                    min_percent = settings.bridge_token_amount_percent.from_
-                    max_percent = settings.bridge_token_amount_percent.to_
-
-                bridge_info = OperationInfo(
-                    from_token_name=token_sym,
-                    amount_from=amount_from,
-                    amount_to=amount_to,
-                    min_percent=min_percent,
-                    max_percent=max_percent
-                )
-                client = client
-                dst_data = bridge_data[network][token_sym]
-                found_token_symbol = bridge_info.from_token_name
-                found_amount_from = (
-                    bridge_info.amount
-                    if bridge_info.amount
-                    else round(bridge_info.amount_by_percent * float(balance.Ether), 6)
-                )
-
-            if dst_data:
-                self.client.custom_logger.log_message(
-                    status=LogStatus.INFO,
-                    message=(
-                        f'Found {found_amount_from} '
-                        f'{found_token_symbol} in {network.name.capitalize()}!'
-                    )
-                )
+        
+            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+                op_name='bridge',
+                op_data=bridge_data,
+                op_settings=settings.bridge,
+                client=client
+            )
+            
+            if operation_info:
                 break
 
         if not dst_data:
@@ -409,9 +362,9 @@ class CoreDaoBridge(BaseTask):
             return False
 
         random_dst_data = random.choice(dst_data)
-        bridge_info.to_network = random_dst_data[0]
-        bridge_info.to_token_name = random_dst_data[1]
+        operation_info.to_network = random_dst_data[0]
+        operation_info.to_token_name = random_dst_data[1]
         coredao_bridge = CoreDaoBridgeImplementation(client)
 
-        return await coredao_bridge.bridge(bridge_info)
+        return await coredao_bridge.bridge(operation_info)
 # endregion Random function

@@ -1,12 +1,18 @@
 import asyncio
+import random
+from decimal import Decimal
+from typing import Optional
+
 import aiohttp
 from web3.types import TxParams
 
 from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
+from libs.pretty_utils.type_functions.dataclasses import FromTo
 
 
 # region To construct tx
@@ -43,9 +49,9 @@ class Utils:
             hex_data = hex_data[2:]
         else:
             raise ValueError("Hex address must start with '0x'")
-        
+
         return hex_data.zfill(length)
-    
+
     @staticmethod
     def normalize_non_evm_hex_value(hex_value: str, length: int = 64) -> str:
         hex_value = BaseTask.to_cut_hex_prefix_and_zfill(hex_value, length)
@@ -152,12 +158,12 @@ class StandardSettings:
     >>> class StargateSettings:
     >>>     def __init__(self):
     >>>         settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
-    >>>         self.bridge = StandartSettings(
+    >>>         self.bridge = StandardSettings(
     >>>             settings=settings,
     >>>             module_name='stargate',
     >>>             action_name='bridge'
     >>>         )
-    >>>         self.liquidity = StandartSettings(
+    >>>         self.liquidity = StandardSettings(
     >>>             settings=settings,
     >>>             module_name='stargate',
     >>>             action_name='liquidity'
@@ -216,13 +222,111 @@ class StandardSettings:
             self.max_fee_in_usd = float(action_settings['max_fee_in_usd'])
 
 
+# region RandomChoice
+# To get token for operation random from available options
+class RandomChoiceClass:
+    @staticmethod
+    async def get_random_token_for_operation(
+        op_name: str,
+        op_data: dict[Network, dict[str, list[tuple]]],
+        op_settings: StandardSettings,
+        client: Client,
+    ) -> tuple[Optional[OperationInfo], Optional[list[tuple]]]:
+        tokens_dict = list(op_data[client.network].keys())
+        random.shuffle(tokens_dict)
+
+        operation_info = dst_data = None
+
+        for src_token_sym in tokens_dict:
+            token_contract = ContractsFactory.get_contract(
+                client.network.name, src_token_sym
+            )
+            
+            if token_contract.is_native_token:
+                balance = await client.contract.get_balance()
+                
+                operation_info = RandomChoiceClass._get_operation_info(
+                    balance=balance,
+                    amount_setting=op_settings.eth_amount,
+                    amount_percent_setting=op_settings.eth_amount_percent,
+                    token_name=src_token_sym
+                )
+                
+            else:
+                balance = await client.contract.get_balance(token_contract)
+                
+                operation_info = RandomChoiceClass._get_operation_info(
+                    balance=balance,
+                    amount_setting=op_settings.token_amount,
+                    amount_percent_setting=op_settings.token_amount_percent,
+                    token_name=src_token_sym
+                )
+                    
+            if operation_info:
+                dst_data = op_data[client.network][src_token_sym] 
+                
+                if not operation_info.amount:
+                    operation_info.amount = round(
+                        float(Decimal(operation_info.amount_by_percent) 
+                            * balance.Ether),
+                        token_contract.decimals
+                    )
+                
+                client.custom_logger.log_message(
+                    status=LogStatus.INFO,
+                    message=(
+                        f'Found {operation_info.amount} '
+                        f'{operation_info.from_token_name} for {op_name}()'
+                    ),
+                    call_depth_or_custom_call_place=2
+                )
+                break
+
+        return operation_info, dst_data
+    
+    @staticmethod
+    def _get_operation_info(
+        balance: TokenAmount, 
+        token_name: str,
+        amount_setting: Optional[FromTo] = None, 
+        amount_percent_setting: Optional[FromTo] = None, 
+    ) -> Optional[OperationInfo]:
+        if (
+            amount_setting
+            and
+            float(balance.Ether) > amount_setting.from_
+        ):
+            if amount_setting.to_ != 0:
+                upper_bound = min(float(balance.Ether), amount_setting.to_)
+            else:
+                upper_bound = float(balance.Ether)
+            
+            return OperationInfo(
+                from_token_name=token_name,
+                amount_from=amount_setting.from_,
+                amount_to=upper_bound
+            )
+        
+        if (
+            amount_percent_setting 
+            and balance.Ether != 0
+            and not amount_setting 
+        ):
+            return OperationInfo(
+                from_token_name=token_name,
+                min_percent=amount_percent_setting.from_,
+                max_percent=amount_percent_setting.to_
+            )
+        return None
+# endregion BaseSettings
+
 
 # region Base class for actions
 class BaseTask(Utils, PriceUtils):
     def __init__(self, client: Client):
         self.client = client
 
-    def validate_swap_inputs(
+    def validate_inputs(
         self,
         first_arg: str,
         second_arg: str,
@@ -250,13 +354,13 @@ class BaseTask(Utils, PriceUtils):
         tx_params: dict | TxParams
     ) -> dict | TxParams:
         """
-        Set gas-related parameters in the transaction parameters based on provided SwapInfo.
+        Set gas-related parameters in the transaction parameters based on provided OperationInfo.
 
-        Iterates over gas-related attributes in SwapInfo and invokes corresponding methods on
+        Iterates over gas-related attributes in OperationInfo and invokes corresponding methods on
         self.client.contract to modify tx_params accordingly.
 
         Args:
-            swap_info (SwapInfo): Information about the swap containing gas-related attributes.
+            info (OperationInfo): Information about the swap containing gas-related attributes.
             tx_params (dict or TxParams): Transaction parameters to be modified.
 
         Returns:
@@ -338,7 +442,7 @@ class BaseTask(Utils, PriceUtils):
         Compute the source token amount for a given swap.
 
         Args:
-            swap_info (SwapInfo): Information about the swap.
+            operation_info (OperationInfo): Information about the swap.
 
         Returns:
             TokenSwapProposal: The prepared proposal for the swap.

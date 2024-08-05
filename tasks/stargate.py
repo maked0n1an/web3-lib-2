@@ -336,7 +336,7 @@ class StargateImplementation(BaseTask):
     def src_network_name(self):
         """The source network name"""
         return self._src_network_name
-    
+
     @src_network_name.setter
     def src_network_name(self, value: str):
         self._src_network_name = value.upper()
@@ -344,11 +344,11 @@ class StargateImplementation(BaseTask):
     @property
     def token_path(self) -> str:
         return self._token_path
-    
+
     @token_path.setter
     def token_path(self, crosschain_swap_info: OperationInfo):
         self._token_path = crosschain_swap_info.from_token_name
-        if crosschain_swap_info.to_token_name in StargateData.SPECIAL_COINS:
+        if crosschain_swap_info.to_token_name in StargateDataV1.SPECIAL_COINS:
             self._token_path += crosschain_swap_info.to_token_name
 
     async def bridge(
@@ -357,10 +357,11 @@ class StargateImplementation(BaseTask):
         max_fee: float = 0.7,
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
-        check_message = self.validate_swap_inputs(
+        check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
-            param_type='networks'
+            param_type='networks',
+            function='bridge'
         )
         if check_message:
             self.client.custom_logger.log_message(
@@ -368,17 +369,21 @@ class StargateImplementation(BaseTask):
             )
 
             return False
-        
+
         self.src_network_name = self.client.network.name
         self.token_path = bridge_info
-        dst_network_name = bridge_info.to_network.name.upper()
+        dst_network_name_upper = bridge_info.to_network.name.upper()
 
-        src_bridge_info = StargateData.get_token_bridge_info(
+        src_bridge_info = StargateDataV1.get_token_bridge_info(
             network_name=self.src_network_name,
             token_symbol=self.token_path
         )
-        
+
         bridge_proposal = await self.compute_source_token_amount(bridge_info)
+        bridge_proposal.to_token = ContractsFactory.get_contract(
+            network_name=bridge_info.to_network.name,
+            token_symbol=bridge_info.to_token_name
+        )
         bridge_proposal = await self.compute_min_destination_amount(
             operation_proposal=bridge_proposal,
             min_to_amount=bridge_proposal.amount_from.Wei,
@@ -388,7 +393,7 @@ class StargateImplementation(BaseTask):
 
         if dst_fee and isinstance(dst_fee, float):
             dst_network = Networks.get_network(
-                network_name=dst_network_name
+                network_name=dst_network_name_upper
             )
             dst_fee = TokenAmount(
                 amount=dst_fee,
@@ -502,7 +507,7 @@ class StargateImplementation(BaseTask):
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.src_network_name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {dst_network_name}: '
+                f'{bridge_info.to_token_name} in {dst_network_name_upper}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
 
@@ -526,45 +531,46 @@ class StargateImplementation(BaseTask):
 
         return False
 
-    def config_slippage_and_gas_price(
+
+    def _config_slippage_and_gas_price(
         self,
         swap_info: OperationInfo
     ) -> OperationInfo:
-        settings = StargateSlippageSettings()
+        settings = StargateSettings()
 
-        if self.token_path not in settings.slip_and_gas:
-            slip_and_gas_dict = settings.slip_and_gas['default']
+        if self.token_path not in settings.slippage_and_gas:
+            slip_and_gas_dict = settings.slippage_and_gas['default']
         else:
-            slip_and_gas_dict = settings.slip_and_gas[self.token_path]
+            slip_and_gas_dict = settings.slippage_and_gas[self.token_path]
 
         slippage: FromTo = FromTo(
-            from_=slip_and_gas_dict['slippage']['from'] * 10,
-            to_=slip_and_gas_dict['slippage']['to'] * 10
+            from_=slip_and_gas_dict['slippage']['from'],
+            to_=slip_and_gas_dict['slippage']['to']
         )
 
-        swap_info.slippage = random.randint(slippage.from_, slippage.to_)
+        swap_info.slippage = round(random.uniform(slippage.from_, slippage.to_), 1)
         gas_prices = slip_and_gas_dict.pop('gas_prices', None)
-        
+
         if gas_prices and self.src_network_name in gas_prices:
             swap_info.gas_price = (
-                slip_and_gas_dict['gas_prices'][self.src_network_name]
+               gas_prices[self.src_network_name]
             )
 
         return swap_info
 
-    async def get_data_for_crosschain_swap(
+    async def _get_data_for_crosschain_swap(
         self,
         crosschain_swap_info: OperationInfo,
         bridge_proposal: OperationProposal,
         src_bridge_info: TokenBridgeInfo,
         dst_fee: TokenAmount | None = None
     ) -> Tuple[TxParams, OperationInfo, OperationProposal]:
-        if crosschain_swap_info.to_token_name in StargateData.SPECIAL_COINS:
-            dst_chain_id = StargateData.get_chain_id(
+        if crosschain_swap_info.to_token_name in StargateDataV1.SPECIAL_COINS:
+            dst_chain_id = StargateDataV1.get_chain_id(
                 network_name=crosschain_swap_info.to_network.name
             )
         else:
-            dst_chain_id, dst_pool_id = StargateData.get_chain_id_and_pool_id(
+            dst_chain_id, dst_pool_id = StargateDataV1.get_chain_id_and_pool_id(
                 network_name=crosschain_swap_info.to_network.name,
                 token_symbol=crosschain_swap_info.to_token_name
             )
@@ -576,7 +582,7 @@ class StargateImplementation(BaseTask):
         )
         tx_params = TxParams(to=router_contract.address)
 
-        crosschain_swap_info = self.config_slippage_and_gas_price(
+        crosschain_swap_info = self._config_slippage_and_gas_price(
             crosschain_swap_info
         )
 
@@ -586,7 +592,7 @@ class StargateImplementation(BaseTask):
             )
             router_call_contract = await self.client.contract.get(
                 contract=router_call_address,
-                abi_or_path=StargateContracts.STARGATE_ROUTER_ABI
+                abi_or_path=StargateContractsV1.STARGATE_ROUTER_ABI
             )
 
             lz_tx_params = TxArgs(
@@ -619,7 +625,7 @@ class StargateImplementation(BaseTask):
             msg_contract_address = await router_contract.functions.getRole(3).call()
             msg_contract = await self.client.contract.get(
                 contract=msg_contract_address,
-                abi_or_path=StargateContracts.STARGATE_MESSAGING_V1_ABI
+                abi_or_path=StargateContractsV1.STARGATE_MESSAGING_V1_ABI
             )
 
             min_gas_limit = await msg_contract.functions.minDstGasLookup(
@@ -848,9 +854,9 @@ class Stargate(BaseTask):
         self,
     ):
         settings = StargateSettings()
-        src_bridge_data = get_stargate_routes()
+        bridge_data = get_stargate_routes_v1()
 
-        random_networks = list(src_bridge_data.keys())
+        random_networks = list(bridge_data.keys())
         random.shuffle(random_networks)
 
         self.client.custom_logger.log_message(
@@ -866,61 +872,14 @@ class Stargate(BaseTask):
                 proxy=self.client.proxy
             )
 
-            dst_data = None
-            random_tokens = list(src_bridge_data[network].keys())
-            random.shuffle(random_tokens)
-
-            found_token_symbol, found_amount_from = None, 0
-
-            for token_sym in random_tokens:
-                token_contract = ContractsFactory.get_contract(
-                    network.name, token_sym
-                )
-                if token_contract.is_native_token:
-                    balance = await client.contract.get_balance()
-
-                    if float(balance.Ether) < settings.bridge_eth_amount.from_:
-                        continue
-
-                    amount_from = settings.bridge_eth_amount.from_
-                    amount_to = min(float(balance.Ether), settings.bridge_eth_amount.to_)
-                    min_percent = settings.bridge_eth_amount_percent.from_
-                    max_percent = settings.bridge_eth_amount_percent.to_
-                else:
-                    balance = await client.contract.get_balance(token_contract)
-
-                    if float(balance.Ether) < settings.bridge_stables_amount.from_:
-                        continue
-
-                    amount_from = settings.bridge_stables_amount.from_
-                    amount_to = min(float(balance.Ether), settings.bridge_stables_amount.to_)
-                    min_percent = settings.bridge_stables_amount_percent.from_
-                    max_percent = settings.bridge_stables_amount_percent.to_
-
-                crosschain_swap_info = OperationInfo(
-                    from_token_name=token_sym,
-                    amount_from=amount_from,
-                    amount_to=amount_to,
-                    min_percent=min_percent,
-                    max_percent=max_percent
-                )
-                client = client
-                dst_data = src_bridge_data[network][token_sym]
-                found_token_symbol = crosschain_swap_info.from_token_name
-                found_amount_from = (
-                    crosschain_swap_info.amount
-                    if crosschain_swap_info.amount
-                    else round(crosschain_swap_info.amount_by_percent * float(balance.Ether), 6)
-                )
-
-            if dst_data:
-                self.client.custom_logger.log_message(
-                    status=LogStatus.INFO,
-                    message=(
-                        f'Found {found_amount_from} '
-                        f'{found_token_symbol} in {network.name.capitalize()}!'
-                    )
-                )
+            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+                op_name='bridge',
+                op_data=bridge_data,
+                op_settings=settings.bridge,
+                client=client
+            )
+            
+            if operation_info:
                 break
             
         if not dst_data:
@@ -933,9 +892,9 @@ class Stargate(BaseTask):
             return False
 
         random_dst_data = random.choice(dst_data)
-        crosschain_swap_info.to_network = random_dst_data[0]
-        crosschain_swap_info.to_token_name = random_dst_data[1]
+        operation_info.to_network = random_dst_data[0]
+        operation_info.to_token_name = random_dst_data[1]
         stargate = StargateImplementation(client)
 
-        return await stargate.bridge(crosschain_swap_info, settings.max_bridge_fee_usd)
+        return await stargate.bridge(operation_info, settings.bridge.max_fee_in_usd)
 # endregion Random function
