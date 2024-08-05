@@ -7,41 +7,27 @@ from eth_abi import abi
 from data.config import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.networks import Networks
-from libs.async_eth_lib.data.token_contracts import ContractsFactory, TokenContractData
+from libs.async_eth_lib.data.token_contracts import TokenContractData
 from libs.async_eth_lib.models.bridge import BridgeContractDataFetcher, NetworkData
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from libs.pretty_utils.type_functions.dataclasses import FromTo
-from tasks._common.utils import BaseTask
+from tasks._common.utils import BaseTask, RandomChoiceClass, StandartSettings
 from tasks.config import get_coredao_bridge_routes
 
 
 # region Settings
-class CoreDaoSettings():
+class CoreDaoBridgeSettings():
     def __init__(self):
-        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['coredao']
-
-        self.bridge_eth_amount: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['from'],
-            to_=settings['bridge_eth_amount']['to']
-        )
-        self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['min_percent'],
-            to_=settings['bridge_eth_amount']['max_percent']
-        )
-        self.bridge_token_amount: FromTo = FromTo(
-            from_=settings['bridge_token_amount']['from'],
-            to_=settings['bridge_token_amount']['to']
-        )
-        self.bridge_token_amount_percent: FromTo = FromTo(
-            from_=settings['bridge_token_amount']['min_percent'],
-            to_=settings['bridge_token_amount']['max_percent']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
+        self.bridge = StandardSettings(
+            settings=settings,
+            module_name='coredao',
+            action_name='bridge'
         )
         
-        self.slippage: float = settings['slippage']
 # endregion Settings
 
 
@@ -186,9 +172,11 @@ class CoreDaoBridgeImplementation(BaseTask):
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
-                    f'Too low balance for paying fee to bridge: '
-                    f'balance - {round(native_balance.Ether, 5)}; '
-                    f'value - {round(value.Ether, 5)}'
+                    f'Too low balance: '
+                    f'balance - {round(native_balance.Ether, 5)} ' 
+                    f'{self.client.network.coin_symbol}; '
+                    f'needed fee to bridge - {round(value.Ether, 5)} '
+                    f'{self.client.network.coin_symbol};'
                 )
             )
             return False

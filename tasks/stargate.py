@@ -17,39 +17,20 @@ from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.pretty_utils.type_functions.dataclasses import FromTo
-from tasks._common.utils import BaseTask
-from tasks.config import get_stargate_routes
+from tasks._common.utils import BaseTask, RandomChoiceClass, StandartSettings
+from tasks.config import get_stargate_routes_v1
 
 
 # region Settings
 class StargateSettings():
     def __init__(self):
-        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['stargate']
-
-        self.bridge_eth_amount: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['from'],
-            to_=settings['bridge_eth_amount']['to']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
+        self.bridge = StandardSettings(
+            settings=settings,
+            module_name='stargate',
+            action_name='bridge'
         )
-        self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['min_percent'],
-            to_=settings['bridge_eth_amount']['max_percent']
-        )
-        self.bridge_stables_amount: FromTo = FromTo(
-            from_=settings['bridge_stables_amount']['from'],
-            to_=settings['bridge_stables_amount']['to']
-        )
-        self.bridge_stables_amount_percent: FromTo = FromTo(
-            from_=settings['bridge_stables_amount']['min_percent'],
-            to_=settings['bridge_stables_amount']['max_percent']
-        )
-        self.max_bridge_fee_usd: float = settings['max_bridge_fee_usd']
-
-
-class StargateSlippageSettings():
-    def __init__(self):
-        self.slip_and_gas = (
-            read_json(MODULES_SETTINGS_FILE_PATH)['stargate_settings']['slippage_and_gas']
-        )
+        self.slippage_and_gas = settings['stargate']['slippage_and_gas']
 # endregion Settings
 
 
@@ -440,9 +421,11 @@ class StargateImplementation(BaseTask):
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
-                    f'Too low balance: balance: '
-                    f'balance - {round(native_balance.Ether, 5)}; '
-                    f'value - {round(value.Ether, 5)}'
+                    f'Too low balance: '
+                    f'balance - {round(native_balance.Ether, 5)} ' 
+                    f'{self.client.network.coin_symbol}; '
+                    f'needed fee to bridge - {round(value.Ether, 5)} '
+                    f'{self.client.network.coin_symbol};'
                 )
             )
 

@@ -20,18 +20,13 @@ from tasks.config import get_testnet_bridge_routes
 # region Settings
 class TestnetBridgeSettings():
     def __init__(self):
-        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['testnet_bridge']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
 
-        self.bridge_eth_amount: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['from'],
-            to_=settings['bridge_eth_amount']['to']
+        self.bridge = StandardSettings(
+            settings=settings,
+            module_name='testnet_bridge',
+            action_name='swap'
         )
-        self.bridge_eth_amount_percent: FromTo = FromTo(
-            from_=settings['bridge_eth_amount']['min_percent'],
-            to_=settings['bridge_eth_amount']['max_percent']
-        )
-        
-        self.slippage: float = settings['slippage']
 # endregion Settings
 
 
@@ -79,7 +74,7 @@ class TestnetBridgeImplementation(BaseTask):
         self,
         bridge_info: OperationInfo
     ) -> str:
-        check_message = self.validate_swap_inputs(
+        check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
             param_type='networks'

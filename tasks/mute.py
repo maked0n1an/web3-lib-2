@@ -7,9 +7,10 @@ from web3.types import TxParams
 from data.config import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.networks import Networks
-from libs.async_eth_lib.data.token_contracts import ContractsFactory, ZkSyncTokenContracts
+from libs.async_eth_lib.data.token_contracts import ZkSyncTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.transaction import TxArgs
+from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
     LogStatus, ParamsTypes, TokenSymbol
@@ -17,33 +18,18 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
-from libs.pretty_utils.type_functions.dataclasses import FromTo
-from tasks._common.utils import BaseTask
+from tasks._common.utils import BaseTask, RandomChoiceClass, StandartSettings
 from tasks.config import get_mute_paths
 
 # region Settings
 class MuteSettings():
     def __init__(self):
-        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)['mute']
-
-        self.swap_eth_amount: FromTo = FromTo(
-            from_=settings['swap_eth_amount']['from'],
-            to_=settings['swap_eth_amount']['to']
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
+        self.swap = StandardSettings(
+            settings=settings,
+            module_name='mute',
+            action_name='swap'
         )
-        self.swap_eth_amount_percent: FromTo = FromTo(
-            from_=settings['swap_eth_amount']['min_percent'],
-            to_=settings['swap_eth_amount']['max_percent']
-        )
-        self.swap_stables_amount: FromTo = FromTo(
-            from_=settings['swap_stables_amount']['from'],
-            to_=settings['swap_stables_amount']['to']
-        )
-        self.swap_stables_amount_percent: FromTo = FromTo(
-            from_=settings['swap_stables_amount']['min_percent'],
-            to_=settings['swap_stables_amount']['max_percent']
-        )
-        
-        self.slippage: float = settings['slippage']
 # endregion Settings
 
 
