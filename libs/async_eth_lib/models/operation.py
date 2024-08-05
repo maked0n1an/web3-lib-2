@@ -80,7 +80,7 @@ class OperationInfo:
         max_percent: int,
         ndigits: int
     ) -> float:
-        random_percent_amount = random.uniform(min_percent, max_percent) % 100 / 100
+        random_percent_amount = random.uniform(min_percent, max_percent) / 100
         return round(random_percent_amount, ndigits)
 # endregion Class to get info about swap
 
