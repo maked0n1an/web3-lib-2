@@ -221,7 +221,10 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
         explorer='https://explorer.zksync.io',
-        api=ZkApiClient()
+        api=ZkApiClient(
+            api_url='https://www.oklink.com',
+            api_key=config.OKLINK_API_KEY
+        )
     )
 
     # region Testnets

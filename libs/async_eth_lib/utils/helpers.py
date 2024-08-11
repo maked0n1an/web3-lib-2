@@ -95,7 +95,7 @@ async def make_async_request(
         response = await session.request(method, url=url, **kwargs)
 
         status_code = response.status_code
-        json_response = await response.json()
+        json_response = response.json()
 
         if status_code <= 201:
             return json_response

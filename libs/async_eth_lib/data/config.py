@@ -19,4 +19,5 @@ GOERLI_API_KEY = str(os.getenv('GOERLI_API_KEY'))
 SEPOLIA_API_KEY = str(os.getenv('SEPOLIA_API_KEY'))
 LINEA_API_KEY = str(os.getenv('LINEA_API_KEY'))
 BASE_API_KEY = str(os.getenv('BASE_API_KEY'))
-ZORA_API_KEY = str(os.getenv('ZORA_API_KEY'))
+
+OKLINK_API_KEY = str(os.getenv('OKLINK_API_KEY'))
