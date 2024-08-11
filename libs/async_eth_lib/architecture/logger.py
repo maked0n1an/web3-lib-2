@@ -86,7 +86,7 @@ class CustomLogger:
         else:
             calling_line = call_depth_or_custom_call_place
             
-        message_with_calling_line = f"{calling_line:<15} | {message}"
+        message_with_calling_line = f"{calling_line:<17} | {message}"
         extra = {
             "account_id": self.account_id,
             "address": self.masked_address,
