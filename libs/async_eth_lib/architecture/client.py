@@ -8,6 +8,7 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
+from libs.async_eth_lib.architecture.transaction import Transaction
 import libs.async_eth_lib.models.exceptions as exceptions
 from libs.async_eth_lib.architecture.contract import Contract
 from libs.async_eth_lib.architecture.logger import CustomLogger
@@ -38,8 +39,9 @@ class Client:
         self._init_web3()
         self._init_account(private_key)
         self._init_logger(create_log_file_per_account)
-
-        self.contract = Contract(self.account, self.network, self.w3)
+        
+        self.transaction = Transaction(self.account, self.network, self.w3)
+        self.contract = Contract(self.transaction)
 
     def _init_proxy(self, check_proxy: bool):
         if not self.proxy:

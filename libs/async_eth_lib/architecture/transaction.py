@@ -1,3 +1,4 @@
+from typing import Any, Union
 from web3 import Web3
 from web3.types import (
     TxParams
@@ -9,7 +10,7 @@ from eth_account.datastructures import (
 from eth_account.signers.local import LocalAccount
 
 from libs.async_eth_lib.architecture.network import Network
-from libs.async_eth_lib.models.others import TokenAmount
+from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.transaction import Tx
 
 

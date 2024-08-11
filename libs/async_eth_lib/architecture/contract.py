@@ -22,18 +22,12 @@ from libs.async_eth_lib.utils.helpers import (
 )
 
 
-class Contract(Transaction):
+class Contract:
     def __init__(
         self,
-        account: LocalAccount,
-        network: Network,
-        w3: Web3,
+        transaction: Transaction
     ):
-        super().__init__(
-            account=account,
-            network=network,
-            w3=w3
-        )
+        self.transaction = transaction
         
     @lru_cache(maxsize=128)
     def get_abi(
@@ -56,7 +50,7 @@ class Contract(Transaction):
     ) -> web3_Contract | web3_AsyncContract:
         abi = self.get_abi(abi_or_path)
         
-        contract = self.w3.eth.contract(
+        contract = self.transaction.w3.eth.contract(
             address=address,
             abi=abi if abi else DefaultAbis.Token
         )
@@ -199,9 +193,9 @@ class Contract(Transaction):
             'data': data
         })
 
-        tx = await self.sign_and_send(tx_params=new_tx_params)
+        tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
         receipt = await tx.wait_for_tx_receipt(
-            web3=self.w3,
+            web3=self.transaction.w3,
             timeout=240
         )
 
@@ -282,7 +276,7 @@ class Contract(Transaction):
         spender_address = Web3.to_checksum_address(spender_address)
 
         if not owner:
-            owner = self.account.address
+            owner = self.transaction.account.address
 
         if type(token_contract) in ParamsTypes.Address.__args__:
             web3_contract = await self.get_token_contract(token=token_contract)
@@ -321,7 +315,7 @@ class Contract(Transaction):
             If `token_contract` is None, it retrieves the native token balance.
         """
         if not address:
-            address = self.account.address
+            address = self.transaction.account.address
         
         if isinstance(token_contract, RawContract):
             web3_contract = await self.get_token_contract(token=token_contract)
@@ -334,8 +328,8 @@ class Contract(Transaction):
             decimals = await self.get_decimals(contract=token_contract)
             
         else:
-            amount = await self.w3.eth.get_balance(account=address)
-            decimals = self.network.decimals
+            amount = await self.transaction.w3.eth.get_balance(account=address)
+            decimals = self.transaction.network.decimals
 
         return TokenAmount(
             amount=amount,
@@ -401,7 +395,7 @@ class Contract(Transaction):
         if isinstance(gas_price, float | int):
             gas_price = TokenAmount(
                 amount=gas_price,
-                decimals=self.network.decimals,
+                decimals=self.transaction.network.decimals,
                 set_gwei=True
             )
         tx_params['gasPrice'] = gas_price.GWei
@@ -426,7 +420,7 @@ class Contract(Transaction):
         if isinstance(gas_limit, int):
             gas_limit = TokenAmount(
                 amount=gas_limit,
-                decimals=self.network.decimals,
+                decimals=self.transaction.network.decimals,
                 wei=True
             )
         tx_params['gas'] = gas_limit.Wei
