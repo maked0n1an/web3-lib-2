@@ -3,6 +3,7 @@ import requests
 from typing import List
 from web3 import Web3
 
+from libs.async_eth_lib.architecture.api_client import ApiClient
 import libs.async_eth_lib.models.exceptions as exceptions
 
 
@@ -21,6 +22,7 @@ class Network:
         coin_symbol: str | None = None,
         decimals: int | None = None,
         explorer: str | None = None,
+        api: ApiClient | None = None
     ) -> None:
         self.name: str = name.lower()
         self.rpc: str | List[str] = rpc
@@ -29,6 +31,7 @@ class Network:
         self.coin_symbol: str | None = coin_symbol
         self.decimals: int | None = decimals
         self.explorer: str | None = explorer
+        self.api = api
         
         self._initialize_chain_id()
         self._initialize_coin_symbol_and_decimals()

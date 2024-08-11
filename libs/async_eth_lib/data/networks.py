@@ -1,8 +1,9 @@
-import libs.async_eth_lib.models.exceptions as exceptions
-
+import libs.async_eth_lib.data.config as config
+from libs.async_eth_lib.architecture.api_client import ApiClient
 from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.models.others import TokenSymbol
 from libs.pretty_utils.type_functions.classes import Singleton
+import libs.async_eth_lib.models.exceptions as exceptions
 
 
 class Networks(metaclass=Singleton):
@@ -15,6 +16,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
         explorer='https://etherscan.io',
+        api=ApiClient(
+            key=config.ETHEREUM_API_KEY, 
+            url='https://api.etherscan.io/api', 
+            docs='https://docs.etherscan.io/'
+        ),
     )
 
     Arbitrum = Network(
@@ -26,7 +32,12 @@ class Networks(metaclass=Singleton):
         tx_type=2,
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
-        explorer='https://arbiscan.io'
+        explorer='https://arbiscan.io',
+        api=ApiClient(
+            key=config.ARBITRUM_API_KEY, 
+            url='https://api.arbiscan.io/api', 
+            docs='https://docs.arbiscan.io/'
+        ),
     )
 
     ArbitrumNova = Network(
@@ -37,6 +48,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
         explorer='https://nova.arbiscan.io',
+        api=ApiClient(
+            key=config.ARBITRUM_API_KEY, 
+            url='https://api-nova.arbiscan.io/api', 
+            docs='https://docs.arbiscan.io/v/nova-arbiscan'
+        )
     )
 
     Avalanche = Network(
@@ -47,6 +63,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.AVAX,
         decimals=18,
         explorer='https://snowtrace.io',
+        api=ApiClient(
+            key=config.AVALANCHE_API_KEY, 
+            url='https://api.snowtrace.io/api', 
+            docs='https://docs.snowtrace.io/'
+        )
     )
 
     BSC = Network(
@@ -56,7 +77,12 @@ class Networks(metaclass=Singleton):
         tx_type=0,
         coin_symbol=TokenSymbol.BNB,
         decimals=18,
-        explorer='https://bscscan.com'
+        explorer='https://bscscan.com',
+        api=ApiClient(
+            key=config.BSC_API_KEY, 
+            url='https://api.bscscan.com/api', 
+            docs='https://docs.bscscan.com/'
+        ),
     )
 
     Celo = Network(
@@ -67,6 +93,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.CELO,
         decimals=18,
         explorer='https://celoscan.io',
+        api=ApiClient(
+            key=config.CELO_API_KEY, 
+            url='https://api.celoscan.io/api', 
+            docs='https://celoscan.io/apis/'
+        )
     )
 
     Core = Network(
@@ -87,6 +118,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.FTM,
         decimals=18,
         explorer='https://ftmscan.com',
+        api=ApiClient(
+            key=config.FANTOM_API_KEY, 
+            url='https://api.ftmscan.com/api', 
+            docs='https://docs.ftmscan.com/'
+        )
     )
 
     Gnosis = Network(
@@ -97,6 +133,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.XDAI,
         decimals=18,
         explorer='https://gnosisscan.io',
+        api=ApiClient(
+            key=config.GNOSIS_API_KEY, 
+            url='https://api.gnosisscan.io/api', 
+            docs='https://docs.gnosisscan.io/'
+        )
     )
 
     Heco = Network(
@@ -107,6 +148,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.HECO,
         decimals=18,
         explorer='https://www.hecoinfo.com/en-us',
+        api=ApiClient(
+            key=config.HECO_API_KEY, 
+            url='https://api.hecoinfo.com/api', 
+            docs='https://hecoinfo.com/apis'
+        )
     )
 
     Kava = Network(
@@ -127,6 +173,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.GLMR,
         decimals=18,
         explorer='https://moonscan.io',
+        api=ApiClient(
+            key=config.MOONBEAM_API_KEY, 
+            url='https://api-moonbeam.moonscan.io/api', 
+            docs='https://moonscan.io/apis/'
+        )
     )
 
     Optimism = Network(
@@ -160,28 +211,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://polygonscan.com',
     )
-
-    # region Testnets
-    Goerli = Network(
-        name='goerli',
-        rpc='https://rpc.ankr.com/eth_goerli/',
-        chain_id=5,
-        tx_type=2,
-        coin_symbol=TokenSymbol.ETH,
-        decimals=18,
-        explorer='https://goerli.etherscan.io',
-    )
-
-    Sepolia = Network(
-        name='sepolia',
-        rpc='https://rpc.sepolia.org',
-        chain_id=11155111,
-        tx_type=2,
-        coin_symbol=TokenSymbol.ETH,
-        decimals=18,
-        explorer='https://sepolia.etherscan.io',
-    )
-
+    
     ZkSync = Network(
         name='zksync',
         rpc='https://multi-convincing-dust.zksync-mainnet.quiknode.pro/c94ba40682080821bbc8b4dd7ba7360329948422/',
@@ -192,6 +222,37 @@ class Networks(metaclass=Singleton):
         explorer='https://explorer.zksync.io'
     )
 
+    # region Testnets
+    Goerli = Network(
+        name='goerli',
+        rpc='https://rpc.ankr.com/eth_goerli/',
+        chain_id=5,
+        tx_type=2,
+        coin_symbol=TokenSymbol.ETH,
+        decimals=18,
+        explorer='https://goerli.etherscan.io',
+        api=ApiClient(
+            key=config.GOERLI_API_KEY, 
+            url='https://api-goerli.etherscan.io/api',
+            docs='https://docs.etherscan.io/v/goerli-etherscan/'
+        )
+    )
+
+    Sepolia = Network(
+        name='sepolia',
+        rpc='https://rpc.sepolia.org',
+        chain_id=11155111,
+        tx_type=2,
+        coin_symbol=TokenSymbol.ETH,
+        decimals=18,
+        explorer='https://sepolia.etherscan.io',
+        api=ApiClient(
+            key=config.SEPOLIA_API_KEY, 
+            url='https://api-sepolia.etherscan.io/api',
+            docs='https://docs.etherscan.io/v/sepolia-etherscan/'
+        )
+    )
+    
     @classmethod
     def get_network(
         cls,

@@ -9,6 +9,14 @@ class WrongCoinSymbol(Exception):
     pass
 
 
+class ApiException(Exception):
+    pass
+
+
+class ApiClientException(Exception):
+    pass
+
+
 class ClientException(Exception):
     pass
 
@@ -68,3 +76,9 @@ class HTTPException(Exception):
         """
         self.response = response
         self.status_code = status_code
+        
+    def __str__(self):
+        if self.response:
+            return f'{self.status_code}: {self.response}'
+
+        return f'{self.status_code}'
