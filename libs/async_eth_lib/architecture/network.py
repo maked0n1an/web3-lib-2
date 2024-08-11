@@ -3,7 +3,8 @@ import requests
 from typing import List
 from web3 import Web3
 
-from libs.async_eth_lib.architecture.api_client import ApiClient
+from libs.async_eth_lib.architecture.api_clients.evm import EvmApiClient
+from libs.async_eth_lib.architecture.api_clients.zk import ZkApiClient
 import libs.async_eth_lib.models.exceptions as exceptions
 
 
@@ -22,7 +23,7 @@ class Network:
         coin_symbol: str | None = None,
         decimals: int | None = None,
         explorer: str | None = None,
-        api: ApiClient | None = None
+        api: EvmApiClient | ZkApiClient | None = None
     ) -> None:
         self.name: str = name.lower()
         self.rpc: str | List[str] = rpc

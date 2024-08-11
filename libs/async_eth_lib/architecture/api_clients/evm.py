@@ -7,7 +7,7 @@ from libs.async_eth_lib.models.explorer import Sort, Tag
 from libs.async_eth_lib.utils.helpers import make_async_request
 
 # region MainClass
-class ApiClient:
+class EvmApiClient:
     """
     Class with functions related to Blockscan API.
     """
@@ -23,8 +23,8 @@ class ApiClient:
         """
         self.api_key = api_key
         self.api_url = api_url
-        self.headers = self._init_headers()
         self.docs = docs
+        self.headers = self._init_headers()
 
         self.account = Account(api_key, api_url, self.headers)
         self.contract = Contract(api_key, api_url, self.headers)
