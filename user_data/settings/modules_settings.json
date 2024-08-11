@@ -85,7 +85,7 @@
       },
       "default": {
         "slippage": {
-          "from": 0.3,
+          "from": 0.5,
           "to": 0.5
         },
         "gas_prices": {
