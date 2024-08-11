@@ -4,7 +4,6 @@ from web3.contract import AsyncContract, Contract
 
 from libs.async_eth_lib.models.contract import (
     NativeTokenContract,
-    RawContract,
     TokenContract
 )
 

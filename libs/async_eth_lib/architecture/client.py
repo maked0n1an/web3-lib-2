@@ -8,8 +8,8 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
-from libs.async_eth_lib.architecture.contract import Contract
 import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.contract import Contract
 from libs.async_eth_lib.architecture.logger import CustomLogger
 from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.networks import Networks
@@ -92,11 +92,8 @@ class Client:
                 private_key=private_key
             )
 
-        elif private_key == '':
-            self.account = None
-
         else:
-            self.account = self.w3.eth.account.create(
+            self.account: LocalAccount = self.w3.eth.account.create(
                 extra_entropy=str(os.urandom(1))
             )
 

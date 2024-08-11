@@ -2,11 +2,9 @@ import asyncio
 import json
 import os
 import random
-from typing import List
+from typing import Any, List
 
-from aiohttp import (
-    ClientSession
-)
+from curl_cffi.requests import AsyncSession
 
 import libs.async_eth_lib.models.exceptions as exceptions
 
@@ -29,6 +27,25 @@ def read_json(
 ) -> dict:
     path = join_path(path)
     return json.load(open(path, encoding=encoding))
+
+
+def normalize_http_params(
+    params: dict[str, Any] | None
+) -> dict[str, str | int | float] | None:
+    if not params: 
+        return
+
+    new_params = params.copy()
+    for key, value in params.items():
+        if not value:
+            del new_params[key]
+            
+        if isinstance(value, bool):
+            new_params[key] = str(value).lower() 
+        elif isinstance(value, bytes):
+            new_params[key] = value.decode('utf-8')
+    
+    return new_params
 
 
 def text_between(text: str, begin: str = '', end: str = '') -> str:
@@ -68,16 +85,16 @@ async def sleep(sleep_from: int, sleep_to: int):
     await asyncio.sleep(random_value)
 
 
-async def make_request(
-    method: str,
-    url: str,
+async def make_async_request(
+    method: str = 'GET',
+    url: str = '',
     headers: dict | None = None,
     **kwargs
 ) -> dict | None:
-    async with ClientSession(headers=headers) as session:
+    async with AsyncSession(headers=headers) as session:
         response = await session.request(method, url=url, **kwargs)
 
-        status_code = response.status
+        status_code = response.status_code
         json_response = await response.json()
 
         if status_code <= 201:

@@ -18,7 +18,7 @@ from libs.async_eth_lib.models.dataclasses import (
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import (
-    make_request, read_json, text_between
+    make_async_request, read_json, text_between
 )
 
 
@@ -73,7 +73,7 @@ class Contract(Transaction):
         """
         try:
             url = f'https://www.4byte.directory/api/v1/signatures/?hex_signature={hex_signature}'
-            response = await make_request(method="GET", url=url)
+            response = await make_async_request(method="GET", url=url)
             results = response['results']
             return [m['text_signature'] for m in sorted(results, key=lambda result: result['created_at'])]
         except:
