@@ -242,3 +242,49 @@ class Transaction:
         tx_hash = await self.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
         return Tx(tx_hash=tx_hash, params=tx_params)
+
+    async def find_tx_by_filter(
+        self,
+        contract_address: ParamsTypes.Address | list[ParamsTypes.Address],
+        function_name: str,
+        address: ParamsTypes.Address | None = None,
+        after_timestamp: int = 0,
+        before_timestamp: int = 999_999_999_999 
+    ) -> dict[str, Any]:
+        """
+        Find all transactions of interaction with the contract, in addition, you can filter transactions by
+            the name of the contract function.
+
+        Args:
+            contract (Union[Contract, List[Contract]]): the contract or a list of contracts with which
+                the interaction took place.
+            function_name (Optional[str]): the function name for sorting. (any)
+            address (Optional[Address]): the address to get the transaction list. (imported to client address)
+            after_timestamp (int): after what time to filter transactions. (0)
+            before_timestamp (int): before what time to filter transactions. (infinity)
+
+        Returns:
+            Dict[str, CoinTx]: transactions found.
+
+        """
+        addresses = []
+        if isinstance(contract_address, list):
+            for addr in contract_address:
+                addresses.append(addr.lower())
+                
+        else:
+            addresses.append(contract_address.lower())
+            
+        txs = {}
+        
+        coin_txs = (await self.network.api.account.get_tx_list(address))['result']
+        for tx in coin_txs:
+            if (
+                after_timestamp < int(tx.get('timeStamp')) < before_timestamp
+                and tx.get('isError') == '0'
+                and tx.get('to') in addresses 
+                and function_name in tx.get('functionName')
+            ):
+                txs[tx.get('hash')] = tx
+        
+        return txs
