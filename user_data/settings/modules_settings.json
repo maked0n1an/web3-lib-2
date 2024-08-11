@@ -34,26 +34,33 @@
     }
   },
   "stargate": {
+    "bridge_type": {
+      "v1": false,
+      "v2": {
+        "bus": true,
+        "taxi": false
+      }
+    },
     "bridge": {
       "eth_amount": {
-        "from": 0.0,
-        "to": 0.0,
-        "min_percent": 10,
-        "max_percent": 50
+        "from": 0,
+        "to": 0,
+        "min_percent": 0,
+        "max_percent": 0
       },
       "token_amount": {
         "from": 0,
         "to": 0,
-        "min_percent": 20,
-        "max_percent": 30
+        "min_percent": 100,
+        "max_percent": 100
       },
-      "max_fee_in_usd": 0.6     
+      "max_fee_in_usd": 0.1
     },
     "slippage_and_gas": {
       "ETH": {
         "slippage": {
-          "from": 0.3,
-          "to": 0.5
+          "from": 1,
+          "to": 1
         }
       },
       "USDVUSDV": {

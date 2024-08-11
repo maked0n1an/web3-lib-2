@@ -64,7 +64,7 @@ def get_coredao_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, s
     }
 
 
-def get_stargate_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
+def get_stargate_routes_v1() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
     return {
         Networks.Avalanche: {
             TokenSymbol.USDT: [
