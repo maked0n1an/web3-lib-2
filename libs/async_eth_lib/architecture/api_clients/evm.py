@@ -4,6 +4,7 @@ from fake_useragent import UserAgent
 
 import libs.async_eth_lib.models.exceptions as exceptions
 from libs.async_eth_lib.models.explorer import Sort, Tag
+from libs.async_eth_lib.utils.decorators import api_key_required
 from libs.async_eth_lib.utils.helpers import make_async_request
 
 # region MainClass
@@ -138,6 +139,7 @@ class Account(Module):
 
         return await self.fetch_data_async(params)
 
+    @api_key_required
     async def get_tx_list(
         self,
         address: str,

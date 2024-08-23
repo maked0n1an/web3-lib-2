@@ -135,7 +135,6 @@ class Account(Module):
         address: str,
         page: int = 1,
         limit: int = 50,
-        chain: str | None = 'zksync'
     ) -> list[dict]:
         """
         Query address transaction list information
@@ -146,7 +145,7 @@ class Account(Module):
         action = 'transaction-list'
 
         params = {
-            'chainShortName': chain,
+            'chainShortName': 'zksync',
             'address': address,
             'limit': limit,
             'page': page

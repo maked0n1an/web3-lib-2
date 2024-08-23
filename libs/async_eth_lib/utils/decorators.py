@@ -1,6 +1,8 @@
 import inspect
 import os
 
+import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.api_clients.evm import Account
 from libs.async_eth_lib.architecture.logger import console_logger
 from libs.async_eth_lib.models.operation import OperationInfo
 
@@ -42,3 +44,16 @@ def validate_swap_tokens(
         
         return _wrapper
     return decorator
+
+
+def api_key_required(func):
+    """Check if the Blockscan API key is specified"""
+     
+    def func_wrapper(self:Account, *args, **kwargs):
+        if not self.api_key:
+            raise exceptions.ApiException('To use this function, you must specify the explorer API key!')
+
+        else:
+            return func(self, *args, **kwargs)
+        
+    return func_wrapper
