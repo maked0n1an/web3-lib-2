@@ -150,10 +150,7 @@ class Account(Module):
         sort: str = Sort.Ascending
     ) -> dict[str, Any]:
         action_name = 'txlist'
-
-        if sort not in (Sort.Ascending, Sort.Descending):
-            raise exceptions.ApiException(
-                '"sort" parameter have to be either "asc" or "desc"')
+        self._check_valid_sort(sort)
 
         params = {
             'module': self.MODULE_NAME,
@@ -174,6 +171,11 @@ class Account(Module):
             raise exceptions.ApiException(
                 '"tag" parameter have to be either "earliest", "pending" or "latest"'
             )
+            
+    def _check_valid_sort(self, sort: str):
+        if sort not in (Sort.Ascending, Sort.Descending):
+            raise exceptions.ApiException(
+                '"sort" parameter have to be either "asc" or "desc"')
 
 
 class Contract(Module):

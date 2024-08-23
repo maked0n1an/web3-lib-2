@@ -209,7 +209,7 @@ class Networks(metaclass=Singleton):
         api=EvmApiClient(
             api_key=config.OPBNB_API_KEY,
             api_url='https://opbnb-mainnet.nodereal.io/v1/',
-            api_url='https://docs.nodereal.io/reference/opbnb-enhanced-api'
+            docs='https://docs.nodereal.io/reference/opbnb-enhanced-api'
         )
     )
 
