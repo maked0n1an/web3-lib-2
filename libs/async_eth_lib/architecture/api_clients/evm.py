@@ -3,8 +3,8 @@ from typing import Any
 from fake_useragent import UserAgent
 
 import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.api_clients.utils import api_key_required
 from libs.async_eth_lib.models.explorer import Sort, Tag
-from libs.async_eth_lib.utils.decorators import api_key_required
 from libs.async_eth_lib.utils.helpers import make_async_request
 
 # region MainClass
