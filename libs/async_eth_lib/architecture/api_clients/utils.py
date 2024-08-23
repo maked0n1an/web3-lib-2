@@ -7,7 +7,7 @@ def api_key_required(func):
     def func_wrapper(self, *args, **kwargs):
         if not self.api_key:
             raise exceptions.ApiException(
-                'To use this function, you must specify the explorer API key!'
+                'To use this function, you must specify all required explorer API keys!'
             )
 
         else:

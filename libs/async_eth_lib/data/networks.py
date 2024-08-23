@@ -189,6 +189,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.ETH,
         decimals=18,
         explorer='https://optimistic.etherscan.io',
+        api=EvmApiClient(
+            api_key=config.OPTIMISM_API_KEY,
+            api_url='https://api-optimistic.etherscan.io/api',
+            docs='https://docs.optimism.etherscan.io/api-endpoints'
+        )
     )
 
     Opbnb = Network(
@@ -200,7 +205,12 @@ class Networks(metaclass=Singleton):
         tx_type=0,
         coin_symbol=TokenSymbol.BNB,
         decimals=18,
-        explorer="https://mainnet.opbnbscan.com"
+        explorer="https://mainnet.opbnbscan.com",
+        api=EvmApiClient(
+            api_key=config.OPBNB_API_KEY,
+            api_url='https://opbnb-mainnet.nodereal.io/v1/',
+            api_url='https://docs.nodereal.io/reference/opbnb-enhanced-api'
+        )
     )
 
     Polygon = Network(
@@ -211,6 +221,11 @@ class Networks(metaclass=Singleton):
         coin_symbol=TokenSymbol.MATIC,
         decimals=18,
         explorer='https://polygonscan.com',
+        api=EvmApiClient(
+            api_key=config.POLYGON_API_KEY, 
+            api_url='https://api.polygonscan.com/api', 
+            docs='https://docs.polygonscan.com/'
+        ),
     )
     
     ZkSync = Network(
