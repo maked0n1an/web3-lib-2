@@ -289,20 +289,20 @@ class Transaction:
         
         return txs
     
-    async def find_tx_by_signature(
+    async def find_tx_by_method_id(
         self,
         contract_address: ParamsTypes.Address | list[ParamsTypes.Address],
-        signature: str,
+        method_id: str,
         address: ParamsTypes.Address | None = None,
     ) -> dict[str, Any]:
         """
         Find all transactions of interaction with the contract, in addition, you can filter transactions by
-            the function signature
+            the function method id
 
         Args:
             contract (Union[Contract, List[Contract]]): the contract or a list of contracts with which
                 the interaction took place.
-            signature (Optional[str]): the function signature to search.
+            method_id (Optional[str]): the function method id to search.
             address (Optional[Address]): the address to get the transaction list. (imported to client address)
 
         Returns:
@@ -310,13 +310,21 @@ class Transaction:
 
         """
         txs = {}
+        addresses = []
+        
+        if isinstance(contract_address, list):
+            for addr in contract_address:
+                addresses.append(addr.lower())
+                
+        else:
+            addresses.append(contract_address.lower())
         
         coin_txs = (await self.network.api.account.get_tx_list(address))['result']
         for tx in coin_txs:
             if (
                 tx.get('isError') == '0'
-                and tx.get('to') == contract_address.lower()
-                and tx.get('methodId') == signature
+                and tx.get('to') in addresses
+                and tx.get('methodId') == method_id
             ):
                 txs[tx.get('hash')] = tx
         

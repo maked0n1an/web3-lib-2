@@ -5,9 +5,12 @@ from fake_useragent import UserAgent
 import libs.async_eth_lib.models.exceptions as exceptions
 from libs.async_eth_lib.architecture.api_clients.utils import api_key_required
 from libs.async_eth_lib.models.explorer import Sort, Tag
+from libs.async_eth_lib.models.others import ParamsTypes
 from libs.async_eth_lib.utils.helpers import make_async_request
 
 # region MainClass
+
+
 class EvmApiClient:
     """
     Class with functions related to Blockscan API.
@@ -166,12 +169,71 @@ class Account(Module):
 
         return await self.fetch_data_async(params)
 
+    @api_key_required
+    async def get_internal_tx_list(
+        self,
+        address: str,
+        startblock: int | None = None,
+        endblock: int | None = None,
+        page: int | None = None,
+        offset: int | None = None,
+        sort: str = Sort.Ascending
+    ) -> dict[str, Any]:
+        action_name = 'txlistinternal'
+        self._check_valid_sort(sort)
+
+        params = {
+            'module': self.MODULE_NAME,
+            'action': action_name,
+            'address': address,
+            'startblock': startblock,
+            'endblock': endblock,
+            'page': page,
+            'offset': offset,
+            'sort': sort,
+            'apiKey': self.api_key
+        }
+
+        return await self.fetch_data_async(params)
+
+    async def get_token_tx(
+        self,
+        contract_address: ParamsTypes.Address,
+        address: ParamsTypes.Address,
+        page: int = 1,
+        offset: int = 0,
+        startblock: int | None = None,
+        endblock: int | None = None,
+        sort: str = Sort.Ascending
+    ) -> dict[str, Any]:
+        action_name = 'tokentx'
+
+        self._check_valid_sort(sort)
+
+        params = {
+            'module': self.MODULE_NAME,
+            'action': action_name,
+            'contractaddress': contract_address.lower(),
+            'address': address,
+            'page': page,
+            'offset': offset,
+            'startblock': startblock,
+            'endblock': endblock,
+            'sort': sort,
+            'apiKey': self.api_key
+        }
+
+        result = await self.fetch_data_async(params)
+        return result['result']
+
+    
+
     def _check_valid_tag(self, tag: str):
         if tag not in (Tag.Latest, Tag.Earliest, Tag.Pending):
             raise exceptions.ApiException(
                 '"tag" parameter have to be either "earliest", "pending" or "latest"'
             )
-            
+
     def _check_valid_sort(self, sort: str):
         if sort not in (Sort.Ascending, Sort.Descending):
             raise exceptions.ApiException(
@@ -202,13 +264,28 @@ class Contract(Module):
             'module': self.MODULE_NAME,
             'action': action_name,
             'apiKey': self.api_key,
-            'address': contract_address
+            'address': contract_address.lower()
         }
 
         response = await self.fetch_data_async(params)
         return response['result']
-    
-    
+
+    async def get_source_code(
+        self,
+        contract_address: str,
+    ) -> dict[str, Any]:
+        action_name = 'getsourcecode'
+
+        params = {
+            'module': self.MODULE_NAME,
+            'action': action_name,
+            'apiKey': self.api_key,
+            'address': contract_address.lower()
+        }
+
+        response = await self.fetch_data_async(params)
+        return response['result']
+
 class Transaction(Module):
     MODULE_NAME: str = 'transaction'
 
@@ -221,22 +298,22 @@ class Transaction(Module):
             'txhash': tx_hash,
             'apikey': self.api_key,
         }
-        
+
         return await self.fetch_data_async(params)
-    
+
 
 class Block(Module):
     MODULE_NAME: str = 'block'
-    
+
     async def get_block(self, block_number: int):
         action_name = 'getblock'
-        
+
         params = {
             'module': self.MODULE_NAME,
             'action': action_name,
-            'block' : block_number,
+            'block': block_number,
             'apikey': self.api_key
         }
-        
+
         return await self.fetch_data_async(params)
 # endregion Components

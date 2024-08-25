@@ -6,6 +6,7 @@ from typing import Any
 
 from fake_useragent import UserAgent
 
+from libs.async_eth_lib.models.others import ParamsTypes
 from libs.async_eth_lib.utils.helpers import make_async_request
 
 
@@ -180,4 +181,45 @@ class Account(Module):
             txs_list += txs
         
         return txs_list
+    
+    async def find_tx_by_method_id(
+        self,
+        contract_address: ParamsTypes.Address | list[ParamsTypes.Address],
+        method_id: str,
+        address: ParamsTypes.Address | None = None,
+    ) -> dict[str, Any]:
+        """
+        Find all transactions of interaction with the contract, in addition, you can filter transactions by
+            the function method id
+
+        Args:
+            contract (Union[Contract, List[Contract]]): the contract or a list of contracts with which
+                the interaction took place.
+            method_id (Optional[str]): the function method id to search.
+            address (Optional[Address]): the address to get the transaction list. (imported to client address)
+
+        Returns:
+            Dict[str, CoinTx]: transactions found.
+
+        """
+        txs = {}
+        addresses = []
+        
+        if isinstance(contract_address, list):
+            for addr in contract_address:
+                addresses.append(addr.lower())
+                
+        else:
+            addresses.append(contract_address.lower())
+        
+        coin_txs = await self.get_all_tx_list(address)
+        for tx in coin_txs:
+            if (
+                tx.get('state') == 'success'
+                and tx.get('to') in addresses
+                and tx.get('methodId') == method_id
+            ):
+                txs[tx.get('txId')] = tx
+        
+        return txs
 # endregion Components
