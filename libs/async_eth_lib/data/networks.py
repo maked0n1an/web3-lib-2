@@ -1,5 +1,6 @@
-from libs.async_eth_lib.architecture.api_clients.zk import ZkApiClient
 import libs.async_eth_lib.data.config as config
+import libs.async_eth_lib.models.exceptions as exceptions
+from libs.async_eth_lib.architecture.api_clients.zk import ZkApiClient
 from libs.async_eth_lib.architecture.api_clients.evm import EvmApiClient
 from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.models.others import TokenSymbol

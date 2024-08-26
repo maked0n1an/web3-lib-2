@@ -7,9 +7,7 @@ from web3.contract import (
     AsyncContract as web3_AsyncContract
 )
 from eth_typing import ChecksumAddress
-from eth_account.signers.local import LocalAccount
 
-from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.architecture.transaction import Transaction
 from libs.async_eth_lib.models.contract import RawContract, TokenContract
 from libs.async_eth_lib.models.dataclasses import (

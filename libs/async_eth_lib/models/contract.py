@@ -1,13 +1,8 @@
-import json
-
 from web3 import (
     Web3,
     types
 )
-from typing import Any
-from eth_typing import ChecksumAddress
 
-from libs.async_eth_lib.models.dataclasses import DefaultAbis
 from libs.pretty_utils.type_functions.classes import AutoRepr
 
 
