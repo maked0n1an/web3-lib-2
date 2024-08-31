@@ -155,7 +155,7 @@ class SyncSwap(BaseTask):
 
         try:
             tx_params = self.set_all_gas_params(swap_info, tx_params)
-            tx = await self.client.contract.sign_and_send(tx_params)
+            tx = await self.client.transaction.sign_and_send(tx_params)
 
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
 

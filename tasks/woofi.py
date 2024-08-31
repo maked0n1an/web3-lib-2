@@ -109,7 +109,7 @@ class WooFi(BaseTask):
         else:
             tx_params['value'] = swap_query.amount_from.Wei
 
-        tx = await self.client.contract.sign_and_send(tx_params)
+        tx = await self.client.transaction.sign_and_send(tx_params)
         receipt = await tx.wait_for_tx_receipt(self.client.w3)
 
         if receipt:

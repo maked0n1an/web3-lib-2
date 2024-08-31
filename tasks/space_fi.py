@@ -193,7 +193,7 @@ class SpaceFiImplementation(BaseTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.contract.sign_and_send(
+            tx = await self.client.transaction.sign_and_send(
                 tx_params=tx_params
             )
             receipt = await tx.wait_for_tx_receipt(

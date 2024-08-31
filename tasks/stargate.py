@@ -560,7 +560,7 @@ class StargateImplementation(BaseTask):
                 tx_params=tx_params
             )
             
-            tx = await self.client.contract.sign_and_send(tx_params)
+            tx = await self.client.transaction.sign_and_send(tx_params)
                 
             receipt = await tx.wait_for_tx_receipt(
                 web3=self.client.w3,
@@ -710,7 +710,7 @@ class StargateImplementation(BaseTask):
         try:
             tx_params = self.set_all_gas_params(bridge_info, tx_params) 
             
-            tx = await self.client.contract.sign_and_send(tx_params)
+            tx = await self.client.contract.set_gas_price(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
             
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)

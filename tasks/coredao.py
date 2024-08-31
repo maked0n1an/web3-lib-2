@@ -205,7 +205,7 @@ class CoreDaoBridgeImplementation(BaseTask):
                 operation_info=bridge_info,
                 tx_params=tx_params
             )
-            tx = await self.client.contract.sign_and_send(tx_params)
+            tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
 
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)

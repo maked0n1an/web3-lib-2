@@ -28,7 +28,7 @@ class Networks(metaclass=Singleton):
     Arbitrum = Network(
         name='arbitrum',
         rpc=[
-            'https://rpc.ankr.com/arbitrum'
+            'https://arbitrum.llamarpc.com'
         ],
         chain_id=42161,
         tx_type=2,
