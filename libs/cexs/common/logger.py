@@ -12,37 +12,11 @@ class CustomLogger:
     FOLDER_NAME: str = 'user_data/logs'
     LOGGERS: dict[str, logging.Logger] = {}
     
-    @property
-    def account_id(self) -> str: 
-        return self._account_id
-    
-    @account_id.setter
-    def account_id(self, acc_id: str | int):
-        self._account_id = acc_id
-    
-    @property
-    def masked_address(self) -> str: 
-        return self._masked_address
-    
-    @masked_address.setter
-    def masked_address(self, address: Optional[str] = None):
-        if not address:
-            self._masked_address = address
-        else:
-            self._masked_address = address[:6] + "..." + address[-4:]
-    
-    @property
-    def network_name(self) -> str:
-        return self._network_name
-    
-    @network_name.setter
-    def network_name(self, value: str):
-        self._network_name = value
-        
-    def __init__(self):
-        self.account_id = ''
-        self.masked_address = ''
-        self.network_name = ''
+    def __init__(
+        self,
+        class_name_for_logs: str
+    ):
+        self.class_name_for_logs = class_name_for_logs
         self._create_log_folder()
             
     @classmethod
@@ -82,21 +56,32 @@ class CustomLogger:
             self.LOGGERS["main_logger"] = main_logger
 
         return self.LOGGERS["main_logger"]
-
+    
     def log_message(
         self, 
-        status: str, 
-        message: str,
-        extra: dict
+        account_id: str | int = '',
+        address: str = '',
+        network_name: str = '',
+        status: str = '',
+        message: str = '',
     ) -> None:
-        class_name = self.__class__.__name__
-        message_with_calling_line = f"{class_name:<12} | {message}"
-
+        message_with_calling_line = f"{self.class_name_for_logs:<12} | {message}"
+        
         main_logger = self._initialize_main_log()
         main_logger.log(
             level=logging.getLevelName(status),
             msg=message_with_calling_line,
-            extra=extra
+            extra = {
+                "account_id": account_id,
+                "masked_address": (
+                    address[:6] + "..." + address[-4:]
+                    if address else address
+                ),
+                "network_name": (
+                    network_name.capitalize()
+                    if network_name else network_name
+                )
+            }
         )
 
 class CustomLogData(logging.Formatter):
@@ -104,7 +89,6 @@ class CustomLogData(logging.Formatter):
     
     LOG_TIME_FORMAT = '%(asctime)s |'
     LOG_LEVELNAME_FORMAT = ' %(levelname)-9s '
-    # LOG_MESSAGE_FORMAT = '| %(id)8s | %(address)s | %(message)s' # | %(network)s
 
     RED = "\x1b[31;20m"
     GREEN = "\x1b[32;20m"
@@ -145,12 +129,14 @@ class SettingsLogFormatter(CustomLogData):
     def format(self, record):
         format_parts = ['']
         
-        if 'id' in record.__dict__:
-            format_parts.append('%(id)8s ')
-        if record.__dict__.get('address'):
-            format_parts.append('%(address)s ')
-        if record.__dict__.get('network'):
-            format_parts.append('%(network)-12s ')
+        if record.__dict__.get('account_id'):
+            format_parts.append('%(account_id)8s ')
+        if record.__dict__.get('masked_address'):
+            if not record.__dict__.get('account_id'):
+                format_parts.append('%(account_id)8s ')
+            format_parts.append('%(masked_address)s ')
+        if record.__dict__.get('network_name'):
+            format_parts.append('%(network_name)-12s ')
         format_parts.append('%(message)s')
         
         log_message_format = '| '.join(format_parts)
@@ -175,7 +161,6 @@ class MainConsoleLogFormatter(SettingsLogFormatter):
     def __init__(self):
         super().__init__(
             self.FORMATS,
-            # self.LOG_MESSAGE_FORMAT,
         )
 
     def format(self, record):
@@ -186,7 +171,6 @@ class MainFileLogFormatter(SettingsLogFormatter):
     def __init__(self):
         super().__init__(
             self.LOG_LEVELNAME_FORMAT,
-            # self.LOG_MESSAGE_FORMAT,
         )
 
     def format(self, record):
