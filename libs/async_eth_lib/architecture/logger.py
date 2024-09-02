@@ -112,7 +112,7 @@ class CustomLogData(logging.Formatter):
     TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
     LOG_TIME_FORMAT = '%(asctime)s |'
-    LOG_LEVELNAME_FORMAT = ' %(levelname)-8s '
+    LOG_LEVELNAME_FORMAT = ' %(levelname)-9s '
     LOG_MESSAGE_FORMAT = '| %(account_id)8s | %(address)s | %(network)-12s | %(message)s'
     LOG_MESSAGE_FORMAT_SHORT = '| %(message)s '
 
