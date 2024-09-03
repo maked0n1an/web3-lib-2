@@ -1,9 +1,7 @@
 import os
 import sys
-import inspect
 import logging
 from pathlib import Path
-from typing import Optional, Union
 
 from libs.cexs.common.models import LogStatus
 
@@ -12,11 +10,7 @@ class CustomLogger:
     FOLDER_NAME: str = 'user_data/logs'
     LOGGERS: dict[str, logging.Logger] = {}
     
-    def __init__(
-        self,
-        class_name_for_logs: str
-    ):
-        self.class_name_for_logs = class_name_for_logs
+    def __init__(self):
         self._create_log_folder()
             
     @classmethod
@@ -65,7 +59,7 @@ class CustomLogger:
         status: str = '',
         message: str = '',
     ) -> None:
-        message_with_calling_line = f"{self.class_name_for_logs:<12} | {message}"
+        message_with_calling_line = f"{self.__class__.__name__:<12} | {message}"
         
         main_logger = self._initialize_main_log()
         main_logger.log(

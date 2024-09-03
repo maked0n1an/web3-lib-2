@@ -50,12 +50,7 @@ class Cex(ABC):
     async def wait_deposit_confirmation(self):
         pass
 
-    @abstractmethod
-    async def transfer_from_subs(self):
-        pass
-    
     async def sleep(self, secs: float | tuple[float] = 1):
         if isinstance(secs, tuple):
             secs = random.choice(secs)
         await asyncio.sleep(secs)
-

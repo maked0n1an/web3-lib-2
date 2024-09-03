@@ -46,7 +46,6 @@ class ContractsFactory:
         if network_name not in supported_networks:
             raise ValueError("Network not supported")
 
-        supported_networks[network_name]._initialize_tokens()
         return supported_networks[network_name].get_token(token_symbol)
 
 # region All token contracts
