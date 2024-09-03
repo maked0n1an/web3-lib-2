@@ -35,7 +35,7 @@ async def make_async_request(
         json_response = response.json()
 
         if status_code <= 201:
-            return json_response.get('data') or json_response.get('msg')
+            return json_response
 
         raise exceptions.HTTPException(
             response=json_response, status_code=status_code
