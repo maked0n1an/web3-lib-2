@@ -38,7 +38,7 @@ def get_okx_chain_names():
 
 
 class OkxPaths:
-    DOMAIN_URL = 'https://www.okx.com'
+    API_ENDPOINT = 'https://www.okx.com'
 
     GET_ASSET_CURRENCIES_V5 = '/api/v5/asset/currencies'
     GET_USER_SUBACCOUNTS_V5 = '/api/v5/users/subaccount/list'
@@ -87,7 +87,7 @@ class Okx(Cex):
             return 'Can not withdraw'
 
         norm_network_name = okx_chain_names[network_name]
-        for wd_chain in wd_raw_data:
+        for wd_chain in wd_raw_data['data']:
             if (
                 wd_chain['canWd']
                 and norm_network_name in wd_chain['chain']
@@ -115,7 +115,7 @@ class Okx(Cex):
                     'min_fee': item['minFee'],
                     'min_withdraw': item['minWd'],
                     'max_withdraw': item['maxWd']
-                } for item in wd_raw_data
+                } for item in wd_raw_data['data']
             }[okx_network_name]
 
             if not network_data['can_withdraw']:
@@ -157,15 +157,16 @@ class Okx(Cex):
 
             response = await make_async_request(
                 method='POST',
-                url=OkxPaths.DOMAIN_URL + url,
+                url=OkxPaths.API_ENDPOINT + url,
                 data=str(body),
                 headers=headers
             )
+            error_section = response['msg']
             
-            if any(error in response for error in OkxErrors):
+            if any(error in error_section for error in OkxErrors):
                 is_successfull = False
                 status = LogStatus.FAILED
-                message = f'{response} to withdraw'
+                message = f'{error_section} to withdraw'
             else:
                 is_successfull = True
                 status = LogStatus.WITHDRAWN
@@ -267,7 +268,7 @@ class Okx(Cex):
         headers = await self._get_headers(request_path=url)
 
         return await make_async_request(
-            url=OkxPaths.DOMAIN_URL + url,
+            url=OkxPaths.API_ENDPOINT + url,
             headers=headers
         )
 
@@ -278,7 +279,7 @@ class Okx(Cex):
         headers = await self._get_headers(request_path=url)
 
         return await make_async_request(
-            url=OkxPaths.DOMAIN_URL + url,
+            url=OkxPaths.API_ENDPOINT + url,
             headers=headers
         )
 
@@ -299,7 +300,7 @@ class Okx(Cex):
         headers = await self._get_headers(url, params=params)
 
         response = await make_async_request(
-            url=OkxPaths.DOMAIN_URL + url,
+            url=OkxPaths.API_ENDPOINT + url,
             headers=headers,
             params=params
         )
@@ -333,23 +334,23 @@ class Okx(Cex):
 
         headers = await self._get_headers(url)
         response = await make_async_request(
-            url=OkxPaths.DOMAIN_URL + url,
+            url=OkxPaths.API_ENDPOINT + url,
             headers=headers
         )
 
-        if not response:
+        if not response['data']:
             return 0
 
         if self.is_okx_eu_type:
             balance_data = (
-                response[0]['details']
-                if response[0]['details'] else {}
+                response['data'][0]['details']
+                if response['data'][0]['details'] else {}
             )
             for bal in balance_data:
                 if bal['ccy'] == ccy:
                     return float(bal['availBal'])
         else:
-            return float(response[0]['availBal'])
+            return float(response['data'][0]['availBal'])
 
     async def _get_cex_balances(self, ccy: str = 'ETH', deposit_mode: bool = False):
         # ccy = self._check_for_special_tokens(ccy)
@@ -364,7 +365,7 @@ class Okx(Cex):
         else:
             balances['Main CEX Account'] = 0
 
-        for sub_data in sub_list:
+        for sub_data in sub_list['data']:
             sub_name = sub_data['subAcct']
 
             sub_balance = await self._get_sub_acc_balance(sub_name, ccy)
@@ -394,7 +395,7 @@ class Okx(Cex):
         sub_list = await self._get_sub_list()
         await self.sleep()
 
-        for sub_data in sub_list:
+        for sub_data in sub_list['data']:
             sub_name = sub_data['subAcct']
 
             sub_balance = await self._get_sub_acc_balance(sub_name, ccy)
@@ -425,7 +426,7 @@ class Okx(Cex):
 
                 await make_async_request(
                     method="POST",
-                    url=OkxPaths.DOMAIN_URL + OkxPaths.TRANSFER_V5,
+                    url=OkxPaths.API_ENDPOINT + OkxPaths.TRANSFER_V5,
                     headers=headers,
                     data=str(body)
                 )
@@ -447,14 +448,18 @@ class Okx(Cex):
 
     async def _transfer_from_spot_to_funding(self, ccy: str = 'ETH') -> bool:
         # ccy = self._check_for_special_tokens(ccy)
-        url = OkxPaths.GET_ACC_BALANCE_EU_TYPE_V5 + f'?ccy={ccy}'
+        url = OkxPaths.GET_ACC_BALANCE_EU_TYPE_V5
+        params = {
+            'ccy': ccy.upper()
+        }
 
-        headers = await self._get_headers(request_path=url)
+        headers = await self._get_headers(request_path=url, params=params)
         balance = await make_async_request(
-            url=OkxPaths.DOMAIN_URL + url,
-            headers=headers
+            url=OkxPaths.API_ENDPOINT + url,
+            headers=headers,
+            params=params
         )
-        balance = balance[0]['details']
+        balance = balance['data'][0]['details']
 
         for ccy_item in balance:
             if ccy_item['ccy'] == ccy and ccy_item['availBal'] != '0':                
@@ -477,7 +482,7 @@ class Okx(Cex):
                 )
                 await make_async_request(
                     method="POST",
-                    url=OkxPaths.DOMAIN_URL + OkxPaths.TRANSFER_V5,
+                    url=OkxPaths.API_ENDPOINT + OkxPaths.TRANSFER_V5,
                     headers=headers,
                     data=str(body)
                 )
