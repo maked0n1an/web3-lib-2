@@ -11,7 +11,7 @@ import libs.async_eth_lib.models.exceptions as exceptions
 class Networks(metaclass=Singleton):
     # region Mainnets
     Ethereum = Network(
-        name='ethereum',
+        name='Ethereum',
         rpc='https://rpc.ankr.com/eth',
         chain_id=1,
         tx_type=2,
@@ -26,7 +26,7 @@ class Networks(metaclass=Singleton):
     )
 
     Arbitrum = Network(
-        name='arbitrum',
+        name='Arbitrum',
         rpc=[
             'https://arbitrum.llamarpc.com'
         ],
@@ -42,8 +42,8 @@ class Networks(metaclass=Singleton):
         ),
     )
 
-    ArbitrumNova = Network(
-        name='arbitrum_nova',
+    Arbitrum_Nova = Network(
+        name='Arbitrum_Nova',
         rpc='https://nova.arbitrum.io/rpc/',
         chain_id=42170,
         tx_type=2,
@@ -58,7 +58,7 @@ class Networks(metaclass=Singleton):
     )
 
     Avalanche = Network(
-        name='avalanche',
+        name='Avalanche',
         rpc='https://rpc.ankr.com/avalanche/',
         chain_id=43114,
         tx_type=2,
@@ -73,7 +73,7 @@ class Networks(metaclass=Singleton):
     )
 
     BSC = Network(
-        name='bsc',
+        name='BSC',
         rpc='https://rpc.ankr.com/bsc/',
         chain_id=56,
         tx_type=0,
@@ -88,7 +88,7 @@ class Networks(metaclass=Singleton):
     )
 
     Celo = Network(
-        name='celo',
+        name='Celo',
         rpc='https://1rpc.io/celo',
         chain_id=42220,
         tx_type=0,
@@ -103,7 +103,7 @@ class Networks(metaclass=Singleton):
     )
 
     Core = Network(
-        name='core',
+        name='Core',
         rpc='https://1rpc.io/core',
         chain_id=1116,
         tx_type=0,
@@ -113,7 +113,7 @@ class Networks(metaclass=Singleton):
     )
 
     Fantom = Network(
-        name='fantom',
+        name='Fantom',
         rpc='https://fantom.publicnode.com',
         chain_id=250,
         tx_type=0,
@@ -128,7 +128,7 @@ class Networks(metaclass=Singleton):
     )
 
     Gnosis = Network(
-        name='gnosis',
+        name='Gnosis',
         rpc='https://rpc.ankr.com/gnosis',
         chain_id=100,
         tx_type=2,
@@ -143,7 +143,7 @@ class Networks(metaclass=Singleton):
     )
 
     Heco = Network(
-        name='heco',
+        name='Heco',
         rpc='https://http-mainnet.hecochain.com',
         chain_id=128,
         tx_type=2,
@@ -158,7 +158,7 @@ class Networks(metaclass=Singleton):
     )
 
     Kava = Network(
-        name='kava',
+        name='Kava',
         rpc="https://rpc.ankr.com/kava_evm",
         chain_id=2222,
         tx_type=2,
@@ -168,7 +168,7 @@ class Networks(metaclass=Singleton):
     )
 
     Moonbeam = Network(
-        name='moonbeam',
+        name='Moonbeam',
         rpc='https://rpc.api.moonbeam.network/',
         chain_id=1284,
         tx_type=2,
@@ -182,23 +182,8 @@ class Networks(metaclass=Singleton):
         )
     )
 
-    Optimism = Network(
-        name='optimism',
-        rpc='https://rpc.ankr.com/optimism/',
-        chain_id=10,
-        tx_type=2,
-        coin_symbol=TokenSymbol.ETH,
-        decimals=18,
-        explorer='https://optimistic.etherscan.io',
-        api=EvmApiClient(
-            api_key=config.OPTIMISM_API_KEY,
-            api_url='https://api-optimistic.etherscan.io/api',
-            docs='https://docs.optimism.etherscan.io/api-endpoints'
-        )
-    )
-
-    Opbnb = Network(
-        name="op_bnb",
+    opBNB = Network(
+        name="opBNB",
         rpc=[
             "https://opbnb.publicnode.com"
         ],
@@ -214,8 +199,23 @@ class Networks(metaclass=Singleton):
         )
     )
 
+    Optimism = Network(
+        name='Optimism',
+        rpc='https://rpc.ankr.com/optimism/',
+        chain_id=10,
+        tx_type=2,
+        coin_symbol=TokenSymbol.ETH,
+        decimals=18,
+        explorer='https://optimistic.etherscan.io',
+        api=EvmApiClient(
+            api_key=config.OPTIMISM_API_KEY,
+            api_url='https://api-optimistic.etherscan.io/api',
+            docs='https://docs.optimism.etherscan.io/api-endpoints'
+        )
+    )
+
     Polygon = Network(
-        name='polygon',
+        name='Polygon',
         rpc='https://rpc.ankr.com/polygon/',
         chain_id=137,
         tx_type=2,
@@ -229,8 +229,8 @@ class Networks(metaclass=Singleton):
         ),
     )
     
-    ZkSync = Network(
-        name='zksync',
+    zkSync_Era = Network(
+        name='zkSync_Era',
         rpc='https://multi-convincing-dust.zksync-mainnet.quiknode.pro/c94ba40682080821bbc8b4dd7ba7360329948422/',
         chain_id=324,
         tx_type=2,
@@ -245,7 +245,7 @@ class Networks(metaclass=Singleton):
 
     # region Testnets
     Goerli = Network(
-        name='goerli',
+        name='Goerli',
         rpc='https://rpc.ankr.com/eth_goerli/',
         chain_id=5,
         tx_type=2,
@@ -260,7 +260,7 @@ class Networks(metaclass=Singleton):
     )
 
     Sepolia = Network(
-        name='sepolia',
+        name='Sepolia',
         rpc='https://rpc.sepolia.org',
         chain_id=11155111,
         tx_type=2,
@@ -279,8 +279,6 @@ class Networks(metaclass=Singleton):
         cls,
         network_name: str
     ) -> Network:
-        network_name = network_name.capitalize()
-
         if not hasattr(cls, network_name):
             raise exceptions.NetworkNotAdded(
                 f"The network has not been added to \"{__class__.__name__}\" class"

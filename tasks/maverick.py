@@ -5,7 +5,7 @@ from web3 import Web3
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
-from libs.async_eth_lib.data.token_contracts import TokenContractData, ZkSyncTokenContracts
+from libs.async_eth_lib.data.token_contracts import TokenContractData, ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, TxPayloadDetails, TxPayloadDetailsFetcher
@@ -33,19 +33,19 @@ class MaverickData(TxPayloadDetailsFetcher):
             TokenSymbol.USDC: TxPayloadDetails(
                 method_name='exactInput',
                 addresses=[
-                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WETH.address,
                     LIQUIDITY_POOLS[(TokenSymbol.ETH, TokenSymbol.USDC)],
-                    ZkSyncTokenContracts.USDC.address
+                    ZkSyncEraTokenContracts.USDC.address
                 ]
             ),
             TokenSymbol.BUSD: TxPayloadDetails(
                 method_name='exactInput',
                 addresses=[
-                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WETH.address,
                     LIQUIDITY_POOLS[(TokenSymbol.USDC, TokenSymbol.ETH)],
-                    ZkSyncTokenContracts.USDC.address,
+                    ZkSyncEraTokenContracts.USDC.address,
                     LIQUIDITY_POOLS[(TokenSymbol.USDC, TokenSymbol.BUSD)],
-                    ZkSyncTokenContracts.BUSD.address,
+                    ZkSyncEraTokenContracts.BUSD.address,
                 ]
             ),
         },
@@ -53,9 +53,9 @@ class MaverickData(TxPayloadDetailsFetcher):
             TokenSymbol.ETH: TxPayloadDetails(
                 method_name='exactInput',
                 addresses=[
-                    ZkSyncTokenContracts.BUSD.address,
+                    ZkSyncEraTokenContracts.BUSD.address,
                     LIQUIDITY_POOLS[(TokenSymbol.BUSD, TokenSymbol.ETH)],
-                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WETH.address,
                 ]
             )
         },
@@ -63,9 +63,9 @@ class MaverickData(TxPayloadDetailsFetcher):
             TokenSymbol.ETH: TxPayloadDetails(
                 method_name='exactInput',
                 addresses=[
-                    ZkSyncTokenContracts.USDC.address,
+                    ZkSyncEraTokenContracts.USDC.address,
                     LIQUIDITY_POOLS[(TokenSymbol.USDC, TokenSymbol.ETH)],
-                    ZkSyncTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WETH.address,
                 ]
             )
         }

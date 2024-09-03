@@ -6,10 +6,6 @@ from libs.async_eth_lib.models.others import TokenSymbol
 class TokenContractData:
     NATIVE_ETH = NativeTokenContract(title=TokenSymbol.ETH)
     ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
-    
-    @classmethod
-    def _initialize_tokens(cls):
-        pass
 
     @classmethod
     def get_token(
@@ -44,7 +40,7 @@ class ContractsFactory:
             Networks.Kava.name: KavaTokenContracts,
             Networks.Optimism.name: OptimismTokenContracts,
             Networks.Polygon.name: PolygonTokenContracts,
-            Networks.ZkSync.name: ZkSyncTokenContracts,
+            Networks.zkSync_Era.name: ZkSyncEraTokenContracts,
         }
         
         if network_name not in supported_networks:
@@ -320,7 +316,7 @@ class PolygonTokenContracts(TokenContractData):
     )
 
 
-class ZkSyncTokenContracts(TokenContractData):
+class ZkSyncEraTokenContracts(TokenContractData):
     ETH = NativeTokenContract(
         title=TokenSymbol.ETH,
         address=TokenContractData.ZERO_ADDRESS

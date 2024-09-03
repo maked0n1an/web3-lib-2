@@ -254,7 +254,7 @@ def get_testnet_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, s
 
 def get_mute_paths() -> dict[Network, dict[str, list[str]]]:
     return {
-        Networks.ZkSync: {
+        Networks.zkSync_Era: {
             TokenSymbol.ETH: [
                 TokenSymbol.USDC,
                 TokenSymbol.USDT,
@@ -281,7 +281,7 @@ def get_mute_paths() -> dict[Network, dict[str, list[str]]]:
 
 def get_space_fi_paths() -> dict[Network, dict[str, list[str]]]:
     return {
-        Networks.ZkSync: {
+        Networks.zkSync_Era: {
             TokenSymbol.ETH: [
                 TokenSymbol.USDC,
                 TokenSymbol.USDT,

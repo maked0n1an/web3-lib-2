@@ -25,7 +25,7 @@ class Network:
         explorer: str | None = None,
         api: EvmApiClient | ZkApiClient | None = None
     ) -> None:
-        self.name: str = name.lower()
+        self.name: str = name
         self.rpc: str | List[str] = rpc
         self.chain_id: int | None = chain_id
         self.tx_type: int = tx_type

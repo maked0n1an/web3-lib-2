@@ -42,7 +42,7 @@ class FetcherBase:
 
         if network_name not in cls.NETWORKS_DATA:
             raise exceptions.NetworkNotAdded(
-                f"The '{network_name.capitalize()}' network has not been "
+                f"The '{network_name}' network has not been "
                 f"added to {cls.__name__} networks dict"
             )
 

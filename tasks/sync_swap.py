@@ -5,7 +5,7 @@ from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
 from libs.async_eth_lib.data.token_contracts import (
-    ZkSyncTokenContracts,
+    ZkSyncEraTokenContracts,
     TokenContractData
 )
 from libs.async_eth_lib.models.contract import RawContract
@@ -51,12 +51,12 @@ class SyncSwap(BaseTask):
         is_from_token_eth = swap_info.from_token_name == TokenSymbol.ETH
 
         if is_from_token_eth:
-            swap_proposal.from_token = ZkSyncTokenContracts.WETH
+            swap_proposal.from_token = ZkSyncEraTokenContracts.WETH
 
         if swap_info.to_token_name == TokenSymbol.ETH:
-            swap_proposal.to_token = ZkSyncTokenContracts.WETH
+            swap_proposal.to_token = ZkSyncEraTokenContracts.WETH
         else:
-            swap_proposal.to_token = ZkSyncTokenContracts.get_token(
+            swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
                 token_symbol=swap_info.to_token_name
             )
 

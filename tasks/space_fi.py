@@ -7,7 +7,7 @@ from web3.types import TxParams
 from data.config import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import Client
 from libs.async_eth_lib.data.networks import Networks
-from libs.async_eth_lib.data.token_contracts import ZkSyncTokenContracts
+from libs.async_eth_lib.data.token_contracts import ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import read_json, sleep
@@ -39,24 +39,24 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
             TokenSymbol.USDC: TxPayloadDetails(
                 method_name='swapExactETHForToken',
                 addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.USDC.address
+                    ZkSyncEraTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.USDC.address
                 ],
                 function_signature="0x7ff36ab5"
             ),
             TokenSymbol.USDT: TxPayloadDetails(
                 method_name='swapExactETHForToken',
                 addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.USDT.address
+                    ZkSyncEraTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.USDT.address
                 ],
                 function_signature="0x7ff36ab5"
             ),
             TokenSymbol.WBTC: TxPayloadDetails(
                 method_name='swapExactETHForToken',
                 addresses=[
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.WBTC.address
+                    ZkSyncEraTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WBTC.address
                 ],
                 function_signature="0x7ff36ab5"
             )
@@ -65,18 +65,18 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
             TokenSymbol.ETH: TxPayloadDetails(
                 method_name='swapExactTokensForETH',
                 addresses=[
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.SPACE.address,
-                    ZkSyncTokenContracts.WETH.address
+                    ZkSyncEraTokenContracts.USDC.address,
+                    ZkSyncEraTokenContracts.SPACE.address,
+                    ZkSyncEraTokenContracts.WETH.address
                 ],
                 function_signature="0x18cbafe5"
             ),
             TokenSymbol.WBTC: TxPayloadDetails(
                 method_name='swapExactTokensForETH',
                 addresses=[
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.WETH.address,
-                    ZkSyncTokenContracts.WBTC.address
+                    ZkSyncEraTokenContracts.USDC.address,
+                    ZkSyncEraTokenContracts.WETH.address,
+                    ZkSyncEraTokenContracts.WBTC.address
                 ],
                 function_signature='0x38ed1739'
             )
@@ -85,9 +85,9 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
             TokenSymbol.ETH: TxPayloadDetails(
                 method_name='swapExactTokensForETH',
                 addresses=[
-                    ZkSyncTokenContracts.USDT.address,
+                    ZkSyncEraTokenContracts.USDT.address,
                     # ZkSyncTokenContracts.SPACE.address,
-                    ZkSyncTokenContracts.WETH.address
+                    ZkSyncEraTokenContracts.WETH.address
                 ],
                 function_signature="0x18cbafe5"
             )
@@ -96,17 +96,17 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
             TokenSymbol.ETH: TxPayloadDetails(
                 method_name='swapExactTokensForETH',
                 addresses=[
-                    ZkSyncTokenContracts.WBTC.address,
-                    ZkSyncTokenContracts.USDC.address,
-                    ZkSyncTokenContracts.WETH.address
+                    ZkSyncEraTokenContracts.WBTC.address,
+                    ZkSyncEraTokenContracts.USDC.address,
+                    ZkSyncEraTokenContracts.WETH.address
                 ],
                 function_signature="0x18cbafe5"
             ),
             TokenSymbol.USDC: TxPayloadDetails(
                 method_name='swapExactTokensForETH',
                 addresses=[
-                    ZkSyncTokenContracts.WBTC.address,
-                    ZkSyncTokenContracts.USDC.address
+                    ZkSyncEraTokenContracts.WBTC.address,
+                    ZkSyncEraTokenContracts.USDC.address
                 ],
                 function_signature='0x38ed1739'
             )
@@ -251,7 +251,7 @@ class SpaceFiImplementation(BaseTask):
             operation_info=swap_info
         )
 
-        swap_proposal.to_token = ZkSyncTokenContracts.get_token(
+        swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
             swap_info.to_token_name
         )
 
@@ -278,7 +278,7 @@ class SpaceFi(BaseTask):
         client = Client(
             account_id=self.client.account_id,
             private_key=self.client.account._private_key,
-            network=Networks.ZkSync,
+            network=Networks.zkSync_Era,
             proxy=self.client.proxy
         )
         client.custom_logger.log_message(
