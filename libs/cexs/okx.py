@@ -8,13 +8,12 @@ from urllib.parse import urlencode
 
 from libs.cexs.common.logger import CustomLogger
 from libs.cexs.common.models import Cex, LogStatus, OkxCredentials
-from libs.pretty_utils import exceptions
 from libs.pretty_utils.exceptions import ApiException
 from libs.pretty_utils.miscellaneous.http import make_async_request
 from libs.pretty_utils.others import TokenSymbol
 
 
-def get_okx_chain_names():
+def get_okx_network_names():
     return {
         'Ethereum': 'ERC20',
         'Arbitrum': 'Arbitrum One',
@@ -38,12 +37,12 @@ def get_okx_chain_names():
 
 
 class OkxEndpoints:
-    API_ENDPOINT = 'https://www.okx.com'
+    DOMAIN_URL = 'https://www.okx.com'
 
     GET_ASSET_CURRENCIES_V5 = '/api/v5/asset/currencies'
-    GET_USER_SUBACCOUNTS_V5 = '/api/v5/users/subaccount/list'
     GET_ACC_BALANCE_V5 = '/api/v5/asset/balances'
     GET_ACC_BALANCE_EU_TYPE_V5 = '/api/v5/account/balance'
+    GET_USER_SUBACCOUNTS_V5 = '/api/v5/users/subaccount/list'
     GET_SUBACC_BALANCE_V5 = '/api/v5/asset/subaccount/balances'
     GET_SUBACC_BALANCE_EU_TYPE_V5 = '/api/v5/account/subaccount/balances'
     GET_DEPOSIT_HISTORY_V5 = '/api/v5/asset/deposit-history'
@@ -54,7 +53,7 @@ class OkxEndpoints:
 class OkxErrors(str, Enum):
     ADDRESS_NOT_IN_WL = 'Withdrawal address isn\'t on the verified address list'
     INSSUFICIENT_BALANCE = 'Insufficient balance'
-    
+
     def __str__(self) -> str:
         return self.value
 
@@ -63,11 +62,12 @@ class Okx(Cex, CustomLogger):
     def __init__(self, credentials: OkxCredentials):
         Cex.__init__(self, credentials)
         CustomLogger.__init__(self)
-        
+
         self.is_okx_eu_type = credentials.is_okx_eu_type
         self.special_tokens = {
             TokenSymbol.USDC_E: TokenSymbol.USDC
         }
+        self.domain_url = 'https://www.okx.com'
 
     async def withdraw(
         self,
@@ -76,30 +76,33 @@ class Okx(Cex, CustomLogger):
         network_name: str,
         receiver_address: str,
         receiver_account_id: str = ''
-    ):
+    ) -> bool:
         url = OkxEndpoints.WITHDRAW_V5
-        
+
         wd_raw_data = await self._get_currencies(ccy)
-        okx_chain_names = get_okx_chain_names()
-        if network_name not in okx_chain_names:
-            return 'Can not withdraw'
+        if not wd_raw_data:
+            self.log_message(
+                status=LogStatus.ERROR,
+                message='Invalid token symbol, check it'
+            )
+            return is_successfull
 
-        norm_network_name = okx_chain_names[network_name]
-        for wd_chain in wd_raw_data['data']:
-            if (
-                wd_chain['canWd']
-                and norm_network_name in wd_chain['chain']
-            ):
-                okx_network_name = wd_chain['chain']
-                break
+        okx_network_names = get_okx_network_names()
+        if network_name not in okx_network_names:
+            self.log_message(
+                status=LogStatus.FAILED,
+                message='Can not withdraw, the network isn\'t in config'
+            )
+            return is_successfull
 
-        await self._transfer_from_subs(ccy=ccy, silent_mode=True)
+        okx_network_name = okx_network_names[network_name]
+        await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
 
         if amount == 0.0:
-            raise exceptions.ApiClientException('Can`t withdraw zero amount')
+            raise ApiException('Can`t withdraw zero amount, refuel the CEX')
 
         log_args = [receiver_account_id, receiver_address, network_name]
-        
+
         self.log_message(
             *log_args,
             status=LogStatus.INFO,
@@ -127,9 +130,10 @@ class Okx(Cex, CustomLogger):
             min_wd = float(network_data['min_wd'])
             max_wd = float(network_data['max_wd'])
 
-            if amount <= min_wd or amount >= max_wd:
-                raise exceptions.ApiClientException(
-                    f"Limit range for withdraw: {min_wd:.4f} {ccy} - {max_wd} {ccy}, your amount: {amount:.4f}")
+            if amount < min_wd or amount > max_wd:
+                raise ApiException(
+                    f"Limit range for withdraw: {min_wd} {ccy} - {max_wd} {ccy}, your amount: {amount}"
+                )
 
             amount = amount - float(network_data['min_fee'])
 
@@ -151,16 +155,14 @@ class Okx(Cex, CustomLogger):
                 body=str(body)
             )
 
-            # # ccy = self._check_for_special_tokens(ccy)
-
             response = await make_async_request(
                 method='POST',
-                url=OkxEndpoints.API_ENDPOINT + url,
+                url=OkxEndpoints.DOMAIN_URL + url,
                 data=str(body),
                 headers=headers
             )
             error_section = response['msg']
-            
+
             if any(error in error_section for error in OkxErrors):
                 is_successfull = False
                 status = LogStatus.FAILED
@@ -175,7 +177,7 @@ class Okx(Cex, CustomLogger):
                 status=status,
                 message=message,
             )
-            
+
             return is_successfull
 
     async def wait_deposit_confirmation(
@@ -185,22 +187,20 @@ class Okx(Cex, CustomLogger):
         network_name: str,
         old_sub_balances: dict,
         check_time: int = 45
-    ):
-        # ccy = self._check_for_special_tokens(ccy)
-
+    ) -> bool:
         self.log_message(
             status=LogStatus.INFO,
             message=f"Start checking CEX balances"
         )
 
         while True:
-            new_sub_balances = await self._get_cex_balances(ccy=ccy, deposit_mode=True)
+            new_sub_balances = await self._get_cex_balances(ccy, True)
             for sub_name, sub_balance in new_sub_balances.items():
 
                 if sub_balance > old_sub_balances[sub_name]:
                     self.log_message(
                         status=LogStatus.DEPOSITED,
-                        message=f"{amount} {ccy} in {network_name.capitalize()}",
+                        message=f"{amount} {ccy} in {network_name}",
                     )
                     return True
                 else:
@@ -212,13 +212,13 @@ class Okx(Cex, CustomLogger):
                 )
                 await asyncio.sleep(check_time)
 
-    async def _transfer_from_subs(
+    async def _transfer_from_subaccounts(
         self,
         ccy: str,
         amount: float = None,
         silent_mode: bool = False
-    ):
-        result_1 = await self._transfer_from_subaccounts(ccy, amount, silent_mode)
+    ) -> bool:
+        result_1 = await self._transfer_from_subs(ccy, amount, silent_mode)
         result_2 = await self._transfer_from_spot_to_funding(ccy)
 
         return all([result_1, result_2])
@@ -235,7 +235,7 @@ class Okx(Cex, CustomLogger):
         method: str = "GET",
         body: str = "",
         params: dict[str, Any] = {}
-    ):
+    ) -> dict:
         try:
             timestamp = datetime.now(timezone.utc).strftime(
                 '%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
@@ -261,32 +261,30 @@ class Okx(Cex, CustomLogger):
         except Exception as error:
             raise ApiException(f"Bad headers for OKX request: {error}")
 
-    async def _get_sub_list(self):
-        url = OkxEndpoints.GET_USER_SUBACCOUNTS_V5
-        headers = await self._get_headers(request_path=url)
-
-        return await make_async_request(
-            url=OkxEndpoints.API_ENDPOINT + url,
-            headers=headers
-        )
-
     async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
-        # ccy = self._check_for_special_tokens(ccy)
-
         url = OkxEndpoints.GET_ASSET_CURRENCIES_V5 + f'?ccy={ccy}'
         headers = await self._get_headers(request_path=url)
 
         return await make_async_request(
-            url=OkxEndpoints.API_ENDPOINT + url,
+            url=OkxEndpoints.DOMAIN_URL + url,
+            headers=headers
+        )
+        
+    async def _get_sub_list(self) -> dict:
+        url = OkxEndpoints.GET_USER_SUBACCOUNTS_V5
+        headers = await self._get_headers(request_path=url)
+
+        return await make_async_request(
+            url=OkxEndpoints.DOMAIN_URL + url,
             headers=headers
         )
 
     async def _get_main_acc_balance(
         self,
         ccy: str,
-        deposit_mode: bool = False
+        is_deposit_mode: bool = False
     ) -> float:
-        if self.is_okx_eu_type and deposit_mode:
+        if self.is_okx_eu_type and is_deposit_mode:
             url = OkxEndpoints.GET_ACC_BALANCE_EU_TYPE_V5
 
         else:
@@ -298,7 +296,7 @@ class Okx(Cex, CustomLogger):
         headers = await self._get_headers(url, params=params)
 
         response = await make_async_request(
-            url=OkxEndpoints.API_ENDPOINT + url,
+            url=OkxEndpoints.DOMAIN_URL + url,
             headers=headers,
             params=params
         )
@@ -306,7 +304,7 @@ class Okx(Cex, CustomLogger):
         if not response:
             return 0
 
-        if self.is_okx_eu_type and deposit_mode:
+        if self.is_okx_eu_type and is_deposit_mode:
             balance_data = (
                 response[0]['details']
                 if response[0]['details'] else {}
@@ -332,7 +330,7 @@ class Okx(Cex, CustomLogger):
 
         headers = await self._get_headers(url)
         response = await make_async_request(
-            url=OkxEndpoints.API_ENDPOINT + url,
+            url=OkxEndpoints.DOMAIN_URL + url,
             headers=headers
         )
 
@@ -350,19 +348,20 @@ class Okx(Cex, CustomLogger):
         else:
             return float(response['data'][0]['availBal'])
 
-    async def _get_cex_balances(self, ccy: str = 'ETH', deposit_mode: bool = False):
-        # ccy = self._check_for_special_tokens(ccy)
-
+    async def _get_cex_balances(
+        self,
+        ccy: str = 'ETH',
+        is_deposit_mode: bool = False
+    ) -> dict:
         balances = {}
 
-        sub_list = await self._get_sub_list()
-        main_balance = await self._get_main_acc_balance(ccy=ccy, deposit_mode=deposit_mode)
-
+        main_balance = await self._get_main_acc_balance(ccy, is_deposit_mode)
         if main_balance:
             balances['Main CEX Account'] = main_balance
         else:
             balances['Main CEX Account'] = 0
 
+        sub_list = await self._get_sub_list()
         for sub_data in sub_list['data']:
             sub_name = sub_data['subAcct']
 
@@ -375,14 +374,12 @@ class Okx(Cex, CustomLogger):
 
         return balances
 
-    async def _transfer_from_subaccounts(
+    async def _transfer_from_subs(
         self,
         ccy: str = 'ETH',
         amount: float = None,
         silent_mode: bool = False
     ) -> bool:
-        # ccy = self._check_for_special_tokens(ccy)
-
         if not silent_mode:
             self.log_message(
                 status=LogStatus.INFO,
@@ -399,42 +396,71 @@ class Okx(Cex, CustomLogger):
             sub_balance = await self._get_sub_acc_balance(sub_name, ccy)
             amount = amount if amount else sub_balance
 
-            if sub_balance == amount and sub_balance != 0.0:
-                is_empty = False
-                if not silent_mode:
-                    self.log_message(
-                        status=LogStatus.FOUND,
-                        message=f'{sub_name} | subAccount balance : {sub_balance:.8f} {ccy}'
-                    )
+            if sub_balance == 0.0 or sub_balance != amount:
+                continue
 
-                body = {
-                    "ccy": ccy,
-                    "type": "2",
-                    "amt": f"{amount:.10f}",
-                    "from": "6" if not self.is_okx_eu_type else "18",
-                    "to": "6" if not self.is_okx_eu_type else "18",
-                    "subAcct": sub_name
-                }
-
-                headers = await self._get_headers(
-                    request_path=OkxEndpoints.TRANSFER_V5,
-                    method="POST",
-                    body=str(body)
+            is_empty = False
+            if not silent_mode:
+                self.log_message(
+                    status=LogStatus.FOUND,
+                    message=f'{sub_name} | subAccount balance : {sub_balance:.6f} {ccy}'
                 )
 
-                await make_async_request(
-                    method="POST",
-                    url=OkxEndpoints.API_ENDPOINT + OkxEndpoints.TRANSFER_V5,
-                    headers=headers,
-                    data=str(body)
-                )
-                
-                if not silent_mode:
-                    self.log_message(
-                        status=LogStatus.SENT,
-                        message=f"Transfer {amount:.8f} {ccy} to main account"
+            body = {
+                "ccy": ccy,
+                "type": "2",
+                "amt": f"{amount:.10f}",
+                "from": "6" if not self.is_okx_eu_type else "18",
+                "to": "6" if not self.is_okx_eu_type else "18",
+                "subAcct": sub_name
+            }
+
+            while True:
+                try:
+                    headers = await self._get_headers(
+                        request_path=OkxEndpoints.TRANSFER_V5,
+                        method="POST",
+                        body=str(body)
                     )
+
+                    await make_async_request(
+                        method="POST",
+                        url=OkxEndpoints.DOMAIN_URL + OkxEndpoints.TRANSFER_V5,
+                        headers=headers,
+                        data=str(body)
+                    )
+
                     break
+                except Exception as error:
+                    str_err = str(error)
+
+                    if (
+                        'not reached the required block confirmations' in str_err
+                        or '-9000' in str_err
+                    ):
+                        self.log_message(
+                            status=LogStatus.WARNING,
+                            message=(
+                                f'Deposit not reached the required block confirmations. '
+                                f'Will try again in 1 min.'
+                            )
+                        )
+                        await self.sleep(60)
+                    elif '-8012 Msg' in str(error):
+                        return True
+                    else:
+                        self.log_message(
+                            status=LogStatus.ERROR,
+                            message=str_err
+                        )
+                        return False
+
+            self.log_message(
+                status=LogStatus.SENT,
+                message=f"Transfer {amount:.8f} {ccy} to main account"
+            )
+            if not silent_mode:
+                break
 
         if is_empty and not silent_mode:
             self.log_message(
@@ -445,7 +471,6 @@ class Okx(Cex, CustomLogger):
         return True
 
     async def _transfer_from_spot_to_funding(self, ccy: str = 'ETH') -> bool:
-        # ccy = self._check_for_special_tokens(ccy)
         url = OkxEndpoints.GET_ACC_BALANCE_EU_TYPE_V5
         params = {
             'ccy': ccy.upper()
@@ -453,14 +478,14 @@ class Okx(Cex, CustomLogger):
 
         headers = await self._get_headers(request_path=url, params=params)
         balance = await make_async_request(
-            url=OkxEndpoints.API_ENDPOINT + url,
+            url=OkxEndpoints.DOMAIN_URL + url,
             headers=headers,
             params=params
         )
         balance = balance['data'][0]['details']
 
         for ccy_item in balance:
-            if ccy_item['ccy'] == ccy and ccy_item['availBal'] != '0':                
+            if ccy_item['ccy'] == ccy and ccy_item['availBal'] != '0':
                 self.log_message(
                     status=LogStatus.INFO,
                     message=f"Main trading account balance: {ccy_item['availBal']} {ccy}"
@@ -480,7 +505,7 @@ class Okx(Cex, CustomLogger):
                 )
                 await make_async_request(
                     method="POST",
-                    url=OkxEndpoints.API_ENDPOINT + OkxEndpoints.TRANSFER_V5,
+                    url=OkxEndpoints.DOMAIN_URL + OkxEndpoints.TRANSFER_V5,
                     headers=headers,
                     data=str(body)
                 )
