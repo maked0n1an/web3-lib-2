@@ -35,19 +35,27 @@ def get_okx_network_names():
         'zkSync_Era': 'zkSync Era'
     }
 
-
-class OkxEndpoints:
-    DOMAIN_URL = 'https://www.okx.com'
-
-    GET_ASSET_CURRENCIES_V5 = '/api/v5/asset/currencies'
-    GET_ACC_BALANCE_V5 = '/api/v5/asset/balances'
-    GET_ACC_BALANCE_EU_TYPE_V5 = '/api/v5/account/balance'
-    GET_USER_SUBACCOUNTS_V5 = '/api/v5/users/subaccount/list'
-    GET_SUBACC_BALANCE_V5 = '/api/v5/asset/subaccount/balances'
-    GET_SUBACC_BALANCE_EU_TYPE_V5 = '/api/v5/account/subaccount/balances'
-    GET_DEPOSIT_HISTORY_V5 = '/api/v5/asset/deposit-history'
-    TRANSFER_V5 = '/api/v5/asset/transfer'
-    WITHDRAW_V5 = '/api/v5/asset/withdrawal'
+def get_okx_endpoints():
+    # Get = Get, 
+    # Ass = asset, 
+    # Acc = Account,
+    # Cur = Currencies, 
+    # Bal = Balance, 
+    # Lst = List
+    # SAcc = SubAcc,
+    # T = Transfer
+    # U = User
+    # Wd = Withdraw
+    return {
+        'AssCur_V5':        '/api/v5/asset/currencies',
+        'AccBal_V5':        '/api/v5/asset/balances',
+        'AccBal_EU_V5':     '/api/v5/account/balance',
+        'SAccLst_V5':         '/api/v5/users/subaccount/list',
+        'SAccBal_V5':         '/api/v5/asset/subaccount/balances',
+        'SAccBal_EU_V5':         '/api/v5/account/subaccount/balances',
+        'T_V5':         '/api/v5/asset/transfer',
+        'Wd_V5':         '/api/v5/asset/withdrawal',
+    }
 
 
 class OkxErrors(str, Enum):
@@ -68,6 +76,7 @@ class Okx(Cex, CustomLogger):
             TokenSymbol.USDC_E: TokenSymbol.USDC
         }
         self.domain_url = 'https://www.okx.com'
+        self.endpoints = get_okx_endpoints()
 
     async def withdraw(
         self,
@@ -77,7 +86,7 @@ class Okx(Cex, CustomLogger):
         receiver_address: str,
         receiver_account_id: str = ''
     ) -> bool:
-        url = OkxEndpoints.WITHDRAW_V5
+        url = self.endpoints['Wd_V5']
 
         wd_raw_data = await self._get_currencies(ccy)
         if not wd_raw_data:
@@ -157,7 +166,7 @@ class Okx(Cex, CustomLogger):
 
             response = await make_async_request(
                 method='POST',
-                url=OkxEndpoints.DOMAIN_URL + url,
+                url=self.domain_url + url,
                 data=str(body),
                 headers=headers
             )
@@ -262,20 +271,20 @@ class Okx(Cex, CustomLogger):
             raise ApiException(f"Bad headers for OKX request: {error}")
 
     async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
-        url = OkxEndpoints.GET_ASSET_CURRENCIES_V5 + f'?ccy={ccy}'
+        url = self.endpoints['AssCur_V5'] + f'?ccy={ccy}'
         headers = await self._get_headers(request_path=url)
 
         return await make_async_request(
-            url=OkxEndpoints.DOMAIN_URL + url,
+            url=self.domain_url + url,
             headers=headers
         )
         
     async def _get_sub_list(self) -> dict:
-        url = OkxEndpoints.GET_USER_SUBACCOUNTS_V5
+        url = self.endpoints['SAccLst_V5']
         headers = await self._get_headers(request_path=url)
 
         return await make_async_request(
-            url=OkxEndpoints.DOMAIN_URL + url,
+            url=self.domain_url + url,
             headers=headers
         )
 
@@ -285,10 +294,10 @@ class Okx(Cex, CustomLogger):
         is_deposit_mode: bool = False
     ) -> float:
         if self.is_okx_eu_type and is_deposit_mode:
-            url = OkxEndpoints.GET_ACC_BALANCE_EU_TYPE_V5
+            url = self.endpoints['AccBal_EU_V5']
 
         else:
-            url = OkxEndpoints.GET_ACC_BALANCE_V5
+            url = self.endpoints['AccBal_V5']
 
         params = {
             'ccy': ccy
@@ -296,7 +305,7 @@ class Okx(Cex, CustomLogger):
         headers = await self._get_headers(url, params=params)
 
         response = await make_async_request(
-            url=OkxEndpoints.DOMAIN_URL + url,
+            url=self.domain_url + url,
             headers=headers,
             params=params
         )
@@ -321,16 +330,16 @@ class Okx(Cex, CustomLogger):
         ccy: str
     ) -> float:
         if self.is_okx_eu_type:
-            url = OkxEndpoints.GET_SUBACC_BALANCE_EU_TYPE_V5
+            url = self.endpoints['SAccBal_EU_V5']
             url += f'?subAcct={sub_name}'
 
         else:
-            url = OkxEndpoints.GET_SUBACC_BALANCE_V5
+            url = self.endpoints['SAccBal_V5']
             url += f'?subAcct={sub_name}&ccy={ccy}'
 
         headers = await self._get_headers(url)
         response = await make_async_request(
-            url=OkxEndpoints.DOMAIN_URL + url,
+            url=self.domain_url + url,
             headers=headers
         )
 
@@ -418,14 +427,14 @@ class Okx(Cex, CustomLogger):
             while True:
                 try:
                     headers = await self._get_headers(
-                        request_path=OkxEndpoints.TRANSFER_V5,
+                        request_path=self.endpoints['T_V5'],
                         method="POST",
                         body=str(body)
                     )
 
                     await make_async_request(
                         method="POST",
-                        url=OkxEndpoints.DOMAIN_URL + OkxEndpoints.TRANSFER_V5,
+                        url=self.domain_url + self.endpoints['T_V5'],
                         headers=headers,
                         data=str(body)
                     )
@@ -471,14 +480,14 @@ class Okx(Cex, CustomLogger):
         return True
 
     async def _transfer_from_spot_to_funding(self, ccy: str = 'ETH') -> bool:
-        url = OkxEndpoints.GET_ACC_BALANCE_EU_TYPE_V5
+        url = self.endpoints['AccBal_EU_V5']
         params = {
             'ccy': ccy.upper()
         }
 
         headers = await self._get_headers(request_path=url, params=params)
         balance = await make_async_request(
-            url=OkxEndpoints.DOMAIN_URL + url,
+            url=self.domain_url + url,
             headers=headers,
             params=params
         )
@@ -500,12 +509,12 @@ class Okx(Cex, CustomLogger):
 
                 headers = await self._get_headers(
                     method="POST",
-                    request_path=OkxEndpoints.TRANSFER_V5,
+                    request_path=self.endpoints['T_V5'],
                     body=str(body)
                 )
                 await make_async_request(
                     method="POST",
-                    url=OkxEndpoints.DOMAIN_URL + OkxEndpoints.TRANSFER_V5,
+                    url=self.domain_url + self.endpoints['T_V5'],
                     headers=headers,
                     data=str(body)
                 )
