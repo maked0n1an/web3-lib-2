@@ -2,7 +2,7 @@
 # Virtualenv
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 .vscode
-private_keys.txt
+user_data/input_data/*.txt
 
 .Python
 [Bb]in
