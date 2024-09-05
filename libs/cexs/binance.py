@@ -1,12 +1,11 @@
-import asyncio
 import hmac
-import time
 from urllib.parse import urlencode
 
-from libs.cexs.common.logger import CustomLogger
-from libs.cexs.common.models import Cex, CexCredentials, LogStatus
-from libs.pretty_utils.exceptions import ApiException
-from libs.pretty_utils.miscellaneous.http import make_async_request
+from .common import exceptions as exc
+from .common.logger import CustomLogger
+from .common.models import Cex, CexCredentials, LogStatus
+from .common.http import make_async_request
+from .common.time_and_date import get_unix_timestamp
 
 def get_binance_network_names():
     return {
@@ -63,6 +62,7 @@ class Binance(Cex, CustomLogger):
         receiver_account_id: str = ''
     ) -> bool:
         url = BinanceEndpoints.WITHDRAW_V1
+        is_successfull = False
 
         wd_raw_data = await self._get_currencies(ccy)
         if not wd_raw_data:
@@ -84,7 +84,7 @@ class Binance(Cex, CustomLogger):
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
 
         if amount == 0.0:
-            raise ApiException('Can`t withdraw zero amount, refuel the CEX')
+            raise exc.ApiException('Can`t withdraw zero amount, refuel the CEX')
 
         log_args = [receiver_account_id, receiver_address, network_name]
 
@@ -116,14 +116,14 @@ class Binance(Cex, CustomLogger):
             max_wd = float(network_data['max_wd'])
 
             if amount < min_wd or amount > max_wd:
-                raise ApiException(
+                raise exc.ApiException(
                     f"Limit range for withdraw: {min_wd} {ccy} - {max_wd} {ccy}, your amount: {amount}"
                 )
 
-            amount = amount - float(network_data['min_fee'])
+            amount += float(network_data['min_fee'])
 
             if amount < float(network_data['min_wd']):
-                amount = amount + float(network_data['min_fee'])
+                amount += float(network_data['min_fee'])
 
             params = {
                 "address": receiver_address,
@@ -188,7 +188,7 @@ class Binance(Cex, CustomLogger):
                     status=LogStatus.WARNING,
                     message=f"Deposit still in progress..."
                 )
-                await asyncio.sleep(check_time)
+                await self.sleep(check_time)
 
     def _get_sign(self, payload: str = '') -> str:
         try:
@@ -199,7 +199,7 @@ class Binance(Cex, CustomLogger):
 
             return signature
         except Exception as error:
-            raise ApiException(f"Bad signature for Binance request: {error}")
+            raise exc.ApiException(f"Bad signature for Binance request: {error}")
 
     def _get_url_encoded_params_with_ts(self, params: dict | None = None) -> str:
         if params:
@@ -208,7 +208,7 @@ class Binance(Cex, CustomLogger):
             )
         else:
             params_str = ''
-        return params_str + "&timestamp=" + str(int(time.time() * 1000))
+        return params_str + "&timestamp=" + get_unix_timestamp
 
     def _get_full_url(self, endpoint: str, params: dict = None) -> str:
         url_encoded_params = self._get_url_encoded_params_with_ts(params)
@@ -266,7 +266,7 @@ class Binance(Cex, CustomLogger):
         
         if ccy_balance:
             return float(ccy_balance[0]['free'])
-        raise ApiException(f'Your have not enough {ccy} balance on Binance')
+        raise exc.ApiException(f'Your have not enough {ccy} balance on Binance')
 
     async def _get_sub_acc_balance(self, sub_email: str) -> dict:
         endpoint = BinanceEndpoints.GET_SUBACC_BALANCE_V3
@@ -339,13 +339,13 @@ class Binance(Cex, CustomLogger):
 
             amount = amount if amount else sub_balance
 
-            if sub_balance == 0.0 or sub_balance != amount:
+            if sub_balance == 0.0: # or sub_balance != amount
                 continue
 
             is_empty = False
             self.log_message(
                 status=LogStatus.FOUND,
-                message=f'{sub_email} | subAccount balance: {sub_balance:.6f} {ccy}'
+                message=f'{sub_email} | subAccount balance: {sub_balance} {ccy}'
             )
 
             body = {
@@ -395,7 +395,7 @@ class Binance(Cex, CustomLogger):
 
             self.log_message(
                 status=LogStatus.SENT,
-                message=f"Transfer {amount:.8f} {ccy} to main account"
+                message=f"Transfer {amount} {ccy} to main account completed"
             )
             if not silent_mode:
                 break

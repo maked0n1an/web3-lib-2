@@ -1,17 +1,13 @@
-from enum import Enum
-import hashlib
 import hmac
-import json
-import time
+import urllib3
 from typing import Any
 from urllib.parse import urlencode, quote_plus
 
-import urllib3
-
-from libs.pretty_utils import exceptions
-from libs.cexs.common.logger import CustomLogger
-from libs.cexs.common.models import Cex, CexCredentials, LogStatus
-from libs.pretty_utils.miscellaneous.http import make_async_request
+from .common import exceptions as exc
+from .common.logger import CustomLogger
+from .common.models import Cex, CexCredentials, LogStatus
+from .common.http import make_async_request
+from .common.time_and_date import get_unix_timestamp
 
 
 def get_bybit_chain_names():
@@ -70,7 +66,7 @@ class Bybit(Cex, CustomLogger):
     ):
         try:
             recv_window = str(10000)
-            timestamp = str(int(time.time() * 10 ** 3))
+            timestamp = get_unix_timestamp()
             secret = bytes(self.credentials.api_secret, encoding='utf-8')
 
             param_str_1 = bytes(
@@ -79,7 +75,7 @@ class Bybit(Cex, CustomLogger):
                 encoding='utf-8'
             )
             hex_signature = hmac.new(
-                secret, param_str_1, hashlib.sha256
+                secret, param_str_1, digestmod='sha256'
             ).hexdigest()
 
             # param_str= str(timestamp) + self.credentials.api_key + recv_window + urlencode(payload)
@@ -100,7 +96,7 @@ class Bybit(Cex, CustomLogger):
             return headers
 
         except Exception as error:
-            raise exceptions.ApiException(
+            raise exc.ApiException(
                 f"Bad headers for Bybit request: {error}")
 
     async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
@@ -153,7 +149,7 @@ class Bybit(Cex, CustomLogger):
                 break
             
         if amount == 0.0:
-            raise exceptions.ApiClientException('Can`t withdraw zero amount')
+            raise exc.ApiClientException('Can`t withdraw zero amount')
     
         log_args = [receiver_account_id, receiver_address, network_name]
 
@@ -183,7 +179,7 @@ class Bybit(Cex, CustomLogger):
             min_wd = float(network_data['min_wd'])
             
             if amount <= min_wd:
-                raise exceptions.ApiClientException(
+                raise exc.ApiClientException(
                     f"Limit range for withdraw: {min_wd:.4f} {ccy}, your amount: {amount:.4f}"
                 )
             
@@ -194,7 +190,7 @@ class Bybit(Cex, CustomLogger):
                 'amount': str(amount),#0.001
                 'api_key': self.credentials.api_key,
                 # 'recv_window': 5000,
-                'timestamp': str(int(time.time() * 1000)),
+                'timestamp': get_unix_timestamp(),
             }
 
             # Create the param str
@@ -206,7 +202,7 @@ class Bybit(Cex, CustomLogger):
             hash = hmac.new(
                 bytes(self.credentials.api_key, "utf-8"),
                 param_str.encode("utf-8"),
-                hashlib.sha256
+                digestmod='sha256'
             )
             
             signature = hash.hexdigest()
@@ -222,12 +218,12 @@ class Bybit(Cex, CustomLogger):
             body = dict(body, **sign_real)
             urllib3.disable_warnings()
             
-            response = await make_async_request(
-                method='POST',
-                url=url,
-                data=json.dumps(body),
-                headers=headers
-            )
+            # response = await make_async_request(
+            #     method='POST',
+            #     url=url,
+            #     data=json.dumps(body),
+            #     headers=headers
+            # )
             
             # amount = amount - float(network_data['min_fee'])
             

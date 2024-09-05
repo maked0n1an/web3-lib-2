@@ -59,7 +59,7 @@ class CustomLogger:
         status: str = '',
         message: str = '',
     ) -> None:
-        message_with_calling_line = f"{self.__class__.__name__:<12} | {message}"
+        message_with_calling_line = f"{self.__class__.__name__:<10} | {message}"
         
         main_logger = self._initialize_main_log()
         main_logger.log(
@@ -72,7 +72,7 @@ class CustomLogger:
                     if address else address
                 ),
                 "network_name": (
-                    network_name.capitalize()
+                    network_name
                     if network_name else network_name
                 )
             }

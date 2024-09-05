@@ -1,16 +1,14 @@
-import asyncio
 import base64
 import hmac
-from datetime import datetime, timezone
 from enum import Enum
 from typing import Any
 from urllib.parse import urlencode
 
-from libs.cexs.common.logger import CustomLogger
-from libs.cexs.common.models import Cex, LogStatus, OkxCredentials
-from libs.pretty_utils.exceptions import ApiException
-from libs.pretty_utils.miscellaneous.http import make_async_request
-from libs.pretty_utils.others import TokenSymbol
+from .common import exceptions as exc
+from .common.logger import CustomLogger
+from .common.models import Cex, OkxCredentials, LogStatus
+from .common.http import make_async_request
+from .common.time_and_date import get_izoformat_timestamp
 
 
 def get_okx_network_names():
@@ -35,12 +33,13 @@ def get_okx_network_names():
         'zkSync_Era': 'zkSync Era'
     }
 
+
 def get_okx_endpoints():
-    # Get = Get, 
-    # Ass = asset, 
+    # Get = Get,
+    # Ass = asset,
     # Acc = Account,
-    # Cur = Currencies, 
-    # Bal = Balance, 
+    # Cur = Currencies,
+    # Bal = Balance,
     # Lst = List
     # SAcc = SubAcc,
     # T = Transfer
@@ -73,7 +72,7 @@ class Okx(Cex, CustomLogger):
 
         self.is_okx_eu_type = credentials.is_okx_eu_type
         self.special_tokens = {
-            TokenSymbol.USDC_E: TokenSymbol.USDC
+            'USDC': 'USDC.e'
         }
         self.domain_url = 'https://www.okx.com'
         self.endpoints = get_okx_endpoints()
@@ -87,6 +86,7 @@ class Okx(Cex, CustomLogger):
         receiver_account_id: str = ''
     ) -> bool:
         url = self.endpoints['Wd_V5']
+        is_successfull = False
 
         wd_raw_data = await self._get_currencies(ccy)
         if not wd_raw_data:
@@ -108,7 +108,8 @@ class Okx(Cex, CustomLogger):
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
 
         if amount == 0.0:
-            raise ApiException('Can`t withdraw zero amount, refuel the CEX')
+            raise exc.ApiException(
+                'Can`t withdraw zero amount, refuel the CEX')
 
         log_args = [receiver_account_id, receiver_address, network_name]
 
@@ -140,7 +141,7 @@ class Okx(Cex, CustomLogger):
             max_wd = float(network_data['max_wd'])
 
             if amount < min_wd or amount > max_wd:
-                raise ApiException(
+                raise exc.ApiException(
                     f"Limit range for withdraw: {min_wd} {ccy} - {max_wd} {ccy}, your amount: {amount}"
                 )
 
@@ -219,7 +220,7 @@ class Okx(Cex, CustomLogger):
                     status=LogStatus.WARNING,
                     message=f"Deposit still in progress..."
                 )
-                await asyncio.sleep(check_time)
+                await self.sleep(check_time)
 
     async def _transfer_from_subaccounts(
         self,
@@ -246,8 +247,7 @@ class Okx(Cex, CustomLogger):
         params: dict[str, Any] = {}
     ) -> dict:
         try:
-            timestamp = datetime.now(timezone.utc).strftime(
-                '%Y-%m-%dT%H:%M:%S.%f')[:-3] + 'Z'
+            timestamp = get_izoformat_timestamp()
             key = bytes(self.credentials.api_secret, encoding='utf-8')
 
             if params:
@@ -268,7 +268,7 @@ class Okx(Cex, CustomLogger):
                 "x-simulated-trading": "0"
             }
         except Exception as error:
-            raise ApiException(f"Bad headers for OKX request: {error}")
+            raise exc.ApiException(f"Bad headers for OKX request: {error}")
 
     async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
         url = self.endpoints['AssCur_V5'] + f'?ccy={ccy}'
@@ -278,7 +278,7 @@ class Okx(Cex, CustomLogger):
             url=self.domain_url + url,
             headers=headers
         )
-        
+
     async def _get_sub_list(self) -> dict:
         url = self.endpoints['SAccLst_V5']
         headers = await self._get_headers(request_path=url)
@@ -405,14 +405,14 @@ class Okx(Cex, CustomLogger):
             sub_balance = await self._get_sub_acc_balance(sub_name, ccy)
             amount = amount if amount else sub_balance
 
-            if sub_balance == 0.0 or sub_balance != amount:
+            if sub_balance == 0.0:  # or sub_balance != amount
                 continue
 
             is_empty = False
             if not silent_mode:
                 self.log_message(
                     status=LogStatus.FOUND,
-                    message=f'{sub_name} | subAccount balance : {sub_balance:.6f} {ccy}'
+                    message=f'{sub_name} | subAccount balance : {sub_balance} {ccy}'
                 )
 
             body = {
@@ -442,31 +442,27 @@ class Okx(Cex, CustomLogger):
                     break
                 except Exception as error:
                     str_err = str(error)
-
-                    if (
-                        'not reached the required block confirmations' in str_err
-                        or '-9000' in str_err
-                    ):
-                        self.log_message(
-                            status=LogStatus.WARNING,
-                            message=(
-                                f'Deposit not reached the required block confirmations. '
-                                f'Will try again in 1 min.'
-                            )
-                        )
-                        await self.sleep(60)
-                    elif '-8012 Msg' in str(error):
-                        return True
-                    else:
-                        self.log_message(
-                            status=LogStatus.ERROR,
-                            message=str_err
-                        )
-                        return False
+                    # if (
+                    #     'the required block confirmations' in str_err
+                    # ):
+                    #     self.log_message(
+                    #         status=LogStatus.WARNING,
+                    #         message=(
+                    #             f'Deposit not reached the required block confirmations. '
+                    #             f'Will try again in 1 min.'
+                    #         )
+                    #     )
+                    #     await self.sleep(60)
+                    # else:
+                    self.log_message(
+                        status=LogStatus.ERROR,
+                        message=str_err
+                    )
+                    return False
 
             self.log_message(
                 status=LogStatus.SENT,
-                message=f"Transfer {amount:.8f} {ccy} to main account"
+                message=f"Transfer {amount} {ccy} to main account completed"
             )
             if not silent_mode:
                 break

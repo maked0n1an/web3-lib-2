@@ -1,7 +1,7 @@
+import random
 import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-import random
 
 
 class LogStatus:
@@ -19,7 +19,6 @@ class LogStatus:
 
 @dataclass
 class CexCredentials:
-    cex_name: str
     api_key: str
     api_secret: str
     api_passphrase: str = None
