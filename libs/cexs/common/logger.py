@@ -69,12 +69,9 @@ class CustomLogger:
                 "account_id": account_id,
                 "masked_address": (
                     address[:6] + "..." + address[-4:]
-                    if address else address
+                    if address else ''
                 ),
-                "network_name": (
-                    network_name
-                    if network_name else network_name
-                )
+                "network_name": network_name
             }
         )
 
