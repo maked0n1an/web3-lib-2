@@ -42,11 +42,56 @@ class Cex(ABC):
         self.credentials = credentials
 
     @abstractmethod
-    async def withdraw(self):
+    async def withdraw(
+        self,
+        ccy: str,
+        amount: float,
+        network_name: str,
+        receiver_address: str,
+        receiver_account_id: str = '',
+        is_fee_included_in_request: bool = False
+    ):
+        """
+        Initiates a withdrawal process for the specified cryptocurrency.
+
+        Args:
+            ccy (str): The currency code (e.g., 'ETH', 'BTC') for the withdrawal.
+            amount (float): The amount of cryptocurrency to withdraw.
+            network_name (str): The name of the blockchain network (e.g., 'Optimism', 'Ethereum').
+            receiver_address (str): The recipient's cryptocurrency address to which the funds will be sent.
+            receiver_account_id (str, optional): The recipient's account ID if applicable. Defaults to an empty string.
+            is_fee_included_in_request (bool, optional): 
+                If True, the soft will withdraw amount smaller than was requested because of fee.
+                If False, the soft will withdraw the requested amount.
+                Defaults to False.
+
+        Returns:
+            bool: True if the withdrawal is successful, False otherwise.
+        """
         pass
 
     @abstractmethod
-    async def wait_deposit_confirmation(self):
+    async def wait_deposit_confirmation(
+        self,
+        ccy: str,
+        amount: float,
+        network_name: str,
+        old_sub_balances: dict,
+        check_time: int = 45
+    ) -> bool:
+        """
+        Waits for the deposit confirmation of a specified cryptocurrency.
+
+        Args:
+            ccy (str): The currency code (e.g., 'ETH', 'BTC') for the deposit.
+            amount (float): The amount of cryptocurrency deposited.
+            network_name (str): The name of the blockchain network (e.g., 'Optimism', 'Ethereum').
+            old_sub_balances (dict): A dictionary containing the old sub-balances before the deposit.
+            check_time (int, optional): The time interval (in seconds) between checks for deposit confirmation. Defaults to 45 seconds.
+
+        Returns:
+            bool: True if the deposit is confirmed and reflected in the balances, False otherwise.
+        """
         pass
 
     async def sleep(self, secs: float | tuple[float] = 1):

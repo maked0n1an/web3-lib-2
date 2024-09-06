@@ -59,7 +59,8 @@ class Binance(Cex, CustomLogger):
         amount: float,
         network_name: str,
         receiver_address: str,
-        receiver_account_id: str = ''
+        receiver_account_id: str = '',
+        is_fee_included_in_request: bool = False
     ) -> bool:
         url = BinanceEndpoints.WITHDRAW_V1
         is_successfull = False
@@ -111,6 +112,7 @@ class Binance(Cex, CustomLogger):
                     message=f"Withdraw to \'{network_name}\' is not active now. Will try again in 1 min...",
                 )
                 await self.sleep(60)
+                continue
 
             min_wd = float(network_data['min_wd'])
             max_wd = float(network_data['max_wd'])
@@ -120,10 +122,12 @@ class Binance(Cex, CustomLogger):
                     f"Limit range for withdraw: {min_wd} {ccy} - {max_wd} {ccy}, your amount: {amount}"
                 )
 
-            amount += float(network_data['min_fee'])
+            if is_fee_included_in_request:
+                amount -= float(network_data['min_fee'])
 
-            if amount < float(network_data['min_wd']):
-                amount += float(network_data['min_fee'])
+            if amount < min_wd:
+                while amount < min_wd:
+                    amount += float(network_data['min_fee'])
 
             params = {
                 "address": receiver_address,

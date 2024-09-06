@@ -83,7 +83,8 @@ class Okx(Cex, CustomLogger):
         amount: float,
         network_name: str,
         receiver_address: str,
-        receiver_account_id: str = ''
+        receiver_account_id: str = '',
+        is_fee_included_in_request: bool = False
     ) -> bool:
         url = self.endpoints['Wd_V5']
         is_successfull = False
@@ -103,10 +104,8 @@ class Okx(Cex, CustomLogger):
                 message='Can not withdraw, the network isn\'t in config'
             )
             return is_successfull
-
-        okx_network_name = okx_network_names[network_name]
+        
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
-
         if amount == 0.0:
             raise exc.ApiException(
                 'Can`t withdraw zero amount, refuel the CEX')
@@ -119,15 +118,17 @@ class Okx(Cex, CustomLogger):
             message=f'Withdraw {amount} {ccy} to \'{network_name}\'',
         )
 
+        okx_network_name = f'{ccy.upper()}-{okx_network_names[network_name]}'
         while True:
-            network_data = {
+            network_datas = {
                 item['chain']: {
                     'can_wd': item['canWd'],
                     'min_fee': item['minFee'],
                     'min_wd': item['minWd'],
                     'max_wd': item['maxWd']
                 } for item in wd_raw_data['data']
-            }[okx_network_name]
+            }
+            network_data = network_datas[okx_network_name]
 
             if not network_data['can_wd']:
                 self.log_message(
@@ -136,6 +137,7 @@ class Okx(Cex, CustomLogger):
                     message=f"Withdraw to \'{network_name}\' is not active now. Will try again in 1 min...",
                 )
                 await self.sleep(60)
+                continue
 
             min_wd = float(network_data['min_wd'])
             max_wd = float(network_data['max_wd'])
@@ -145,10 +147,12 @@ class Okx(Cex, CustomLogger):
                     f"Limit range for withdraw: {min_wd} {ccy} - {max_wd} {ccy}, your amount: {amount}"
                 )
 
-            amount = amount - float(network_data['min_fee'])
+            if is_fee_included_in_request:
+                amount -= float(network_data['min_fee'])
 
-            if amount < float(network_data['min_wd']):
-                amount = amount + float(network_data['min_fee'])
+            if amount < min_wd:
+                while amount < min_wd:
+                    amount += float(network_data['min_fee'])
 
             body = {
                 'ccy': ccy,
