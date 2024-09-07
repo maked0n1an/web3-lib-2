@@ -21,10 +21,7 @@ from libs.async_eth_lib.utils.helpers import (
 
 
 class Contract:
-    def __init__(
-        self,
-        transaction: Transaction
-    ):
+    def __init__(self, transaction: Transaction):
         self.transaction = transaction
         
     @lru_cache(maxsize=128)
@@ -54,6 +51,12 @@ class Contract:
         )
         
         return contract
+    
+    @staticmethod
+    def get_checksum_address(
+        address: ParamsTypes.Address
+    ) -> ChecksumAddress:
+        return Web3.to_checksum_address(address)
 
     @staticmethod
     async def get_signature(hex_signature: str) -> list | None:
@@ -130,7 +133,7 @@ class Contract:
         else:
             address, abi_path = contract.address, contract.abi_path
 
-        return Web3.to_checksum_address(address), abi_path
+        return Contract.get_checksum_address(address), abi_path
 
     async def approve(
         self,
@@ -152,7 +155,7 @@ class Contract:
             Tx: The transaction params object.
         """
         web3_contract = await self.get_token_contract(token_contract)
-        spender_address = Web3.to_checksum_address(tx_params['to'])
+        spender_address = Contract.get_checksum_address(tx_params['to'])
         
         if not amount:
             amount = (
@@ -201,14 +204,14 @@ class Contract:
 
     async def get(
         self,
-        contract: RawContract,
+        contract: RawContract | ParamsTypes.Address,
         abi_or_path: str | list[dict[str, Any]] | None = None
     ) -> web3_Contract | web3_AsyncContract:
         """
         Get a contract instance.
 
         Args:
-            contract (Contract): the contract address or instance.
+            contract (RawContract | Address | ChecksumAddress | str): the contract address or instance.
             abi (list | str | None, optional): the contract ABI
 
         Returns:
@@ -229,31 +232,6 @@ class Contract:
             abi_or_path=contract_abi_path
         )
 
-    async def get_token_contract(
-        self,
-        token: RawContract | ParamsTypes.TokenContract | ParamsTypes.Address
-    ) -> web3_Contract | web3_AsyncContract:
-        """
-        Get a contract instance for the specified token.
-
-        Args:
-            token (RawContract | TokenContract | NativeTokenContract | str | Address | ChecksumAddress | ENS): The token contract or its address.
-
-        Returns:
-            Contract | AsyncContract: The contract instance.
-        """
-        if type(token) in ParamsTypes.Address.__args__:
-            address = Web3.to_checksum_address(token)
-            abi_path = None
-
-        else:
-            address = Web3.to_checksum_address(token.address)
-            abi_path = token.abi_path
-        
-        contract = self.get_web3_contract(address, abi_path)
-
-        return contract
-
     async def get_approved_amount(
         self,
         token_contract: RawContract | ParamsTypes.TokenContract | ParamsTypes.Address,
@@ -271,7 +249,7 @@ class Contract:
         Returns:
             TokenAmount: The approved amount of tokens.
         """
-        spender_address = Web3.to_checksum_address(spender_address)
+        spender_address = Contract.get_checksum_address(spender_address)
 
         if not owner:
             owner = self.transaction.account.address
