@@ -2,6 +2,7 @@ import random
 import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Optional
 
 
 class LogStatus:
@@ -91,6 +92,47 @@ class Cex(ABC):
 
         Returns:
             bool: True if the deposit is confirmed and reflected in the balances, False otherwise.
+        """
+        pass
+    
+    @abstractmethod
+    async def get_min_dep_details(
+        self,
+        ccy: str = 'ETH' 
+    ) -> Optional[dict]:
+        """
+        Retrieve the minimum deposit details for a given cryptocurrency.
+        
+        Args:
+            ccy (str): The cryptocurrency symbol to retrieve deposit details for.
+                       Defaults to 'ETH'.
+        
+        Returns:
+            Optional[dict]: A dictionary containing deposit details for each supported network,
+                            or an empty dictionary if the token symbol is invalid. The details 
+                            include deposit enablement status, minimum deposit amount, 
+                            minimum confirmations, and minimum unlock confirmations.
+        """
+        pass
+    
+    @abstractmethod
+    async def get_min_dep_details_for_network(
+        self,
+        ccy: str,
+        network_name: str,
+    ) -> dict:
+        """
+        Retrieve the minimum deposit details for a specific cryptocurrency and network.
+        
+        Args:
+            ccy (str): The cryptocurrency symbol to retrieve deposit details for.
+            network_name (str): The name of the network for which to retrieve deposit details.
+        
+        Returns:
+            dict: A dictionary containing the deposit details for the specified cryptocurrency 
+                  and network, or an empty dictionary if the network is unavailable or deposits 
+                  are disabled. The details include deposit enablement status, minimum deposit 
+                  amount, and required confirmations.
         """
         pass
 

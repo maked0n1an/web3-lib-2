@@ -1,5 +1,6 @@
 import hmac
 from enum import Enum
+from typing import Optional
 from urllib.parse import urlencode
 
 from .common import exceptions as exc
@@ -74,6 +75,91 @@ class BingX(Cex, CustomLogger):
             "X-BX-APIKEY": self.credentials.api_key,
         }
 
+    async def get_min_dep_details(
+        self,
+        ccy: str = 'ETH'
+    ) -> Optional[dict]:
+        networks_data = {}
+
+        dp_raw_data = await self._get_currencies(ccy)
+        if not dp_raw_data:
+            self.log_message(
+                status=LogStatus.ERROR,
+                message='Invalid token symbol for deposit, check it'
+            )
+            return networks_data
+
+        networks_data = {
+            item['network']: {
+                'can_dep': item['depositEnable'],
+                'min_dep': item['depositMin'],
+                'min_confirm': item['minConfirm'],
+            } for item in dp_raw_data['networkList']
+        }
+
+        return networks_data
+
+    async def get_min_dep_details_for_network(
+        self,
+        ccy: str,
+        network_name: str,
+    ) -> dict:
+        dep_network_info = {}
+        bing_x_network_names = get_bingx_network_names()
+
+        if network_name not in bing_x_network_names:
+            self.log_message(
+                status=LogStatus.FAILED,
+                message='Can not deposit, the network isn\'t in config'
+            )
+            return dep_network_info
+
+        bing_x_network_name = bing_x_network_names[network_name]
+        networks_data = await self.get_min_dep_details(ccy)
+
+        if (
+            bing_x_network_name not in networks_data
+            or not networks_data[bing_x_network_name]['can_dep']
+        ):
+            self.log_message(
+                status=LogStatus.ERROR,
+                message=(
+                    f'{ccy} is unavailable to be deposited to \'{network_name}\''
+                )
+            )
+            return dep_network_info
+        return networks_data[bing_x_network_name]
+
+    async def wait_deposit_confirmation(
+        self,
+        ccy: str,
+        amount: float,
+        network_name: str,
+        old_sub_balances: dict,
+        check_time: int = 45
+    ) -> bool:
+        self.log_message(
+            status=LogStatus.INFO,
+            message=f"Start checking CEX balances"
+        )
+
+        while True:
+            new_sub_balances = await self._get_cex_balances(ccy)
+            for sub_name, sub_balance in new_sub_balances.items():
+
+                if sub_balance > old_sub_balances[sub_name]:
+                    self.log_message(
+                        status=LogStatus.DEPOSITED,
+                        message=f"{amount} {ccy} in {network_name}",
+                    )
+                    return True
+                else:
+                    self.log_message(
+                        status=LogStatus.WARNING,
+                        message=f"Deposit still in progress..."
+                    )
+                    await self.sleep(check_time)
+
     async def withdraw(
         self,
         ccy: str,
@@ -106,7 +192,8 @@ class BingX(Cex, CustomLogger):
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
 
         if amount == 0.0:
-            raise exc.ApiException('Can`t withdraw zero amount, refuel the CEX')
+            raise exc.ApiException(
+                'Can`t withdraw zero amount, refuel the CEX')
 
         log_args = [receiver_account_id, receiver_address, network_name]
 
@@ -183,38 +270,6 @@ class BingX(Cex, CustomLogger):
             )
 
             return is_successfull
-
-    async def wait_deposit_confirmation(
-        self,
-        ccy: str,
-        amount: float,
-        network_name: str,
-        old_sub_balances: dict,
-        check_time: int = 45
-    ) -> bool:
-        self.log_message(
-            status=LogStatus.INFO,
-            message=f"Start checking CEX balances"
-        )
-
-        while True:
-            new_sub_balances = await self._get_cex_balances(ccy)
-            for sub_name, sub_balance in new_sub_balances.items():
-
-                if sub_balance > old_sub_balances[sub_name]:
-                    self.log_message(
-                        status=LogStatus.DEPOSITED,
-                        message=f"{amount} {ccy} in {network_name}",
-                    )
-                    return True
-                else:
-                    continue
-            else:
-                self.log_message(
-                    status=LogStatus.WARNING,
-                    message=f"Deposit still in progress..."
-                )
-                await self.sleep(check_time)
 
     def _get_sign(self, payload: str = '') -> str:
         try:
@@ -296,7 +351,8 @@ class BingX(Cex, CustomLogger):
 
         if ccy_balance:
             return float(ccy_balance[0]['free'])
-        raise exc.ApiException(f'Your have not enough {ccy} balance on Binance')
+        raise exc.ApiException(
+            f'Your have not enough {ccy} balance on Binance')
 
     async def _get_sub_acc_balances(self, sub_uid: str) -> dict:
         endpoint = self.endpoints['SAccBal_V1']
@@ -339,7 +395,11 @@ class BingX(Cex, CustomLogger):
                     balances['Main CEX Account'] = 0
 
                 sub_list = await self._get_sub_list()
-                for sub_data in sub_list['result']:
+
+                if not sub_list:
+                    return balances
+
+                for sub_data in sub_list['data']['result']:
                     sub_name = sub_data['subAccountString']
                     sub_uid = sub_data['subUid']
 

@@ -1,11 +1,13 @@
 import hmac
 from urllib.parse import urlencode
+from typing import Optional
 
 from .common import exceptions as exc
 from .common.logger import CustomLogger
 from .common.models import Cex, CexCredentials, LogStatus
 from .common.http import make_async_request
 from .common.time_and_date import get_unix_timestamp
+
 
 def get_binance_network_names():
     return {
@@ -32,8 +34,6 @@ def get_binance_network_names():
 
 
 class BinanceEndpoints:
-    DOMAIN_URL = 'https://api.binance.com'
-
     GET_CURRENCIES_V1 = '/sapi/v1/capital/config/getall'
     GET_ACC_BALANCE_V3 = '/sapi/v3/asset/getUserAsset'
     GET_USER_SUBACCOUNTS_V1 = '/sapi/v1/sub-account/list'
@@ -48,10 +48,97 @@ class Binance(Cex, CustomLogger):
         Cex.__init__(self, credentials)
         CustomLogger.__init__(self)
 
+        self.domain_url = 'https://api.binance.com'
         self.headers = {
             "Content-Type": "application/json",
             "X-MBX-APIKEY": self.credentials.api_key,
         }
+
+    async def get_min_dep_details(
+        self,
+        ccy: str = 'ETH'
+    ) -> Optional[dict]:
+        networks_data = {}
+
+        dp_raw_data = await self._get_currencies(ccy)
+        if not dp_raw_data:
+            self.log_message(
+                status=LogStatus.ERROR,
+                message='Invalid token symbol for deposit, check it'
+            )
+            return networks_data
+
+        networks_data = {
+            item['network']: {
+                'can_dep': item['depositEnable'],
+                'min_dep': item['depositDust'],
+                'min_confirm': item['minConfirm'],
+                'min_unlock_confirm': item['unLockConfirm']
+            } for item in dp_raw_data['networkList']
+        }
+
+        return networks_data
+
+    async def get_min_dep_details_for_network(
+        self,
+        ccy: str,
+        network_name: str,
+    ) -> dict:
+        dep_network_info = {}
+        binance_network_names = get_binance_network_names()
+
+        if network_name not in binance_network_names:
+            self.log_message(
+                status=LogStatus.FAILED,
+                message='Can not deposit, the network isn\'t in config'
+            )
+            return dep_network_info
+
+        binance_network_name = binance_network_names[network_name]
+        networks_data = await self.get_min_dep_details(ccy)
+
+        if (
+            binance_network_name not in networks_data
+            or not networks_data[binance_network_name]['can_dep']
+        ):
+            self.log_message(
+                status=LogStatus.ERROR,
+                message=(
+                    f'{ccy} is unavailable to be deposited to \'{network_name}\''
+                )
+            )
+            return dep_network_info
+        return networks_data[binance_network_name]
+
+    async def wait_deposit_confirmation(
+        self,
+        ccy: str,
+        amount: float,
+        network_name: str,
+        old_sub_balances: dict,
+        check_time: int = 45
+    ) -> bool:
+        self.log_message(
+            status=LogStatus.INFO,
+            message=f"Start checking CEX balances"
+        )
+
+        while True:
+            new_sub_balances = await self._get_cex_balances(ccy)
+            for sub_name, sub_balance in new_sub_balances.items():
+
+                if sub_balance > old_sub_balances[sub_name]:
+                    self.log_message(
+                        status=LogStatus.DEPOSITED,
+                        message=f"{amount} {ccy} in {network_name}",
+                    )
+                    return True
+                else:
+                    self.log_message(
+                        status=LogStatus.WARNING,
+                        message=f"Deposit still in progress..."
+                    )
+                    await self.sleep(check_time)
 
     async def withdraw(
         self,
@@ -72,7 +159,7 @@ class Binance(Cex, CustomLogger):
                 message='Invalid token symbol, check it'
             )
             return is_successfull
-        
+
         binance_network_names = get_binance_network_names()
         if network_name not in binance_network_names:
             self.log_message(
@@ -85,7 +172,8 @@ class Binance(Cex, CustomLogger):
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
 
         if amount == 0.0:
-            raise exc.ApiException('Can`t withdraw zero amount, refuel the CEX')
+            raise exc.ApiException(
+                'Can`t withdraw zero amount, refuel the CEX')
 
         log_args = [receiver_account_id, receiver_address, network_name]
 
@@ -162,38 +250,6 @@ class Binance(Cex, CustomLogger):
 
             return is_successfull
 
-    async def wait_deposit_confirmation(
-        self,
-        ccy: str,
-        amount: float,
-        network_name: str,
-        old_sub_balances: dict,
-        check_time: int = 45
-    ) -> bool:
-        self.log_message(
-            status=LogStatus.INFO,
-            message=f"Start checking CEX balances"
-        )
-
-        while True:
-            new_sub_balances = await self._get_cex_balances(ccy)
-            for sub_name, sub_balance in new_sub_balances.items():
-
-                if sub_balance > old_sub_balances[sub_name]:
-                    self.log_message(
-                        status=LogStatus.DEPOSITED,
-                        message=f"{amount} {ccy} in {network_name}",
-                    )
-                    return True
-                else:
-                    continue
-            else:
-                self.log_message(
-                    status=LogStatus.WARNING,
-                    message=f"Deposit still in progress..."
-                )
-                await self.sleep(check_time)
-
     def _get_sign(self, payload: str = '') -> str:
         try:
             secret_key_bytes = self.credentials.api_secret.encode()
@@ -203,7 +259,8 @@ class Binance(Cex, CustomLogger):
 
             return signature
         except Exception as error:
-            raise exc.ApiException(f"Bad signature for Binance request: {error}")
+            raise exc.ApiException(
+                f"Bad signature for Binance request: {error}")
 
     def _get_url_encoded_params_with_ts(self, params: dict | None = None) -> str:
         if params:
@@ -212,14 +269,14 @@ class Binance(Cex, CustomLogger):
             )
         else:
             params_str = ''
-        return params_str + "&timestamp=" + get_unix_timestamp
+        return params_str + "&timestamp=" + get_unix_timestamp()
 
     def _get_full_url(self, endpoint: str, params: dict = None) -> str:
         url_encoded_params = self._get_url_encoded_params_with_ts(params)
         signature = self._get_sign(url_encoded_params)
 
         url = (
-            f"{BinanceEndpoints.DOMAIN_URL}{endpoint}"
+            f"{self.domain_url}{endpoint}"
             f"?{url_encoded_params}&signature={signature}"
         )
 
@@ -233,13 +290,12 @@ class Binance(Cex, CustomLogger):
             url=url,
             headers=self.headers
         )
-        
+
         token = {}
         for item in response:
             if item['coin'] == ccy:
                 token = item
         return token
-        
 
     async def _get_sub_list(self) -> dict:
         endpoint = BinanceEndpoints.GET_USER_SUBACCOUNTS_V1
@@ -259,18 +315,19 @@ class Binance(Cex, CustomLogger):
             url=url,
             headers=self.headers
         )
-        
+
     async def _get_main_acc_balance(self, ccy: str) -> float:
         balances = await self._get_main_acc_balances()
-        
+
         ccy_balance = [
             balance for balance in balances
-            if balance['asset'] == ccy
+            if balance['asset'] == ccy.upper()
         ]
-        
+
         if ccy_balance:
             return float(ccy_balance[0]['free'])
-        raise exc.ApiException(f'Your have not enough {ccy} balance on Binance')
+        raise exc.ApiException(
+            f'Your have not enough {ccy} balance on Binance')
 
     async def _get_sub_acc_balance(self, sub_email: str) -> dict:
         endpoint = BinanceEndpoints.GET_SUBACC_BALANCE_V3
@@ -283,32 +340,32 @@ class Binance(Cex, CustomLogger):
             url=url,
             headers=self.headers
         )
-        
+
     async def _get_cex_balances(
         self,
         ccy: str = 'ETH',
     ) -> dict:
         balances = {}
-        
+
         try:
             balances['Main CEX Account'] = await self._get_main_acc_balance(ccy)
         except Exception as e:
             balances['Main CEX Account'] = 0
-        
+
         sub_list = await self._get_sub_list()
         for sub_data in sub_list['subAccounts']:
             sub_name = sub_data['email']
             sub_balances = await self._get_sub_acc_balance(sub_name)
             ccy_sub_balance = [
-                balance for balance in sub_balances['balances'] 
-                if balance['asset'] == ccy
-            ]            
+                balance for balance in sub_balances['balances']
+                if balance['asset'] == ccy.upper()
+            ]
 
             if ccy_sub_balance:
                 balances[sub_name] = float(ccy_sub_balance[0]['free'])
             else:
                 balances[sub_name] = 0
-                
+
         return balances
 
     async def _transfer_from_subaccounts(
@@ -343,7 +400,7 @@ class Binance(Cex, CustomLogger):
 
             amount = amount if amount else sub_balance
 
-            if sub_balance == 0.0: # or sub_balance != amount
+            if sub_balance == 0.0:  # or sub_balance != amount
                 continue
 
             is_empty = False

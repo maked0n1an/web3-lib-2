@@ -76,13 +76,13 @@ class Okx(Cex, CustomLogger):
         }
         self.domain_url = 'https://www.okx.com'
         self.endpoints = get_okx_endpoints()
-        
+
     async def get_min_dep_details(
         self,
-        ccy: str = 'ETH' 
+        ccy: str = 'ETH'
     ) -> Optional[dict]:
         networks_data = {}
-        
+
         dp_raw_data = await self._get_currencies(ccy)
         if not dp_raw_data['data']:
             self.log_message(
@@ -90,39 +90,39 @@ class Okx(Cex, CustomLogger):
                 message='Invalid token symbol for deposit, check it'
             )
             return networks_data
-        
+
         networks_data = {
             item['chain']: {
-                'canDep': item['canDep'],
-                'minDep': item['minDep'],
-                'minDepArrivalConfirm': item['minDepArrivalConfirm'],
-                'minWdUnlockConfirm': item['minWdUnlockConfirm']
+                'can_dep': item['canDep'],
+                'min_dep': item['minDep'],
+                'min_confirm': item['minDepArrivalConfirm'],
+                'min_confirm_unlock': item['minWdUnlockConfirm']
             } for item in dp_raw_data['data']
         }
-        
+
         return networks_data
-    
-    async def get_min_dep_details_for_chain(
+
+    async def get_min_dep_details_for_network(
         self,
         ccy: str,
         network_name: str,
     ) -> dict:
         dep_network_info = {}
         okx_network_names = get_okx_network_names()
-        
+
         if network_name not in okx_network_names:
             self.log_message(
                 status=LogStatus.FAILED,
                 message='Can not deposit, the network isn\'t in config'
             )
             return dep_network_info
-        
+
         okx_network_name = f'{ccy.upper()}-{okx_network_names[network_name]}'
         networks_data = await self.get_min_dep_details(ccy)
-        
+
         if (
-            okx_network_name not in networks_data 
-            or not networks_data[okx_network_name]['canDep']
+            okx_network_name not in networks_data
+            or not networks_data[okx_network_name]['can_dep']
         ):
             self.log_message(
                 status=LogStatus.ERROR,
@@ -132,7 +132,37 @@ class Okx(Cex, CustomLogger):
             )
             return dep_network_info
         return networks_data[okx_network_name]
-        
+
+    async def wait_deposit_confirmation(
+        self,
+        ccy: str,
+        amount: str | float,
+        network_name: str,
+        old_sub_balances: dict,
+        check_time: int = 45
+    ) -> bool:
+        self.log_message(
+            status=LogStatus.INFO,
+            message=f"Start checking CEX balances"
+        )
+
+        while True:
+            new_sub_balances = await self._get_cex_balances(ccy, True)
+            for sub_name, sub_balance in new_sub_balances.items():
+
+                if sub_balance > old_sub_balances[sub_name]:
+                    self.log_message(
+                        status=LogStatus.DEPOSITED,
+                        message=f"{amount} {ccy} in {network_name}",
+                    )
+                    return True
+                else:
+                    self.log_message(
+                        status=LogStatus.WARNING,
+                        message=f"Deposit still in progress..."
+                    )
+                    await self.sleep(check_time)
+
     async def withdraw(
         self,
         ccy: str,
@@ -160,7 +190,7 @@ class Okx(Cex, CustomLogger):
                 message='Can not withdraw, the network isn\'t in config'
             )
             return is_successfull
-        
+
         await self._transfer_from_subaccounts(ccy=ccy, silent_mode=True)
         if amount == 0.0:
             raise exc.ApiException(
@@ -250,38 +280,6 @@ class Okx(Cex, CustomLogger):
 
             return is_successfull
 
-    async def wait_deposit_confirmation(
-        self,
-        ccy: str,
-        amount: str | float,
-        network_name: str,
-        old_sub_balances: dict,
-        check_time: int = 45
-    ) -> bool:
-        self.log_message(
-            status=LogStatus.INFO,
-            message=f"Start checking CEX balances"
-        )
-
-        while True:
-            new_sub_balances = await self._get_cex_balances(ccy, True)
-            for sub_name, sub_balance in new_sub_balances.items():
-
-                if sub_balance > old_sub_balances[sub_name]:
-                    self.log_message(
-                        status=LogStatus.DEPOSITED,
-                        message=f"{amount} {ccy} in {network_name}",
-                    )
-                    return True
-                else:
-                    continue
-            else:
-                self.log_message(
-                    status=LogStatus.WARNING,
-                    message=f"Deposit still in progress..."
-                )
-                await self.sleep(check_time)
-
     async def _transfer_from_subaccounts(
         self,
         ccy: str,
@@ -351,9 +349,8 @@ class Okx(Cex, CustomLogger):
     async def _get_main_acc_balance(
         self,
         ccy: str,
-        is_deposit_mode: bool = False
     ) -> float:
-        if self.is_okx_eu_type and is_deposit_mode:
+        if self.is_okx_eu_type:
             url = self.endpoints['AccBal_EU_V5']
 
         else:
@@ -373,7 +370,7 @@ class Okx(Cex, CustomLogger):
         if not response:
             return 0
 
-        if self.is_okx_eu_type and is_deposit_mode:
+        if self.is_okx_eu_type:
             balance_data = (
                 response['data'][0]['details']
                 if response['data'][0]['details'] else {}
@@ -398,33 +395,32 @@ class Okx(Cex, CustomLogger):
             url += f'?subAcct={sub_name}&ccy={ccy}'
 
         headers = await self._get_headers(url)
-        response = await make_async_request(
+        response = (await make_async_request(
             url=self.domain_url + url,
             headers=headers
-        )
+        ))['data']
 
-        if not response['data']:
+        if not response:
             return 0
 
         if self.is_okx_eu_type:
             balance_data = (
-                response['data'][0]['details']
-                if response['data'][0]['details'] else {}
+                response[0]['details']
+                if response[0]['details'] else {}
             )
             for bal in balance_data:
                 if bal['ccy'] == ccy:
                     return float(bal['availBal'])
         else:
-            return float(response['data'][0]['availBal'])
+            return float(response[0]['availBal'])
 
     async def _get_cex_balances(
         self,
         ccy: str = 'ETH',
-        is_deposit_mode: bool = False
     ) -> dict:
         balances = {}
 
-        main_balance = await self._get_main_acc_balance(ccy, is_deposit_mode)
+        main_balance = await self._get_main_acc_balance(ccy)
         if main_balance:
             balances['Main CEX Account'] = main_balance
         else:
