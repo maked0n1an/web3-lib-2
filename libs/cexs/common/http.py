@@ -1,6 +1,6 @@
 from curl_cffi.requests import AsyncSession
 
-import libs.pretty_utils.exceptions as exceptions
+from ..common import exceptions as exc
 
 
 async def make_async_request(
@@ -18,6 +18,6 @@ async def make_async_request(
         if status_code <= 201:
             return json_response
 
-        raise exceptions.HTTPException(
+        raise exc.HTTPException(
             response=json_response, status_code=status_code
         )

@@ -3,7 +3,7 @@ import sys
 import logging
 from pathlib import Path
 
-from libs.cexs.common.models import LogStatus
+from ..common.models import LogStatus
 
 
 class CustomLogger:
