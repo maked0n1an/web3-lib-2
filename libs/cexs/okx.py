@@ -1,7 +1,7 @@
 import base64
 import hmac
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 from .common import exceptions as exc
@@ -76,7 +76,63 @@ class Okx(Cex, CustomLogger):
         }
         self.domain_url = 'https://www.okx.com'
         self.endpoints = get_okx_endpoints()
-
+        
+    async def get_min_dep_details(
+        self,
+        ccy: str = 'ETH' 
+    ) -> Optional[dict]:
+        networks_data = {}
+        
+        dp_raw_data = await self._get_currencies(ccy)
+        if not dp_raw_data['data']:
+            self.log_message(
+                status=LogStatus.ERROR,
+                message='Invalid token symbol for deposit, check it'
+            )
+            return networks_data
+        
+        networks_data = {
+            item['chain']: {
+                'canDep': item['canDep'],
+                'minDep': item['minDep'],
+                'minDepArrivalConfirm': item['minDepArrivalConfirm'],
+                'minWdUnlockConfirm': item['minWdUnlockConfirm']
+            } for item in dp_raw_data['data']
+        }
+        
+        return networks_data
+    
+    async def get_min_dep_details_for_chain(
+        self,
+        ccy: str,
+        network_name: str,
+    ) -> dict:
+        dep_network_info = {}
+        okx_network_names = get_okx_network_names()
+        
+        if network_name not in okx_network_names:
+            self.log_message(
+                status=LogStatus.FAILED,
+                message='Can not deposit, the network isn\'t in config'
+            )
+            return dep_network_info
+        
+        okx_network_name = f'{ccy.upper()}-{okx_network_names[network_name]}'
+        networks_data = await self.get_min_dep_details(ccy)
+        
+        if (
+            okx_network_name not in networks_data 
+            or not networks_data[okx_network_name]['canDep']
+        ):
+            self.log_message(
+                status=LogStatus.ERROR,
+                message=(
+                    f'{ccy} is unavailable to be deposited to \'{network_name}\''
+                )
+            )
+            return dep_network_info
+        return networks_data[okx_network_name]
+        
     async def withdraw(
         self,
         ccy: str,
@@ -89,7 +145,7 @@ class Okx(Cex, CustomLogger):
         url = self.endpoints['Wd_V5']
         is_successfull = False
 
-        wd_raw_data = await self._get_currencies(ccy)
+        wd_raw_data = (await self._get_currencies(ccy))['data']
         if not wd_raw_data:
             self.log_message(
                 status=LogStatus.ERROR,
@@ -126,7 +182,7 @@ class Okx(Cex, CustomLogger):
                     'min_fee': item['minFee'],
                     'min_wd': item['minWd'],
                     'max_wd': item['maxWd']
-                } for item in wd_raw_data['data']
+                } for item in wd_raw_data
             }
             network_data = network_datas[okx_network_name]
 
@@ -197,7 +253,7 @@ class Okx(Cex, CustomLogger):
     async def wait_deposit_confirmation(
         self,
         ccy: str,
-        amount: float,
+        amount: str | float,
         network_name: str,
         old_sub_balances: dict,
         check_time: int = 45
@@ -319,14 +375,14 @@ class Okx(Cex, CustomLogger):
 
         if self.is_okx_eu_type and is_deposit_mode:
             balance_data = (
-                response[0]['details']
-                if response[0]['details'] else {}
+                response['data'][0]['details']
+                if response['data'][0]['details'] else {}
             )
             for bal in balance_data:
                 if bal['ccy'] == ccy:
                     return float(bal['availBal'])
         else:
-            return float(response[0]['availBal'])
+            return float(response['data'][0]['availBal'])
 
     async def _get_sub_acc_balance(
         self,
