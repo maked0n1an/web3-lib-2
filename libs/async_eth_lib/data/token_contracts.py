@@ -34,6 +34,7 @@ class ContractsFactory:
             Networks.Ethereum.name: EthereumTokenContracts,
             Networks.Arbitrum.name: ArbitrumTokenContracts,
             Networks.Avalanche.name: AvalancheTokenContracts,
+            Networks.Base.name: BaseTokenContracts,
             Networks.BSC.name: BscTokenContracts,
             Networks.Core.name: CoreTokenContracts,
             Networks.Fantom.name: FantomTokenContracts,
@@ -149,6 +150,15 @@ class AvalancheTokenContracts(TokenContractData):
     STG = TokenContract(
         title=TokenSymbol.STG,
         address='0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590'
+    )
+
+class BaseTokenContracts(TokenContractData):
+    ETH = TokenContractData.NATIVE_ETH
+    
+    USDC = TokenContract(
+        title=TokenSymbol.USDC,
+        address='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+        decimals=6
     )
 
 
@@ -269,7 +279,11 @@ class OptimismTokenContracts(TokenContractData):
         address='0x296F55F8Fb28E498B858d0BcDA06D955B2Cb3f97',
         decimals=18
     )
-
+    
+    ZRO = TokenContract(
+        title='ZRO',
+        address='0x6985884c4392d348587b19cb9eaaf157f13271cd'
+    )
 
 class PolygonTokenContracts(TokenContractData):
     MATIC = NativeTokenContract(title=TokenSymbol.MATIC)

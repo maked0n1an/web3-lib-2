@@ -71,6 +71,16 @@ class Networks(metaclass=Singleton):
             docs='https://docs.snowtrace.io/'
         )
     )
+    
+    Base = Network(
+        name='Base',
+        rpc='https://base.llamarpc.com',
+        chain_id=8453,
+        tx_type=0,
+        coin_symbol=TokenSymbol.ETH,
+        decimals=18,
+        explorer='https://basescan.org/',
+    )
 
     BSC = Network(
         name='BSC',
