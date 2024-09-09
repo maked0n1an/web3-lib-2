@@ -1,11 +1,9 @@
-import libs.async_eth_lib.data.config as config
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.architecture.api_clients.zk import ZkApiClient
-from libs.async_eth_lib.architecture.api_clients.evm import EvmApiClient
-from libs.async_eth_lib.architecture.network import Network
-from libs.async_eth_lib.models.others import TokenSymbol
-from libs.pretty_utils.type_functions.classes import Singleton
-import libs.async_eth_lib.models.exceptions as exceptions
+from ..architecture.api_clients.zk import ZkApiClient
+from ..architecture.api_clients.evm import EvmApiClient
+from ..architecture.network import Network
+from ..data import config as config
+from ..models import exceptions as exceptions
+from ..models.others import TokenSymbol, Singleton
 
 
 class Networks(metaclass=Singleton):
@@ -19,8 +17,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://etherscan.io',
         api=EvmApiClient(
-            api_key=config.ETHEREUM_API_KEY, 
-            api_url='https://api.etherscan.io/api', 
+            api_key=config.ETHEREUM_API_KEY,
+            api_url='https://api.etherscan.io/api',
             docs='https://docs.etherscan.io/'
         ),
     )
@@ -36,8 +34,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://arbiscan.io',
         api=EvmApiClient(
-            api_key=config.ARBITRUM_API_KEY, 
-            api_url='https://api.arbiscan.io/api', 
+            api_key=config.ARBITRUM_API_KEY,
+            api_url='https://api.arbiscan.io/api',
             docs='https://docs.arbiscan.io/'
         ),
     )
@@ -51,8 +49,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://nova.arbiscan.io',
         api=EvmApiClient(
-            api_key=config.ARBITRUM_API_KEY, 
-            api_url='https://api-nova.arbiscan.io/api', 
+            api_key=config.ARBITRUM_API_KEY,
+            api_url='https://api-nova.arbiscan.io/api',
             docs='https://docs.arbiscan.io/v/nova-arbiscan'
         )
     )
@@ -66,12 +64,12 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://snowtrace.io',
         api=EvmApiClient(
-            api_key=config.AVALANCHE_API_KEY, 
-            api_url='https://api.snowtrace.io/api', 
+            api_key=config.AVALANCHE_API_KEY,
+            api_url='https://api.snowtrace.io/api',
             docs='https://docs.snowtrace.io/'
         )
     )
-    
+
     Base = Network(
         name='Base',
         rpc='https://base.llamarpc.com',
@@ -91,8 +89,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://bscscan.com',
         api=EvmApiClient(
-            api_key=config.BSC_API_KEY, 
-            api_url='https://api.bscscan.com/api', 
+            api_key=config.BSC_API_KEY,
+            api_url='https://api.bscscan.com/api',
             docs='https://docs.bscscan.com/'
         ),
     )
@@ -106,8 +104,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://celoscan.io',
         api=EvmApiClient(
-            api_key=config.CELO_API_KEY, 
-            api_url='https://api.celoscan.io/api', 
+            api_key=config.CELO_API_KEY,
+            api_url='https://api.celoscan.io/api',
             docs='https://celoscan.io/apis/'
         )
     )
@@ -131,8 +129,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://ftmscan.com',
         api=EvmApiClient(
-            api_key=config.FANTOM_API_KEY, 
-            api_url='https://api.ftmscan.com/api', 
+            api_key=config.FANTOM_API_KEY,
+            api_url='https://api.ftmscan.com/api',
             docs='https://docs.ftmscan.com/'
         )
     )
@@ -146,8 +144,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://gnosisscan.io',
         api=EvmApiClient(
-            api_key=config.GNOSIS_API_KEY, 
-            api_url='https://api.gnosisscan.io/api', 
+            api_key=config.GNOSIS_API_KEY,
+            api_url='https://api.gnosisscan.io/api',
             docs='https://docs.gnosisscan.io/'
         )
     )
@@ -161,8 +159,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://www.hecoinfo.com/en-us',
         api=EvmApiClient(
-            api_key=config.HECO_API_KEY, 
-            api_url='https://api.hecoinfo.com/api', 
+            api_key=config.HECO_API_KEY,
+            api_url='https://api.hecoinfo.com/api',
             docs='https://hecoinfo.com/apis'
         )
     )
@@ -186,8 +184,8 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://moonscan.io',
         api=EvmApiClient(
-            api_key=config.MOONBEAM_API_KEY, 
-            api_url='https://api-moonbeam.moonscan.io/api', 
+            api_key=config.MOONBEAM_API_KEY,
+            api_url='https://api-moonbeam.moonscan.io/api',
             docs='https://moonscan.io/apis/'
         )
     )
@@ -233,12 +231,12 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://polygonscan.com',
         api=EvmApiClient(
-            api_key=config.POLYGON_API_KEY, 
-            api_url='https://api.polygonscan.com/api', 
+            api_key=config.POLYGON_API_KEY,
+            api_url='https://api.polygonscan.com/api',
             docs='https://docs.polygonscan.com/'
         ),
     )
-    
+
     zkSync_Era = Network(
         name='zkSync_Era',
         rpc='https://multi-convincing-dust.zksync-mainnet.quiknode.pro/c94ba40682080821bbc8b4dd7ba7360329948422/',
@@ -263,7 +261,7 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://goerli.etherscan.io',
         api=EvmApiClient(
-            api_key=config.GOERLI_API_KEY, 
+            api_key=config.GOERLI_API_KEY,
             api_url='https://api-goerli.etherscan.io/api',
             docs='https://docs.etherscan.io/v/goerli-etherscan/'
         )
@@ -278,12 +276,12 @@ class Networks(metaclass=Singleton):
         decimals=18,
         explorer='https://sepolia.etherscan.io',
         api=EvmApiClient(
-            api_key=config.SEPOLIA_API_KEY, 
+            api_key=config.SEPOLIA_API_KEY,
             api_url='https://api-sepolia.etherscan.io/api',
             docs='https://docs.etherscan.io/v/sepolia-etherscan/'
         )
     )
-    
+
     @classmethod
     def get_network(
         cls,

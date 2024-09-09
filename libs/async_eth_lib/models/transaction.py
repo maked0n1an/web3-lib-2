@@ -8,10 +8,9 @@ from web3.types import (
     TxData
 )
 
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.architecture.network import Network
-from libs.pretty_utils.type_functions.classes import AutoRepr
-
+from ..models import exceptions as exceptions
+from ..models.others import AutoRepr
+from ..architecture.network import Network
 
 # region TxArgs class
 class TxArgs(AutoRepr):

@@ -8,12 +8,12 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.architecture.transaction import Transaction
-from libs.async_eth_lib.architecture.contract import Contract
-from libs.async_eth_lib.architecture.logger import CustomLogger
-from libs.async_eth_lib.architecture.network import Network
-from libs.async_eth_lib.data.networks import Networks
+from ..architecture.transaction import Transaction
+from ..architecture.contract import Contract
+from ..architecture.logger import CustomLogger
+from ..architecture.network import Network
+from ..models import exceptions as exceptions
+from ..data.networks import Networks
 
 
 class Client:

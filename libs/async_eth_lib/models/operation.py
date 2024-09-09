@@ -1,11 +1,11 @@
 import random
 from typing import List
 
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.models.contract import TokenContract
-from libs.async_eth_lib.models.others import TokenAmount
-from libs.async_eth_lib.architecture.network import Network
-from libs.async_eth_lib.data.networks import Networks
+from ..models import exceptions as exceptions
+from ..models.contract import TokenContract
+from ..models.others import TokenAmount
+from ..architecture.network import Network
+from ..data.networks import Networks
 
 
 # region Class to get info about operations like swap, add liquidity, remove liquidity etc.

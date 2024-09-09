@@ -1,7 +1,8 @@
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.data.networks import Networks
-from libs.async_eth_lib.models.contract import NativeTokenContract, TokenContract
-from libs.async_eth_lib.models.others import TokenSymbol
+from ..data.networks import Networks
+from ..models import exceptions as exceptions
+from ..models.contract import NativeTokenContract, TokenContract
+from ..models.others import TokenSymbol
+
 
 class TokenContractData:
     NATIVE_ETH = NativeTokenContract(title=TokenSymbol.ETH)
@@ -10,7 +11,7 @@ class TokenContractData:
     @classmethod
     def get_token(
         cls,
-        token_symbol: str, # GETH (GETH, LZ)
+        token_symbol: str,  # GETH (GETH, LZ)
         project_prefix: str | None = None,  # LZ
     ) -> TokenContract:
         contract_name = (
@@ -26,6 +27,7 @@ class TokenContractData:
             )
 
         return getattr(cls, contract_name)
+
 
 class ContractsFactory:
     @staticmethod
@@ -43,13 +45,14 @@ class ContractsFactory:
             Networks.Polygon.name: PolygonTokenContracts,
             Networks.zkSync_Era.name: ZkSyncEraTokenContracts,
         }
-        
+
         if network_name not in supported_networks:
             raise ValueError("Network not supported")
 
         return supported_networks[network_name].get_token(token_symbol)
 
 # region All token contracts
+
 
 class EthereumTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
@@ -109,7 +112,7 @@ class ArbitrumTokenContracts(TokenContractData):
         title=TokenSymbol.WBTC,
         address='0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f',
     )
-    
+
     STG = TokenContract(
         title=TokenSymbol.STG,
         address='0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590',
@@ -152,9 +155,10 @@ class AvalancheTokenContracts(TokenContractData):
         address='0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590'
     )
 
+
 class BaseTokenContracts(TokenContractData):
     ETH = TokenContractData.NATIVE_ETH
-    
+
     USDC = TokenContract(
         title=TokenSymbol.USDC,
         address='0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
@@ -169,7 +173,7 @@ class BscTokenContracts(TokenContractData):
         title=TokenSymbol.USDT,
         address='0x55d398326f99059fF775485246999027B3197955',
     )
-    
+
     USDC = TokenContract(
         title=TokenSymbol.USDC,
         address='0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d',
@@ -196,19 +200,19 @@ class BscTokenContracts(TokenContractData):
 
 class CoreTokenContracts(TokenContractData):
     CORE = NativeTokenContract(title=TokenSymbol.CORE)
-    
+
     USDT = TokenContract(
         title=TokenSymbol.USDT,
         address='0x900101d06a7426441ae63e9ab3b9b0f63be145f1',
         decimals=6
     )
-    
+
     USDC = TokenContract(
         title=TokenSymbol.USDC,
         address='0xa4151B2B3e269645181dCcF2D426cE75fcbDeca9',
         decimals=6
     )
-    
+
     WCORE = TokenContract(
         title=TokenSymbol.WCORE,
         address='0x191e94fa59739e188dce837f7f6978d84727ad01',
@@ -229,6 +233,7 @@ class FantomTokenContracts(TokenContractData):
         decimals=6
     )
 
+
 class KavaTokenContracts(TokenContractData):
     STG = TokenContract(
         title=TokenSymbol.STG,
@@ -245,7 +250,7 @@ class OptimismTokenContracts(TokenContractData):
         address='0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
         decimals=6
     )
-    
+
     USDT = TokenContract(
         title=TokenSymbol.USDT,
         address='0x94b008aa00579c1307b0ef2c499ad98a8ce58e58',
@@ -273,17 +278,18 @@ class OptimismTokenContracts(TokenContractData):
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
         abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
-    
+
     STG = TokenContract(
         title=TokenSymbol.STG,
         address='0x296F55F8Fb28E498B858d0BcDA06D955B2Cb3f97',
         decimals=18
     )
-    
+
     ZRO = TokenContract(
         title='ZRO',
         address='0x6985884c4392d348587b19cb9eaaf157f13271cd'
     )
+
 
 class PolygonTokenContracts(TokenContractData):
     MATIC = NativeTokenContract(title=TokenSymbol.MATIC)

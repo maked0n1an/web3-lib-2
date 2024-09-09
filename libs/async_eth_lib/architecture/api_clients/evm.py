@@ -2,15 +2,14 @@ from typing import Any
 
 from fake_useragent import UserAgent
 
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.architecture.api_clients.utils import api_key_required
-from libs.async_eth_lib.models.explorer import Sort, Tag
-from libs.async_eth_lib.models.others import ParamsTypes
-from libs.async_eth_lib.utils.helpers import make_async_request
+from ...models import exceptions as exceptions
+from ...architecture.api_clients.utils import api_key_required
+from ...models.explorer import Sort, Tag
+from ...models.others import ParamsTypes
+from ...utils.helpers import make_async_request
+
 
 # region MainClass
-
-
 class EvmApiClient:
     """
     Class with functions related to Blockscan API.
@@ -226,8 +225,6 @@ class Account(Module):
         result = await self.fetch_data_async(params)
         return result['result']
 
-    
-
     def _check_valid_tag(self, tag: str):
         if tag not in (Tag.Latest, Tag.Earliest, Tag.Pending):
             raise exceptions.ApiException(
@@ -285,6 +282,7 @@ class Contract(Module):
 
         response = await self.fetch_data_async(params)
         return response['result']
+
 
 class Transaction(Module):
     MODULE_NAME: str = 'transaction'

@@ -3,7 +3,7 @@ from web3 import (
     types
 )
 
-from libs.pretty_utils.type_functions.classes import AutoRepr
+from ..models.others import AutoRepr
 
 
 #region RawContract

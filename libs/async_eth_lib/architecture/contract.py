@@ -1,21 +1,25 @@
 from functools import lru_cache
 from typing import Any
+
 from web3 import Web3
-from web3.types import TxParams
+from web3.types import (
+    TxParams,
+    TxReceipt,
+)
 from web3.contract import (
     Contract as web3_Contract,
     AsyncContract as web3_AsyncContract
 )
 from eth_typing import ChecksumAddress
 
-from libs.async_eth_lib.architecture.transaction import Transaction
-from libs.async_eth_lib.models.contract import RawContract, TokenContract
-from libs.async_eth_lib.models.dataclasses import (
+from ..architecture.transaction import Transaction
+from ..models.contract import RawContract, TokenContract
+from ..models.dataclasses import (
     CommonValues, DefaultAbis
 )
-from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
-from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.helpers import (
+from ..models.others import ParamsTypes, TokenAmount
+from ..models.transaction import TxArgs
+from ..utils.helpers import (
     make_async_request, read_json, text_between
 )
 
@@ -141,7 +145,7 @@ class Contract:
         tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
         is_approve_infinity: bool = False
-    ) -> str | bool:
+    ) -> TxReceipt:
         """
         Approve a spender to spend a certain amount of tokens on behalf of the user.
 
@@ -195,12 +199,10 @@ class Contract:
         })
 
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
-        receipt = await tx.wait_for_tx_receipt(
+        return await tx.wait_for_tx_receipt(
             web3=self.transaction.w3,
             timeout=240
         )
-
-        return tx.hash.hex() if receipt['status'] else False
 
     async def transfer(
         self,
@@ -208,7 +210,7 @@ class Contract:
         token: TokenContract | ParamsTypes.Address = None,
         amount: ParamsTypes.Amount | None = None,
         tx_params: TxParams | dict = {},
-    ) -> str | bool:
+    ) -> TxReceipt:
         receiver = Contract.get_checksum_address(receiver_address)
         contract = await self.get(contract=token)
 
@@ -236,8 +238,7 @@ class Contract:
             web3=self.transaction.w3,
             timeout=300
         )
-
-        return tx.hash.hex() if receipt['status'] else False
+        return receipt
 
     async def get(
         self,

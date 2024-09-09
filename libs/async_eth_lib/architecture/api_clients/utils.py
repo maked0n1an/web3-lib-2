@@ -1,4 +1,4 @@
-import libs.async_eth_lib.models.exceptions as exceptions
+from ...models import exceptions as exceptions
 
 
 def api_key_required(func):

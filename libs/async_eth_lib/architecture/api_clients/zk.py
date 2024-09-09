@@ -1,13 +1,13 @@
+from typing import Any
 from datetime import (
     datetime,
     timezone
 )
-from typing import Any
 
 from fake_useragent import UserAgent
 
-from libs.async_eth_lib.models.others import ParamsTypes
-from libs.async_eth_lib.utils.helpers import make_async_request
+from ...models.others import ParamsTypes
+from ...utils.helpers import make_async_request
 
 
 class ZkApiClient:

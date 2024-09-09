@@ -3,8 +3,8 @@ from typing import (
     Tuple
 )
 
-import libs.async_eth_lib.models.exceptions as exceptions
-from libs.async_eth_lib.models.contract import RawContract
+from ..models import exceptions as exceptions
+from ..models.contract import RawContract
 
 
 # region About token bridge

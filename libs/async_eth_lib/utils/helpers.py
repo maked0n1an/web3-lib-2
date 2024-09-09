@@ -6,7 +6,7 @@ from typing import Any, List
 
 from curl_cffi.requests import AsyncSession
 
-import libs.async_eth_lib.models.exceptions as exceptions
+from ..models import exceptions as exceptions
 
 
 def join_path(path: str | tuple | list) -> str:
@@ -32,19 +32,19 @@ def read_json(
 def normalize_http_params(
     params: dict[str, Any] | None
 ) -> dict[str, str | int | float] | None:
-    if not params: 
+    if not params:
         return
 
     new_params = params.copy()
     for key, value in params.items():
         if not value:
             del new_params[key]
-            
+
         if isinstance(value, bool):
-            new_params[key] = str(value).lower() 
+            new_params[key] = str(value).lower()
         elif isinstance(value, bytes):
             new_params[key] = value.decode('utf-8')
-    
+
     return new_params
 
 

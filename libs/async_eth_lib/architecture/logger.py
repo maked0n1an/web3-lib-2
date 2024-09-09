@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-from libs.async_eth_lib.models.others import LogStatus
+from ..models.others import LogStatus
 
 class CustomLogger:
     FOLDER_NAME: str = 'user_data/logs'

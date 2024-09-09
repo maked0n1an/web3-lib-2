@@ -3,9 +3,9 @@ import requests
 from typing import List
 from web3 import Web3
 
-from libs.async_eth_lib.architecture.api_clients.evm import EvmApiClient
-from libs.async_eth_lib.architecture.api_clients.zk import ZkApiClient
-import libs.async_eth_lib.models.exceptions as exceptions
+from ..architecture.api_clients.evm import EvmApiClient
+from ..architecture.api_clients.zk import ZkApiClient
+from ..models import exceptions as exceptions
 
 
 # region Definition class

@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any
 from web3 import Web3
 from web3.types import (
     TxParams
@@ -9,9 +9,9 @@ from eth_account.datastructures import (
 )
 from eth_account.signers.local import LocalAccount
 
-from libs.async_eth_lib.architecture.network import Network
-from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
-from libs.async_eth_lib.models.transaction import Tx
+from ..architecture.network import Network
+from ..models.others import ParamsTypes, TokenAmount
+from ..models.transaction import Tx
 
 
 class Transaction:
@@ -28,6 +28,9 @@ class Transaction:
     @staticmethod
     async def decode_input_data():
         pass
+    
+    async def get_current_block_number(self) -> int:
+        return self.w3.eth.get_block_number
 
     async def get_nonce(self, address: ChecksumAddress | None = None) -> int:
         """
