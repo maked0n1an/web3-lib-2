@@ -9,7 +9,7 @@ from web3.types import (
 )
 
 from ..models import exceptions as exceptions
-from ..models.others import AutoRepr
+from ..models.common import AutoRepr
 from ..architecture.network import Network
 
 # region TxArgs class

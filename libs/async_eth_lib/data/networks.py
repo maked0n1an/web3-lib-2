@@ -3,7 +3,8 @@ from ..architecture.api_clients.evm import EvmApiClient
 from ..architecture.network import Network
 from ..data import config as config
 from ..models import exceptions as exceptions
-from ..models.others import TokenSymbol, Singleton
+from ..models.common import Singleton
+from ..models.others import TokenSymbol
 
 
 class Networks(metaclass=Singleton):
