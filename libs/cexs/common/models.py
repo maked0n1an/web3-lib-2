@@ -22,17 +22,17 @@ class LogStatus:
 class CexCredentials:
     api_key: str
     api_secret: str
-    api_passphrase: str = None
 
     def completely_filled(self) -> bool:
         return all((self.api_key, self.api_secret))
 
-    def is_added_passphrase(self) -> bool:
-        return bool(self.api_passphrase)
-
 
 class OkxCredentials(CexCredentials):
+    api_passphrase: str = None
     is_okx_eu_type: bool = False
+
+    def completely_filled(self) -> bool:
+        return all((self.api_key, self.api_secret, self.api_passphrase))
 
 
 class Cex(ABC):
@@ -94,19 +94,19 @@ class Cex(ABC):
             bool: True if the deposit is confirmed and reflected in the balances, False otherwise.
         """
         pass
-    
+
     @abstractmethod
     async def get_min_dep_details(
         self,
-        ccy: str = 'ETH' 
+        ccy: str = 'ETH'
     ) -> Optional[dict]:
         """
         Retrieve the minimum deposit details for a given cryptocurrency.
-        
+
         Args:
             ccy (str): The cryptocurrency symbol to retrieve deposit details for.
                        Defaults to 'ETH'.
-        
+
         Returns:
             Optional[dict]: A dictionary containing deposit details for each supported network,
                             or an empty dictionary if the token symbol is invalid. The details 
@@ -114,7 +114,7 @@ class Cex(ABC):
                             minimum confirmations, and minimum unlock confirmations.
         """
         pass
-    
+
     @abstractmethod
     async def get_min_dep_details_for_network(
         self,
@@ -123,11 +123,11 @@ class Cex(ABC):
     ) -> dict:
         """
         Retrieve the minimum deposit details for a specific cryptocurrency and network.
-        
+
         Args:
             ccy (str): The cryptocurrency symbol to retrieve deposit details for.
             network_name (str): The name of the network for which to retrieve deposit details.
-        
+
         Returns:
             dict: A dictionary containing the deposit details for the specified cryptocurrency 
                   and network, or an empty dictionary if the network is unavailable or deposits 
