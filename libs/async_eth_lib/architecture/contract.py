@@ -31,16 +31,15 @@ class Contract:
     @lru_cache(maxsize=128)
     def get_abi(
         self,
-        abi: list | tuple | str | list[dict]
+        abi_or_path: list | tuple | str | list[dict]
     ) -> list[dict] | None:
-        if not abi:
+        if not isinstance(abi_or_path, (list, tuple, str)):
             return None
-
-        if isinstance(abi, list):
-            if all(isinstance(item, dict) for item in abi):
-                return abi
-        if isinstance(abi, (list, tuple, str)):
-            return read_json(abi)
+        
+        if all(isinstance(item, dict) for item in abi_or_path):
+            return abi_or_path
+        else:
+            return read_json(abi_or_path)
 
     def get_web3_contract(
         self,
@@ -364,7 +363,7 @@ class Contract:
             The token contract address or contract instance.
 
         Returns:
-        - `int`: The number of decimals for the token.
+        - `int`: The number of token decimals.
         """
         if isinstance(contract, ParamsTypes.Web3Contract):
             return await contract.functions.decimals().call()
