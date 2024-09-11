@@ -26,7 +26,7 @@ class CexCredentials:
     def completely_filled(self) -> bool:
         return all((self.api_key, self.api_secret))
 
-
+@dataclass
 class OkxCredentials(CexCredentials):
     api_passphrase: str = None
     is_okx_eu_type: bool = False

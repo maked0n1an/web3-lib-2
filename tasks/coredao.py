@@ -320,9 +320,7 @@ class CoreDaoBridgeImplementation(BaseTask):
 
 # region Random function
 class CoreDaoBridge(BaseTask):
-    async def bridge(
-        self,
-    ):
+    async def bridge(self) -> bool:
         settings = CoreDaoBridgeSettings()
         bridge_data = get_coredao_bridge_routes()
 

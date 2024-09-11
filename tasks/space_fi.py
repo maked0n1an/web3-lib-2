@@ -271,9 +271,7 @@ class SpaceFiImplementation(BaseTask):
 
 # region Random function
 class SpaceFi(BaseTask):
-    async def swap(
-        self,
-    ):
+    async def swap(self) -> bool:
         settings = SpaceFiSettings()
         client = Client(
             account_id=self.client.account_id,

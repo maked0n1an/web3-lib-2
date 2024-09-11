@@ -1107,9 +1107,7 @@ class StargateImplementation(BaseTask):
 
 # region Random function
 class Stargate(BaseTask):
-    async def bridge(
-        self,
-    ):
+    async def bridge(self) -> bool:
         settings = StargateSettings()
         bridge_data = get_stargate_routes_v1()
 

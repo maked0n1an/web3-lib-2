@@ -1,9 +1,9 @@
 import asyncio
 import random
 from decimal import Decimal
-from typing import Optional
+from typing import Any, Optional
 
-import aiohttp
+from curl_cffi.requests import AsyncSession
 from web3.types import TxParams
 
 from libs.async_eth_lib.architecture.client import Client
@@ -28,7 +28,7 @@ class Utils:
         Returns:
             None
         """
-        contract = await client.contract.get_token_contract(token=token_address)
+        contract = await client.contract.get(contract=token_address)
         print('name:', await contract.functions.name().call())
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
@@ -106,7 +106,7 @@ class PriceUtils:
         if first_token in self.STABLES and second_token in self.STABLES:
             return 1.0
 
-        async with aiohttp.ClientSession() as session:
+        async with AsyncSession() as session:
             price = await self._get_price_from_binance(session, first_token, second_token)
             if price:
                 return price
@@ -115,7 +115,7 @@ class PriceUtils:
 
     async def _get_price_from_binance(
         self,
-        session: aiohttp.ClientSession,
+        session: AsyncSession,
         first_token: str,
         second_token: str
     ) -> float | None:
@@ -124,9 +124,9 @@ class PriceUtils:
             try:
                 response = await session.get(
                     f'https://api.binance.com/api/v3/ticker/price?symbol={first_token}{second_token}')
-                if response.status != 200:
+                if response.status_code != 200:
                     return None
-                result_dict = await response.json()
+                result_dict = response.json()
                 if 'price' in result_dict:
                     return float(result_dict['price'])
             except Exception as e:
@@ -218,12 +218,12 @@ class StandardSettings:
 
 
 # region RandomChoice
-# To get token for operation random from available options
 class RandomChoiceHelper:
+    '''To get random token from available options for operation'''
     @staticmethod
     async def get_random_token_for_operation(
         op_name: str,
-        op_data: dict[Network, dict[str, list[tuple]]],
+        op_data: dict[Network, dict[str, list[Any]]],
         op_settings: StandardSettings,
         client: Client,
     ) -> tuple[Optional[OperationInfo], Optional[list[tuple]]]:
@@ -398,7 +398,7 @@ class BaseTask(Utils, PriceUtils):
             bool: True if the approval is successful, False otherwise.
         """
         balance = await self.client.contract.get_balance(
-            token_contract=token_contract
+            token=token_contract
         )
         if balance.Wei <= 0:
             return True
@@ -420,14 +420,14 @@ class BaseTask(Utils, PriceUtils):
             tx_params=tx_params
         )
 
-        optional_tx_hash = await self.client.contract.approve(
+        receipt = await self.client.contract.approve(
             token_contract=token_contract,
             tx_params=tx_params,
             amount=amount,
             is_approve_infinity=is_approve_infinity
         )
 
-        return optional_tx_hash
+        return receipt['transactionHash'] if receipt['status'] else False
 
     async def compute_source_token_amount(
         self,

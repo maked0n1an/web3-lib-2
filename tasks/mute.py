@@ -307,9 +307,7 @@ class MuteImplementation(BaseTask):
 
 # region Random function
 class Mute(BaseTask):
-    async def swap(
-        self,
-    ) -> bool:
+    async def swap(self) -> bool:
         settings = MuteSettings()
         
         client = Client(

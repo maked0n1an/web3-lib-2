@@ -246,9 +246,7 @@ class TestnetBridgeData(BridgeContractDataFetcher):
 
 # region Random function
 class TestnetBridge(BaseTask):
-    async def bridge(
-        self,
-    ):
+    async def bridge(self) -> bool:
         settings = TestnetBridgeSettings()
         bridge_routes = get_testnet_bridge_routes()
 
