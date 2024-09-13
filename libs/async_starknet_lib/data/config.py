@@ -1,8 +1,13 @@
+from pathlib import Path
+
+
 NODE_URLS = [
+    'https://starknet-mainnet.blastapi.io/e777424a-05c0-4a6f-bbeb-ac35ecc9cb98/rpc/v0_7',
     'https://starknet-mainnet.g.alchemy.com/starknet/version/rpc/v0_7/-eSCyIZu6Y2l3SfU8DdylblmwyyWR8Ow'
 ]
 
-DEFAULT_TOKEN_ABI_PATH = ('data', 'abis', 'default_token_abi.json')
+DEFAULT_TOKEN_ABI_PATH = str(Path(__file__).resolve().parent / 'default_token_abi.json')
+CAIRO_VERSION = 1
 
 BASE_PATH = "m/44'/9004'/0'/0/0"
 

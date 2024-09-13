@@ -26,17 +26,17 @@ class StarknetClient(StarknetNodeClient):
         self.account_id = account_id
         self.proxy = proxy
         
+        self.node_client = self.init_node_client(self.proxy, check_proxy)
         self.key_pair = KeyPair.from_private_key(private_key)
         self.signer = StarkCurveSigner(address, self.key_pair, self.CHAIN_ID)
-        self.node_client = self.init_node_client(self.proxy, check_proxy)
-        self._init_logger(create_log_file_per_account)
-
         self.account = Account(
             address=self.address,
             client=self.node_client,
             key_pair=self.key_pair,
             chain=self.CHAIN_ID
         )
+        self._init_logger(create_log_file_per_account)
+        
         self.contract = Contract(self.account)
 
     async def __aexit__(self, exc_type, exc, tb):

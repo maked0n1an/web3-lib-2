@@ -1,3 +1,4 @@
+import inspect
 import logging
 import os
 import sys
@@ -65,6 +66,7 @@ class CustomLogger:
     def _initialize_account_log(self, account_id: str) -> logging.Logger:
         if account_id not in self.LOGGERS:
             name_of_file = f'{self.FOLDER_NAME}/log_{account_id}'
+            
             wallet_logger = logging.getLogger(name_of_file)
             file_handler = logging.FileHandler(f"{name_of_file}.log")
             file_handler.setLevel(logging.INFO)
@@ -80,7 +82,11 @@ class CustomLogger:
         status: str, 
         message: str, 
     ) -> None:
-        message_with_calling_line = f"{self.__class__.__name__:<10} | {message}"
+        caller_frame = inspect.currentframe().f_back
+        full_file_name = os.path.basename(caller_frame.f_code.co_filename)
+        file_name = os.path.splitext(full_file_name)[0].capitalize()
+        message_with_calling_line = f"{file_name:<10} | {message}"
+        
         extra = {
             "account_id": self.account_id,
             "masked_address": self.masked_address,

@@ -9,6 +9,7 @@ class TokenSymbol:
     USDC    = 'USDC'
     WBTC    = 'WBTC'
     WETH    = 'WETH'
+    STRK    = 'STRK'
     
 class LogStatus:
     DELAY = 'DELAY'
@@ -87,6 +88,7 @@ class TokenAmount:
 
         """
         return str(self.Ether)
+
 
 # region Others
 class WalletType:

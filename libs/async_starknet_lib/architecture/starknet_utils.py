@@ -3,6 +3,8 @@ import random
 import bip32
 import bip39
 
+from aiohttp import ClientSession
+from aiohttp_proxy import ProxyConnector
 from hdwallet import (HDWallet, BIP44HDWallet)
 from hdwallet.cryptocurrencies import EthereumMainnet
 from starknet_py.hash.utils import private_to_stark_key
@@ -100,6 +102,10 @@ class StarknetNodeClient:
         )
 
         return client
+    
+    async def __aexit__(self, exc_type, exc, tb):
+        if self.proxy:
+            await self.session.close()
 
 
 class StarkUtils(StarknetNodeClient):

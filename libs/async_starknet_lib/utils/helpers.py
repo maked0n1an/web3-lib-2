@@ -10,7 +10,6 @@ from aiohttp import (
 
 from . import exceptions as exceptions
 
-
 def center_output(message: str):
     print(f"| {message:^59}|")
 

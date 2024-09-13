@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any
 
 from starknet_py.net.account.account import Account
@@ -16,29 +15,24 @@ from ..utils.helpers import read_json
 class Contract:
     def __init__(self, account: Account):
         self.account = account
-        
-    def get_abi(
-        self,
-        abi_or_path: list | tuple | str | list[dict]
-    ) -> list[dict] | None:
-        if not isinstance(abi_or_path, (list, tuple, str)):
-            return None
-        
-        if all(isinstance(item, dict) for item in abi_or_path):
-            return abi_or_path
-        else:
-            return read_json(abi_or_path)
 
     async def get_starknet_contract(
         self,
         address: AddressRepresentation,
         abi_or_path: str | list[str] | tuple[str] | list[dict[str, Any]] = None
     ) -> stark_Contract:
-        abi = self.get_abi(abi_or_path)
+        if not abi_or_path:
+            abi = read_json(path=DEFAULT_TOKEN_ABI_PATH)
+
+        elif isinstance(abi_or_path, (list, tuple, str)):
+            if all(isinstance(item, dict) for item in abi_or_path):
+                abi = abi_or_path
+            else:
+                abi = read_json(abi_or_path)
 
         contract = stark_Contract(
             address=address,
-            abi=abi if abi else read_json(DEFAULT_TOKEN_ABI_PATH),
+            abi=abi,
             provider=self.account
         )
 
@@ -73,7 +67,7 @@ class Contract:
             amount = (
                 await (token_contract.functions['balanceOf'].call(account_address))
             )[0]
-            decimals = await self.get_decimals(contract=token_contract)
+            decimals = await self.get_decimals(token=token_contract)
         else:
             amount = await self.account.get_balance()
             decimals = 18
@@ -86,7 +80,7 @@ class Contract:
 
     async def get_decimals(
         self,
-        contract: TokenContract | stark_Contract | None = None
+        token: TokenContract | stark_Contract
     ) -> int:
         """
         Retrieve the decimals of a token contract or token address.
@@ -96,22 +90,15 @@ class Contract:
             The TokenContract instance or Contract instance.
 
         Returns:
-        - `int`: The number of token decimals.
+        - `int`: The number of decimals for the token.
+
         """
-        if isinstance(contract, stark_Contract):
-            return int((await contract.functions['decimals'].call())[0])
-        
-        if getattr(contract, 'decimals', None) is not None:
-            return contract.decimals
-        
-        stark_contract = stark_Contract(
-            address=contract.address,
-            abi=contract.abi_path,
-            provider=self.account
-        )
-        decimals = int((await stark_contract.functions['decimals'].call())[0])
-        
-        if isinstance(contract, TokenContract):
-            contract.decimals = decimals
+        if isinstance(token, TokenContract):
+            if not token.decimals:
+                contract = await self.get_token_contract(token)
+                token.decimals = int((await contract.functions['decimals'].call())[0])
+            decimals = token.decimals
+        elif isinstance(token, stark_Contract):
+            decimals = int((await token.functions['decimals'].call())[0])
 
         return decimals
