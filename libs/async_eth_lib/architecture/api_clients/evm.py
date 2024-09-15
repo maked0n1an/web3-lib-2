@@ -2,8 +2,8 @@ from typing import Any
 
 from fake_useragent import UserAgent
 
+from .utils import api_key_required
 from ...models import exceptions as exceptions
-from ...architecture.api_clients.utils import api_key_required
 from ...models.explorer import Sort, Tag
 from ...models.others import ParamsTypes
 from ...utils.helpers import make_async_request

@@ -8,10 +8,10 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
-from ..architecture.transaction import Transaction
-from ..architecture.contract import Contract
-from ..architecture.logger import CustomLogger
-from ..architecture.network import Network
+from .transaction import Transaction
+from .contract import Contract
+from .logger import CustomLogger
+from .network import Network
 from ..models import exceptions as exceptions
 from ..data.networks import Networks
 

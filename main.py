@@ -8,10 +8,10 @@ from tasks import SyncSwap
 
 
 async def main():
-    client = Client(account_id=2, private_key=PRIVATE_KEYS[0], network=Networks.ZkSync)
+    client = Client(account_id=2, private_key=PRIVATE_KEYS[0], network=Networks.zkSync_Era)
     sync_swap = SyncSwap(client=client)
     swap_info = OperationInfo(
-        from_network=Networks.ZkSync,
+        from_network=Networks.zkSync_Era,
         from_token_name='ETH',
         to_token_name='USDT',
         min_percent=10,

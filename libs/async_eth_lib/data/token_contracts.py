@@ -1,4 +1,4 @@
-from ..data.networks import Networks
+from .networks import Networks
 from ..models import exceptions as exceptions
 from ..models.contract import NativeTokenContract, TokenContract
 from ..models.others import TokenSymbol
