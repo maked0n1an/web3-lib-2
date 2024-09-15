@@ -2,7 +2,7 @@ from decimal import Decimal
 from web3 import types
 from web3.contract import AsyncContract, Contract
 
-from ..models.contract import (
+from .contract import (
     NativeTokenContract,
     TokenContract
 )

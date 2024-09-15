@@ -8,8 +8,8 @@ from web3.types import (
     TxData
 )
 
-from ..models import exceptions as exceptions
-from ..models.common import AutoRepr
+from . import exceptions as exceptions
+from .common import AutoRepr
 from ..architecture.network import Network
 
 # region TxArgs class

@@ -3,8 +3,8 @@ import requests
 from typing import List
 from web3 import Web3
 
-from ..architecture.api_clients.evm import EvmApiClient
-from ..architecture.api_clients.zk import ZkApiClient
+from .api_clients.evm import EvmApiClient
+from .api_clients.zk import ZkApiClient
 from ..models import exceptions as exceptions
 
 

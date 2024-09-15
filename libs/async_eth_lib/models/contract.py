@@ -3,7 +3,7 @@ from web3 import (
     types
 )
 
-from ..models.common import AutoRepr
+from .common import AutoRepr
 
 
 #region RawContract

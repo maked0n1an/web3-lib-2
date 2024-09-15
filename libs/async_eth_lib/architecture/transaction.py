@@ -9,7 +9,7 @@ from eth_account.datastructures import (
 )
 from eth_account.signers.local import LocalAccount
 
-from ..architecture.network import Network
+from .network import Network
 from ..models.others import ParamsTypes, TokenAmount
 from ..models.transaction import Tx
 

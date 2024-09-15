@@ -1,7 +1,7 @@
+from . import config as config
 from ..architecture.api_clients.zk import ZkApiClient
 from ..architecture.api_clients.evm import EvmApiClient
 from ..architecture.network import Network
-from ..data import config as config
 from ..models import exceptions as exceptions
 from ..models.common import Singleton
 from ..models.others import TokenSymbol

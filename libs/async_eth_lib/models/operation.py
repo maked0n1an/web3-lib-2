@@ -1,9 +1,9 @@
 import random
 from typing import List
 
-from ..models import exceptions as exceptions
-from ..models.contract import TokenContract
-from ..models.others import TokenAmount
+from . import exceptions as exceptions
+from .contract import TokenContract
+from .others import TokenAmount
 from ..architecture.network import Network
 from ..data.networks import Networks
 

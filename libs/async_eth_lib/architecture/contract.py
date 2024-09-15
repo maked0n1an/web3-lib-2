@@ -12,7 +12,7 @@ from web3.contract import (
 )
 from eth_typing import ChecksumAddress
 
-from ..architecture.transaction import Transaction
+from .transaction import Transaction
 from ..models.contract import RawContract, TokenContract
 from ..models.dataclasses import (
     CommonValues, DefaultAbis
