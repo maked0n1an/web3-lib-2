@@ -18,16 +18,9 @@ from starknet_py.cairo.felt import decode_shortstring
 
 from .logger import console_logger
 from ..data.config import (
-    ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_4_3,
-    BASE_PATH,
-    BRAAVOS_IMPLEMENTATION_CLASS_HASH_CAIRO_2_5_1,
-    BRAAVOS_PROXY_CLASS_HASH,
-    BRAAVOS_IMPLEMENTATION_CLASS_HASH,
-    ARGENTX_PROXY_CLASS_HASH,
-    ARGENTX_IMPLEMENTATION_CLASS_HASH,
-    ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_0_0,
-    ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_6_3,
-    NODE_URLS,
+    get_node_urls, 
+    get_base_path, 
+    get_class_hashes
 )
 from ..models.others import (
     StarkAccount, 
@@ -97,7 +90,7 @@ class StarknetNodeClient:
             self.session = None
 
         client = FullNodeClient(
-            node_url=random.choice(NODE_URLS),
+            node_url=random.choice(get_node_urls()),
             session=self.session
         )
 
@@ -162,7 +155,7 @@ class StarkUtils(StarknetNodeClient):
             cryptocurrency=EthereumMainnet).from_mnemonic(self.mnemonic)
         hdkey2 = HDWallet(
             cryptocurrency=EthereumMainnet).from_seed(hdkey1.private_key())
-        child_node = hdkey2.from_path(BASE_PATH)
+        child_node = hdkey2.from_path(get_base_path())
 
         private_key = await _grind_key(child_node.private_key())
         if private_key:
@@ -173,7 +166,7 @@ class StarkUtils(StarknetNodeClient):
     async def _get_private_braavos(self) -> str:
         seed = bip39.phrase_to_seed(self.mnemonic)
         hd_key = bip32.BIP32.from_seed(seed)
-        derived = hd_key.get_privkey_from_path(BASE_PATH)
+        derived = hd_key.get_privkey_from_path(get_base_path())
         
         private_key = await _grind_key('0x' + derived.hex())
         if private_key:
@@ -187,7 +180,7 @@ class StarkUtils(StarknetNodeClient):
         
         argent_computing_address_dict = {
             263: compute_address(
-                class_hash=ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_6_3,
+                class_hash=get_class_hashes('argentx_implementation_cairo_2_6_3'),
                 constructor_calldata=[
                     public_key,
                     0
@@ -195,7 +188,7 @@ class StarkUtils(StarknetNodeClient):
                 salt=public_key
             ),
             243: compute_address(
-                class_hash=ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_4_3,
+                class_hash=get_class_hashes('argentx_implementation_cairo_2_4_3'),
                 constructor_calldata=[
                     public_key,
                     0
@@ -203,7 +196,7 @@ class StarkUtils(StarknetNodeClient):
                 salt=public_key
             ),
             1: compute_address(
-                class_hash=ARGENTX_IMPLEMENTATION_CLASS_HASH_CAIRO_2_0_0,
+                class_hash=get_class_hashes('argentx_implementation_cairo_2_0_0'),
                 constructor_calldata=[
                     public_key,
                     0
@@ -211,9 +204,9 @@ class StarkUtils(StarknetNodeClient):
                 salt=public_key
             ),
             0: compute_address(
-                class_hash=ARGENTX_PROXY_CLASS_HASH,
+                class_hash=get_class_hashes('argentx_proxy'),
                 constructor_calldata=[
-                    ARGENTX_IMPLEMENTATION_CLASS_HASH,
+                    get_class_hashes('argentx_implementation'),
                     get_selector_from_name("initialize"),
                     2,
                     public_key,
@@ -245,7 +238,7 @@ class StarkUtils(StarknetNodeClient):
         
         braavos_computing_address_dict = {
             251: compute_address(
-                class_hash=BRAAVOS_IMPLEMENTATION_CLASS_HASH_CAIRO_2_5_1,
+                class_hash=get_class_hashes('braavos_implementation_cairo_2_5_1'),
                 constructor_calldata=[
                     public_key,
                     0
@@ -253,9 +246,9 @@ class StarkUtils(StarknetNodeClient):
                 salt=public_key
             ),
             0: compute_address(
-                class_hash=BRAAVOS_PROXY_CLASS_HASH,
+                class_hash=get_class_hashes('braavos_proxy'),
                 constructor_calldata=[
-                    BRAAVOS_IMPLEMENTATION_CLASS_HASH,
+                    get_class_hashes('braavos_implementation'),
                     get_selector_from_name("initializer"),
                     1,
                     public_key
