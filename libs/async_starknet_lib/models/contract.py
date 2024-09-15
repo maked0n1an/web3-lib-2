@@ -1,6 +1,6 @@
 from starknet_py.net.models import Address
 
-from ..utils.classes import AutoRepr
+from .common import AutoRepr
 
 
 # region RawContract

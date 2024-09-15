@@ -26,8 +26,8 @@ from ..models.others import (
     StarkAccount, 
     WalletType
 )
+from ..models.proxy_manager import ProxyManager
 from ..utils.helpers import normalize_non_evm_hex_value
-from ..utils.proxy_manager import ProxyManager
 
 
 async def mod(a: int, b: int) -> int:

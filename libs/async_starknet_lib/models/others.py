@@ -3,13 +3,14 @@ from decimal import Decimal
 
 # region Constants
 class TokenSymbol:
+    STRK    = 'STRK'
+    
     ETH     = 'ETH'
     USDT    = 'USDT'
     DAI     = 'DAI'
     USDC    = 'USDC'
     WBTC    = 'WBTC'
     WETH    = 'WETH'
-    STRK    = 'STRK'
     
 class LogStatus:
     DELAY = 'DELAY'
