@@ -2,14 +2,14 @@ from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
-from libs.async_eth_lib.models.others import TokenAmount
-from tasks._common.utils import PriceUtils, Utils
+from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
+from tasks._common.utils import PriceUtils
 
 
 from web3.types import TxParams
 
 
-class EvmTask(Utils, PriceUtils):
+class EvmTask(PriceUtils):
     def __init__(self, client: EvmClient):
         self.client = client
         

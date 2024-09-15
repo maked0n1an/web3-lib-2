@@ -35,7 +35,7 @@ class Utils:
         return hex_data.zfill(length)
 
     @staticmethod
-    def normalize_non_evm_hex_value(hex_value: str, length: int = 64) -> str:
+    def zfill_hex_value(hex_value: str, length: int = 64) -> str:
         hex_value = Utils.to_cut_hex_prefix_and_zfill(hex_value, length)
         return '0x' + hex_value
 

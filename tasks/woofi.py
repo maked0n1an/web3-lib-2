@@ -8,7 +8,7 @@ from libs.async_eth_lib.models.others import LogStatus, ParamsTypes
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import sleep
-from tasks._common.utils import BaseTask
+from tasks._common.evm_task import EvmTask
 
 # region Contracts
 class WoofiContracts:
@@ -54,7 +54,7 @@ class WoofiContracts:
 
 
 # region Implementation
-class WooFi(BaseTask):
+class WooFi(EvmTask):
     async def swap(
         self,
         swap_info: OperationInfo

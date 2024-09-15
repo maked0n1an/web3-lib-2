@@ -5,7 +5,7 @@ import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
 from data.config import MODULES_SETTINGS_FILE_PATH
-from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
@@ -18,7 +18,8 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
-from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
+from tasks._common.evm_task import EvmTask
+from tasks._common.utils import RandomChoiceHelper, StandardSettings
 from tasks.config import get_mute_paths
 
 # region Settings
@@ -156,7 +157,7 @@ class MuteRoutes(TxPayloadDetailsFetcher):
 
 
 # region Implementation
-class MuteImplementation(BaseTask):
+class MuteImplementation(EvmTask):
     MUTE_UNIVERSAL = RawContract(
         title='Mute',
         address='0x8b791913eb07c32779a16750e3868aa8495f5964',
@@ -306,11 +307,11 @@ class MuteImplementation(BaseTask):
 
 
 # region Random function
-class Mute(BaseTask):
+class Mute(EvmTask):
     async def swap(self) -> bool:
         settings = MuteSettings()
         
-        client = Client(
+        client = EvmClient(
             account_id=self.client.account_id,
             private_key=self.client.account._private_key,
             network=Networks.zkSync_Era,

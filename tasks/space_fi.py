@@ -5,7 +5,7 @@ import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
 from data.config import MODULES_SETTINGS_FILE_PATH
-from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
@@ -17,7 +17,8 @@ from libs.async_eth_lib.models.others import (
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
-from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
+from tasks._common.evm_task import EvmTask
+from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
 from tasks.config import get_space_fi_paths
 
 
@@ -116,7 +117,7 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
 
 
 # region Implementation    
-class SpaceFiImplementation(BaseTask):
+class SpaceFiImplementation(EvmTask, Utils):
     SPACE_FI_ROUTER = RawContract(
         title='SpaceFiRouter',
         address='0xbE7D1FD1f6748bbDefC4fbaCafBb11C6Fc506d1d',
@@ -255,8 +256,8 @@ class SpaceFiImplementation(BaseTask):
             swap_info.to_token_name
         )
 
-        from_token_price = await self.get_binance_ticker_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_ticker_price(swap_info.to_token_name)
+        from_token_price = await self.get_binance_price(swap_info.from_token_name)
+        second_token_price = await self.get_binance_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
             / second_token_price
@@ -270,10 +271,10 @@ class SpaceFiImplementation(BaseTask):
 
 
 # region Random function
-class SpaceFi(BaseTask):
+class SpaceFi(EvmTask):
     async def swap(self) -> bool:
         settings = SpaceFiSettings()
-        client = Client(
+        client = EvmClient(
             account_id=self.client.account_id,
             private_key=self.client.account._private_key,
             network=Networks.zkSync_Era,
