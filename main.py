@@ -9,6 +9,7 @@ from tasks import SyncSwap
 
 async def main():
     client = EvmClient(account_id=2, private_key=PRIVATE_KEYS[0], network=Networks.zkSync_Era)
+    
     sync_swap = SyncSwap(client=client)
     swap_info = OperationInfo(
         from_network=Networks.zkSync_Era,
