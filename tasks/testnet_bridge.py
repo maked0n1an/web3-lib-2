@@ -4,7 +4,7 @@ import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
 from data.config import MODULES_SETTINGS_FILE_PATH
-from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import TokenContractData
 from libs.async_eth_lib.models.bridge import BridgeContractDataFetcher, NetworkData
@@ -13,7 +13,8 @@ from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
+from tasks._common.evm_task import EvmTask
+from tasks._common.utils import RandomChoiceHelper, StandardSettings
 from tasks.config import get_testnet_bridge_routes
 
 # region Settings
@@ -68,7 +69,7 @@ class TestnetBridgeContracts:
 
 
 # region Implementation
-class TestnetBridgeImplementation(BaseTask):
+class TestnetBridgeImplementation(EvmTask):
     async def bridge(
         self,
         bridge_info: OperationInfo
@@ -245,7 +246,7 @@ class TestnetBridgeData(BridgeContractDataFetcher):
 
 
 # region Random function
-class TestnetBridge(BaseTask):
+class TestnetBridge(EvmTask):
     async def bridge(self) -> bool:
         settings = TestnetBridgeSettings()
         bridge_routes = get_testnet_bridge_routes()
@@ -258,7 +259,7 @@ class TestnetBridge(BaseTask):
             message='Started to search enough balance for bridge'
         )
         for network in random_networks:
-            client = Client(
+            client = EvmClient(
                 account_id=self.client.account_id,
                 private_key=self.client.account._private_key,
                 network=network,

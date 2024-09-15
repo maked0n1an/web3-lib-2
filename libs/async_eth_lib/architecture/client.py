@@ -16,7 +16,7 @@ from ..models import exceptions as exceptions
 from ..data.networks import Networks
 
 
-class Client:
+class EvmClient:
     network: Network
     account: LocalAccount | None
     w3: Web3

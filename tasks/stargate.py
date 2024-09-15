@@ -1,23 +1,23 @@
 import random
 from typing import Tuple
 
-import web3.exceptions as web3_exceptions
 from eth_abi import abi
 from eth_typing import HexStr
 from web3.types import TxParams
+import web3.exceptions as web3_exceptions
 
 from data.config import MODULES_SETTINGS_FILE_PATH
-from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ContractsFactory, TokenContractData
 from libs.async_eth_lib.models.bridge import NetworkData, NetworkDataFetcher, TokenBridgeInfo
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
+from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
-from libs.pretty_utils.type_functions.dataclasses import FromTo
-from tasks._common.utils import BaseTask, RandomChoiceHelper, StandardSettings
+from tasks._common.evm_task import EvmTask
+from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
 from tasks.config import get_stargate_routes_v1
 
 
@@ -418,7 +418,7 @@ class StargateDataV2(NetworkDataFetcher):
 
 
 # region Implementation
-class StargateImplementation(BaseTask):
+class StargateImplementation(EvmTask, Utils):
     @property
     def token_path(self) -> str:
         return self._token_path
@@ -429,7 +429,7 @@ class StargateImplementation(BaseTask):
         if crosschain_swap_info.to_token_name in StargateDataV1.SPECIAL_COINS:
             self._token_path += crosschain_swap_info.to_token_name
             
-    def __init__(self, client: Client):
+    def __init__(self, client: EvmClient):
         super().__init__(
             client=client
         )
@@ -509,14 +509,14 @@ class StargateImplementation(BaseTask):
         if not await self._check_for_enough_balance(value):
             return False
 
-        token_price = await self.get_binance_ticker_price(
+        token_price = await self.get_binance_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(value.Ether) * token_price
 
         dst_native_amount_price = 0
         if dst_fee:
-            dst_native_token_price = await self.get_binance_ticker_price(
+            dst_native_token_price = await self.get_binance_price(
                 dst_network.coin_symbol
             )
             dst_native_amount_price = (
@@ -638,7 +638,7 @@ class StargateImplementation(BaseTask):
         
         _sendParams = TxArgs(
             dstEid=dst_chain_id,
-            to=self.normalize_non_evm_hex_value(self.client.account.address),
+            to=self.zfill_hex_value(self.client.account.address),
             amountLd=bridge_proposal.amount_from.Wei,
             minAmountLd=bridge_proposal.min_amount_to.Wei,
             extraOptions='0x',
@@ -671,7 +671,7 @@ class StargateImplementation(BaseTask):
         if not await self._check_for_enough_balance(bridge_fee):
             return False
         
-        token_price = await self.get_binance_ticker_price(
+        token_price = await self.get_binance_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(bridge_fee.Ether) * token_price
@@ -710,7 +710,7 @@ class StargateImplementation(BaseTask):
         try:
             tx_params = self.set_all_gas_params(bridge_info, tx_params) 
             
-            tx = await self.client.contract.set_gas_price(tx_params)
+            tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
             
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
@@ -865,7 +865,7 @@ class StargateImplementation(BaseTask):
 
             tx_args = TxArgs(
                 _param=TxArgs(
-                    to=abi.encode(["address"], [address]),
+                    to=self.to_cut_hex_prefix_and_zfill(address),
                     amountLD=bridge_proposal.amount_from.Wei,
                     minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
@@ -917,7 +917,7 @@ class StargateImplementation(BaseTask):
                 ).get_tuple(),
                 _color=color,
                 _param=TxArgs(
-                    to=abi.encode(['address'], [address]),
+                    to=self.to_cut_hex_prefix_and_zfill(address),
                     amountLD=bridge_proposal.amount_from.Wei,
                     minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
@@ -1064,9 +1064,8 @@ class StargateImplementation(BaseTask):
         adapter_params: str,
         use_lz_token: bool = False,
     ) -> TokenAmount:
-        address = abi.encode(
-            ["address"],
-            [self.client.account.address]
+        address = self.to_cut_hex_prefix_and_zfill(
+            self.client.account.address
         )
 
         result = await router_contract.functions.quoteSendFee(
@@ -1106,7 +1105,7 @@ class StargateImplementation(BaseTask):
 
 
 # region Random function
-class Stargate(BaseTask):
+class Stargate(EvmTask):
     async def bridge(self) -> bool:
         settings = StargateSettings()
         bridge_data = get_stargate_routes_v1()
@@ -1120,7 +1119,7 @@ class Stargate(BaseTask):
         )
         
         for network in random_networks:
-            client = Client(
+            client = EvmClient(
                 account_id=self.client.account_id,
                 private_key=self.client.account._private_key,
                 network=network,

@@ -12,7 +12,7 @@ from libs.async_eth_lib.models.operation import OperationInfo, TxPayloadDetails,
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
-from tasks._common.utils import BaseTask
+from tasks._common.evm_task import EvmTask
 
 
 # region Pools and paths
@@ -74,7 +74,7 @@ class MaverickData(TxPayloadDetailsFetcher):
 
 
 # region Implementation
-class Maverick(BaseTask):
+class Maverick(EvmTask):
     MAVERICK_ROUTER = RawContract(
         title="Maverick Router",
         address="0x39E098A153Ad69834a9Dac32f0FCa92066aD03f4",
@@ -92,8 +92,8 @@ class Maverick(BaseTask):
             operation_info=swap_info
         )
 
-        from_token_price = await self.get_binance_ticker_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_ticker_price(swap_info.to_token_name)
+        from_token_price = await self.get_binance_price(swap_info.from_token_name)
+        second_token_price = await self.get_binance_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
             / second_token_price
