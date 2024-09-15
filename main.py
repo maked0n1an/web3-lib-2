@@ -1,14 +1,14 @@
 import asyncio
 
 from data.config import PRIVATE_KEYS
-from libs.async_eth_lib.architecture.client import Client
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.operation import OperationInfo
 from tasks import SyncSwap
 
 
 async def main():
-    client = Client(account_id=2, private_key=PRIVATE_KEYS[0], network=Networks.zkSync_Era)
+    client = EvmClient(account_id=2, private_key=PRIVATE_KEYS[0], network=Networks.zkSync_Era)
     sync_swap = SyncSwap(client=client)
     swap_info = OperationInfo(
         from_network=Networks.zkSync_Era,
