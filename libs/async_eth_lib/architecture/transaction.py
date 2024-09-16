@@ -20,7 +20,7 @@ class Transaction:
         account: LocalAccount,
         network: Network,
         w3: Web3,
-    ) -> None:
+    ):
         self.account = account
         self.network = network
         self.w3 = w3

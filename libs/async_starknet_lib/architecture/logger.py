@@ -19,7 +19,7 @@ class CustomLogger:
     ) -> None:
         self.account_id = account_id
         self.masked_address = (
-            hex(address)[:6] + "..." + hex(address)[-4:]
+            f"{hex(address)[:6]}...{hex(address)[-4:]}"
             if address else ''
         )
         self.network_name = 'Starknet'

@@ -31,7 +31,7 @@ class Contract:
     @lru_cache(maxsize=128)
     def get_abi(
         self,
-        abi_or_path: list | tuple | str | list[dict]
+        abi_or_path: list | tuple | str | list[dict] | None = None
     ) -> list[dict] | None:
         if not isinstance(abi_or_path, (list, tuple, str)):
             return None

@@ -17,10 +17,6 @@ from ..data.networks import Networks
 
 
 class EvmClient:
-    network: Network
-    account: LocalAccount | None
-    w3: Web3
-
     def __init__(
         self,
         account_id: int | str = None,
@@ -29,7 +25,7 @@ class EvmClient:
         proxy: str | None = None,
         check_proxy: bool = True,
         create_log_file_per_account: bool = False
-    ) -> None:
+    ):
         self.account_id = account_id
         self.network = network
         self.proxy = proxy
