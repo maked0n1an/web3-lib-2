@@ -18,7 +18,7 @@ class CustomLogger:
         create_log_file_per_account: bool = False
     ) -> None:
         self.account_id = account_id
-        self.masked_address = address[:6] + "..." + address[-4:]
+        self.masked_address = f"{address[:6]}...{address[-4:]}"
         self.network_name = network_name.capitalize()
         self.create_log_file_per_account = create_log_file_per_account
         if create_log_file_per_account:
@@ -38,12 +38,12 @@ class CustomLogger:
 
             console_handler = logging.StreamHandler(sys.stderr)
             console_handler.setLevel(logging.INFO)
-            console_handler.setFormatter(MainConsoleLogFormatter())
+            console_handler.setFormatter(ConsoleLogFormatter())
             main_logger.addHandler(console_handler)
 
             file_handler = logging.FileHandler(f"{name_of_file}.log")
             file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(MainFileLogFormatter())
+            file_handler.setFormatter(FileLogFormatter())
             main_logger.addHandler(file_handler)
 
             logging.addLevelName(403, LogStatus.FAILED)
@@ -65,7 +65,7 @@ class CustomLogger:
             wallet_logger = logging.getLogger(name_of_file)
             file_handler = logging.FileHandler(f"{name_of_file}.log")
             file_handler.setLevel(logging.INFO)
-            file_handler.setFormatter(AccountFileLogFormatter())
+            file_handler.setFormatter(FileLogFormatter())
             wallet_logger.addHandler(file_handler)
 
             self.LOGGERS[account_id] = wallet_logger
@@ -112,9 +112,7 @@ class CustomLogData(logging.Formatter):
     TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
 
     LOG_TIME_FORMAT = '%(asctime)s |'
-    LOG_LEVELNAME_FORMAT = ' %(levelname)-9s '
-    LOG_MESSAGE_FORMAT = '| %(account_id)8s | %(address)s | %(network)-12s | %(message)s'
-    LOG_MESSAGE_FORMAT_SHORT = '| %(message)s '
+    LOG_LEVELNAME_FORMAT = ' %(levelname)-10s '
 
     RED = "\x1b[31;20m"
     GREEN = "\x1b[32;20m"
@@ -149,14 +147,25 @@ class SettingsLogFormatter(CustomLogData):
     def __init__(
         self,
         log_levelname_format: str | dict,
-        log_message_format: str,
     ) -> logging.Formatter:
-        super().__init__()
         self.log_levelname_format = log_levelname_format
-        self.log_message_format = log_message_format
 
     def format(self, record):
+        format_parts = ['']
+        
+        if record.__dict__.get('account_id'):
+            format_parts.append('%(account_id)8s ')
+        if record.__dict__.get('masked_address'):
+            if not record.__dict__.get('account_id'):
+                format_parts.append('%(account_id)8s ')
+            format_parts.append('%(masked_address)s ')
+        if record.__dict__.get('network_name'):
+            format_parts.append('%(network_name)-12s ')
+        format_parts.append('%(message)s')
+        
+        log_message_format = '| '.join(format_parts)
         levelname = record.levelname
+        
         if isinstance(self.log_levelname_format, dict):
             log_levelname_format = self.log_levelname_format[levelname]
         else:
@@ -164,7 +173,7 @@ class SettingsLogFormatter(CustomLogData):
 
         if levelname in self.FORMATS:
             formatted_message = self.LOG_TIME_FORMAT + \
-                log_levelname_format + self.log_message_format
+                log_levelname_format + log_message_format
             formatter = logging.Formatter(
                 formatted_message,
                 datefmt=self.TIME_FORMAT
@@ -173,56 +182,17 @@ class SettingsLogFormatter(CustomLogData):
         return formatter.format(record)
 
 
-class MainConsoleLogFormatter(SettingsLogFormatter):
+class ConsoleLogFormatter(SettingsLogFormatter):
     def __init__(self):
-        super().__init__(
-            self.FORMATS,
-            self.LOG_MESSAGE_FORMAT,
-        )
+        super().__init__(self.FORMATS)
 
     def format(self, record):
         return super().format(record)
 
 
-class MainFileLogFormatter(SettingsLogFormatter):
+class FileLogFormatter(SettingsLogFormatter):
     def __init__(self):
-        super().__init__(
-            self.LOG_LEVELNAME_FORMAT,
-            self.LOG_MESSAGE_FORMAT,
-        )
-
-    def format(self, record):
-        return super().format(record)
-
-
-class AccountFileLogFormatter(SettingsLogFormatter):
-    def __init__(self):
-        super().__init__(
-            self.LOG_LEVELNAME_FORMAT,
-            self.LOG_MESSAGE_FORMAT,
-        )
-
-    def format(self, record):
-        return super().format(record)
-
-
-class CommonConsoleLogFormatter(SettingsLogFormatter):
-    def __init__(self):
-        super().__init__(
-            self.FORMATS,
-            self.LOG_MESSAGE_FORMAT_SHORT,
-        )
-
-    def format(self, record):
-        return super().format(record)
-
-
-class CommonConsoleFileLogFormatter(SettingsLogFormatter):
-    def __init__(self):
-        super().__init__(
-            self.LOG_LEVELNAME_FORMAT,
-            self.LOG_MESSAGE_FORMAT_SHORT,
-        )
+        super().__init__(self.LOG_LEVELNAME_FORMAT)
 
     def format(self, record):
         return super().format(record)
@@ -238,11 +208,11 @@ class ConsoleLoggerSingleton:
             logger.setLevel(logging.INFO)
 
             console_handler = logging.StreamHandler()
-            console_handler.setFormatter(CommonConsoleLogFormatter())
+            console_handler.setFormatter(ConsoleLogFormatter())
             logger.addHandler(console_handler)
 
             console_handler = logging.FileHandler("main.log")
-            console_handler.setFormatter(CommonConsoleFileLogFormatter())
+            console_handler.setFormatter(FileLogFormatter())
             logger.addHandler(console_handler)
             ConsoleLoggerSingleton._instance = logger
 
