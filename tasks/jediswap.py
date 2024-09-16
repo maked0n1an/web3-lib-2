@@ -27,10 +27,10 @@ class JediSwap(StarknetTask):
         router_abi = ('data', 'abis', 'jediswap', 'router_abi.json')
         
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = await self.client.contract.get_token_contract(
+        from_token_contract = self.client.contract.get_token_contract(
             token=swap_proposal.from_token
         )
-        router_contract = await self.client.contract.get_starknet_contract(
+        router_contract = self.client.contract.get_starknet_contract(
             address=swap_router, abi_or_path=router_abi
         )
         

@@ -63,11 +63,11 @@ class MySwap(StarknetTask):
             return False
 
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = await self.client.contract.get_token_contract(
+        from_token_contract = self.client.contract.get_token_contract(
             token=swap_proposal.from_token
         )
 
-        router_contract = await self.client.contract.get_starknet_contract(
+        router_contract = self.client.contract.get_starknet_contract(
             address=self.ROUTER, abi_or_path=self.ROUTER_ABI
         )
 
@@ -125,14 +125,14 @@ class MySwap(StarknetTask):
 
         dep_proposal = await self.create_operation_proposal(liq_info)
 
-        from_token_contract = await self.client.contract.get_token_contract(
+        from_token_contract = self.client.contract.get_token_contract(
             token=dep_proposal.from_token
         )
-        to_token_contract = await self.client.contract.get_token_contract(
+        to_token_contract = self.client.contract.get_token_contract(
             token=dep_proposal.to_token
         )
 
-        router_contract = await self.client.contract.get_starknet_contract(
+        router_contract = self.client.contract.get_starknet_contract(
             address=self.ROUTER,
             abi_or_path=self.ROUTER_ABI
         )
@@ -211,10 +211,10 @@ class MySwap(StarknetTask):
         )
         try:
             lp_token_amount = await self.client.contract.get_balance(lp_token_address)
-            lp_contract = await self.client.contract.get_starknet_contract(
+            lp_contract = self.client.contract.get_starknet_contract(
                 address=lp_token_address
             )
-            router_contract = await self.client.contract.get_starknet_contract(
+            router_contract = self.client.contract.get_starknet_contract(
                 address=self.ROUTER, abi_or_path=self.ROUTER_ABI
             )
 
