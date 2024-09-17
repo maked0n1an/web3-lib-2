@@ -240,7 +240,7 @@ class EvmTask(PriceUtils):
             )
 
         decimals = await self.client.contract.get_decimals(
-            contract=operation_proposal.to_token
+            token=operation_proposal.to_token
         )
 
         min_amount_out = TokenAmount(

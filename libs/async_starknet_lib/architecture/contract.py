@@ -67,7 +67,7 @@ class Contract:
             amount = (
                 await (token_contract.functions['balanceOf'].call(account_address))
             )[0]
-            decimals = await self.get_decimals(token=token_contract)
+            decimals = await self.get_decimals(token)
         else:
             amount = await self.account.get_balance()
             decimals = 18
@@ -86,19 +86,23 @@ class Contract:
         Retrieve the decimals of a token contract or token address.
 
         Args:
-        - `token` (TokenContract | stark_Contract): 
-            The TokenContract instance or Contract instance.
+        - `token` (TokenContract | stark_Contract | AddressRepresentation): 
+            The TokenContract instance, Contract instance, or token address.
 
         Returns:
         - `int`: The number of decimals for the token.
 
         """
+        if isinstance(token, stark_Contract):
+            return int((await token.functions['decimals'].call())[0])
+        
+        if getattr(token, 'decimals', None) is not None:
+            return token.decimals
+        
+        contract = self.get_token_contract(token)
+        decimals = int((await contract.functions['decimals'].call())[0])
+        
         if isinstance(token, TokenContract):
-            if not token.decimals:
-                contract = self.get_token_contract(token)
-                token.decimals = int((await contract.functions['decimals'].call())[0])
-            decimals = token.decimals
-        elif isinstance(token, stark_Contract):
-            decimals = int((await token.functions['decimals'].call())[0])
+            token.decimals = decimals
 
         return decimals
