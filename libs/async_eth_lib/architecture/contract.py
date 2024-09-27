@@ -318,7 +318,7 @@ class Contract:
         Returns:
             web3_Contract | web3_AsyncContract: The contract instance.
         """
-        contract_address, contract_abi_path = Contract.get_contract_attributes(
+        contract_address, contract_abi_path = self.get_contract_attributes(
             contract=contract
         )
 

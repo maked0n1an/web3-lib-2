@@ -114,7 +114,6 @@ class SettingsLogFormatter(CustomLogData):
         self,
         log_levelname_format: str | dict
     ) -> logging.Formatter:
-        super().__init__()
         self.log_levelname_format = log_levelname_format
 
     def format(self, record):
