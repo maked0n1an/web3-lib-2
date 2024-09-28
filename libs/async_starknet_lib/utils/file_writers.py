@@ -3,7 +3,7 @@ import xlsxwriter
 from pathlib import Path
 from abc import ABC, abstractmethod
 
-from .exceptions import ValidationException 
+from ..models.exceptions import ValidationException 
 
 class Writer(ABC):
     header = ['Address', 'Private Key', 'Mnemonic', 'Wallet Name']
