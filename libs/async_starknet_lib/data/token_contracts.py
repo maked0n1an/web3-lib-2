@@ -3,8 +3,8 @@ from ..models.contract import (
     TokenContract
 )
 from ..models.others import TokenSymbol
-from ..utils.exceptions import ContractNotExists
-from ..utils.classes import Singleton
+from ..models.exceptions import ContractNotExists
+from ..models.common import Singleton
 
 
 class TokenContractData(metaclass=Singleton):
