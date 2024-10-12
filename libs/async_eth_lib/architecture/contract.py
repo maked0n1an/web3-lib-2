@@ -279,8 +279,6 @@ class Contract:
 
         if not amount:
             amount = await self.get_balance(token)
-        if not amount: 
-            return False
 
         if isinstance(amount, float | int):
             amount = TokenAmount(
