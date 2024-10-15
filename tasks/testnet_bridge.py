@@ -170,9 +170,9 @@ class TestnetBridgeImplementation(EvmTask):
                 message = f'Swap'
             
             if receipt['status']:
-                message = f'TestnetBridge | Bridged {rounded_amount_from} {bridge_info.from_token}'
+                message = f'TestnetBridge | Bridged {rounded_amount_from} {bridge_info.from_token_name}'
             else:
-                message = f'TestnetBridge | Failed bridge {rounded_amount_from} {bridge_info.from_token}'
+                message = f'TestnetBridge | Failed bridge {rounded_amount_from} {bridge_info.from_token_name}'
 
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name}'
