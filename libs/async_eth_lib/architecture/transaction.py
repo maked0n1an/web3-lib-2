@@ -1,5 +1,5 @@
 from typing import Any
-from web3 import Web3
+from web3 import Web3, AsyncWeb3
 from web3.types import (
     TxParams
 )
@@ -19,7 +19,7 @@ class Transaction:
         self, 
         account: LocalAccount,
         network: Network,
-        w3: Web3,
+        w3: AsyncWeb3,
     ):
         self.account = account
         self.network = network
@@ -30,7 +30,7 @@ class Transaction:
         pass
     
     async def get_current_block_number(self) -> int:
-        return self.w3.eth.get_block_number
+        return await self.w3.eth.block_number
 
     async def get_nonce(self, address: ChecksumAddress | None = None) -> int:
         """
