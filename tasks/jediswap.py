@@ -2,6 +2,8 @@ import time
 
 from starknet_py.net.client_models import TransactionExecutionStatus
 
+from libs.async_starknet_lib.architecture.client import StarknetClient
+from libs.async_starknet_lib.models.contract import RawContract
 from libs.async_starknet_lib.models.others import (
     LogStatus, 
     TokenSymbol
@@ -21,21 +23,30 @@ AVAILABLE_COINS_FOR_SWAP = [
 
 
 class JediSwap(StarknetTask):
+    @property
+    def raw_router_contract(self):
+        return self.__router_contract
+    
+    def __init__(self, client: StarknetClient):
+        super().__init__(client)
+        self.__router_contract = RawContract(
+            title='JediSwap Router',
+            address=0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023,
+            abi_path=('data', 'abis', 'jediswap', 'router_abi.json')
+        )
+    
     @validate_swap_tokens(AVAILABLE_COINS_FOR_SWAP,'JediSwap')
     async def swap(self, swap_info: OperationInfo):
-        swap_router = 0x041fd22b238fa21cfcf5dd45a8548974d8263b3a531a60388411c5e230f97023
-        router_abi = ('data', 'abis', 'jediswap', 'router_abi.json')
-        
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = self.client.contract.get_token_contract(
-            token=swap_proposal.from_token
+        from_token_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=swap_proposal.from_token
         )
-        router_contract = self.client.contract.get_starknet_contract(
-            address=swap_router, abi_or_path=router_abi
+        router_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=self.raw_router_contract
         )
         
         approve_call = from_token_contract.functions['approve'].prepare_call(
-            spender=swap_router,
+            spender=self.raw_router_contract,
             amount=swap_proposal.amount_from.Wei
         )
         
@@ -102,7 +113,6 @@ class JediSwap(StarknetTask):
         self.client.custom_logger.log_message(
             status=log_status,
             message=message,
-            call_place=__class__.__name__
         )
             
         return result

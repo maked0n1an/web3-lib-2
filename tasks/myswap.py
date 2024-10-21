@@ -1,6 +1,8 @@
 from starknet_py.net.client_models import TransactionExecutionStatus
 
+from libs.async_starknet_lib.architecture.client import StarknetClient
 from libs.async_starknet_lib.data.token_contracts import StarknetTokenContracts
+from libs.async_starknet_lib.models.contract import RawContract
 from libs.async_starknet_lib.utils.decorators import (
     validate_liquidity_tokens,
     validate_swap_tokens
@@ -16,35 +18,57 @@ from tasks._common.starknet_task import StarknetTask
 
 AVAILABLE_FOR_SWAP = [
     TokenSymbol.USDC,
-        TokenSymbol.DAI,
-        TokenSymbol.USDT,
-        TokenSymbol.WBTC,
-        TokenSymbol.ETH
-    ]
+    TokenSymbol.DAI,
+    TokenSymbol.USDT,
+    TokenSymbol.WBTC,
+    TokenSymbol.ETH
+]
 
 AVAILABLE_FOR_D_W = [
     TokenSymbol.ETH + TokenSymbol.USDC,
-        TokenSymbol.DAI + TokenSymbol.ETH,
-        TokenSymbol.ETH + TokenSymbol.USDT,
-    ]
+    TokenSymbol.DAI + TokenSymbol.ETH,
+    TokenSymbol.ETH + TokenSymbol.USDT,
+]
 
 
 class MySwap(StarknetTask):
-    ROUTER = 0x10884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28
-    ROUTER_ABI = ('data', 'abis', 'myswap', 'router_abi.json')
-
-    POOL_IDS = {
-        TokenSymbol.ETH + TokenSymbol.USDC: 1,
-        TokenSymbol.ETH + TokenSymbol.DAI: 2,
-        TokenSymbol.ETH + TokenSymbol.USDT: 4,
-        TokenSymbol.DAI + TokenSymbol.USDC: 6,
-        TokenSymbol.USDC + TokenSymbol.USDT: 5,
-    }
-
+    @property
+    def raw_router_contract(self):
+        return self.__router_contract
+    
+    def __init__(self, client: StarknetClient):
+        super().__init__(client)
+        self.__router_contract = RawContract(
+            title='MySwap Router',
+            address=0x10884171baf1914edc28d7afb619b40a4051cfae78a094a55d230f19e944a28,
+            abi_path=('data', 'abis', 'myswap', 'router_abi.json')
+        )
+        self.__pool_ids = {
+            TokenSymbol.ETH + TokenSymbol.USDC: 1,
+            TokenSymbol.ETH + TokenSymbol.DAI: 2,
+            TokenSymbol.ETH + TokenSymbol.USDT: 4,
+            TokenSymbol.DAI + TokenSymbol.USDC: 6,
+            TokenSymbol.USDC + TokenSymbol.USDT: 5,
+        }
+        self.__liquidity_map = {
+            AVAILABLE_FOR_D_W[0]: {
+                'liquidity_token_address': 0x022b05f9396d2c48183f6deaf138a57522bcc8b35b67dee919f76403d1783136,
+                'pool_id': 1,
+            },
+            AVAILABLE_FOR_D_W[1]: {
+                'liquidity_token_address': 0x07c662b10f409d7a0a69c8da79b397fd91187ca5f6230ed30effef2dceddc5b3,
+                'pool_id': 2,
+            },
+            AVAILABLE_FOR_D_W[2]: {
+                'liquidity_token_address': 0x041f9a1e9a4d924273f5a5c0c138d52d66d2e6a8bee17412c6b0f48fe059ae04,
+                'pool_id': 4,
+            }
+        }
+    
     def _get_pool_id(self, from_token: str, to_token: str):
-        pool_id = self.POOL_IDS.get(from_token + to_token)
+        pool_id = self.__pool_ids.get(from_token + to_token)
         if pool_id is None:
-            pool_id = self.POOL_IDS.get(to_token + from_token)
+            pool_id = self.__pool_ids.get(to_token + from_token)
             if pool_id is None:
                 self.client.custom_logger.log_message(
                     LogStatus.ERROR,
@@ -63,16 +87,15 @@ class MySwap(StarknetTask):
             return False
 
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = self.client.contract.get_token_contract(
-            token=swap_proposal.from_token
+        from_token_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=swap_proposal.from_token
         )
-
-        router_contract = self.client.contract.get_starknet_contract(
-            address=self.ROUTER, abi_or_path=self.ROUTER_ABI
+        router_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=self.raw_router_contract
         )
 
         approve_call = from_token_contract.functions['approve'].prepare_call(
-            spender=self.ROUTER,
+            spender=router_contract.address,
             amount=swap_proposal.amount_from.Wei
         )
         swap_call = router_contract.functions['swap'].prepare_call(
@@ -122,30 +145,28 @@ class MySwap(StarknetTask):
     @validate_liquidity_tokens(AVAILABLE_FOR_D_W, 'MySwap')
     async def add_liquidity(self, liq_info: OperationInfo):
         pool_name = liq_info.from_token_name + liq_info.to_token_name
-
         dep_proposal = await self.create_operation_proposal(liq_info)
 
-        from_token_contract = self.client.contract.get_token_contract(
-            token=dep_proposal.from_token
+        from_token_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=dep_proposal.from_token
         )
-        to_token_contract = self.client.contract.get_token_contract(
-            token=dep_proposal.to_token
+        to_token_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=dep_proposal.to_token
         )
 
-        router_contract = self.client.contract.get_starknet_contract(
-            address=self.ROUTER,
-            abi_or_path=self.ROUTER_ABI
+        router_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=self.raw_router_contract
         )
 
         from_token_approve_call = (
             from_token_contract.functions['approve'].prepare_call(
-                spender=self.ROUTER,
+                spender=router_contract.address,
                 amount=dep_proposal.amount_from.Wei
             )
         )
         to_token_approve_call = (
             to_token_contract.functions['approve'].prepare_call(
-                spender=self.ROUTER,
+                spender=router_contract.address,
                 amount=dep_proposal.min_amount_to.Wei
             )
         )
@@ -205,17 +226,17 @@ class MySwap(StarknetTask):
     @validate_liquidity_tokens(AVAILABLE_FOR_D_W, 'MySwap')
     async def withdraw_liquidity(self, liq_info: OperationInfo):
         pool_name = liq_info.from_token_name + liq_info.to_token_name
-        pool_id = MySwapLiquidity.LIQUIDITY_MAP[pool_name]['pool_id']
+        pool_id = self.__liquidity_map[pool_name]['pool_id']
         lp_token_address = (
-            MySwapLiquidity.LIQUIDITY_MAP[pool_name]['liquidity_token_address']
+            self.__liquidity_map[pool_name]['liquidity_token_address']
         )
         try:
             lp_token_amount = await self.client.contract.get_balance(lp_token_address)
             lp_contract = self.client.contract.get_starknet_contract(
                 address=lp_token_address
             )
-            router_contract = self.client.contract.get_starknet_contract(
-                address=self.ROUTER, abi_or_path=self.ROUTER_ABI
+            router_contract = self.client.contract.get_starknet_contract_from_raw(
+                contract=self.raw_router_contract
             )
 
             # calculate min amount tokenA and tokenB
@@ -248,7 +269,7 @@ class MySwap(StarknetTask):
             )
 
             approve_call = lp_contract.functions['approve'].prepare_call(
-                spender=self.ROUTER,
+                spender=router_contract.address,
                 amount=lp_token_amount.Wei
             )
             withdraw_liquidity_call = router_contract.functions['withdraw_liquidity'].prepare_call(
@@ -296,22 +317,3 @@ class MySwap(StarknetTask):
             result = False
 
         return result
-
-# region Liquidity options
-
-
-class MySwapLiquidity:
-    LIQUIDITY_MAP = {
-        AVAILABLE_FOR_D_W[0]: {
-            'liquidity_token_address': 0x022b05f9396d2c48183f6deaf138a57522bcc8b35b67dee919f76403d1783136,
-            'pool_id': 1,
-        },
-        AVAILABLE_FOR_D_W[1]: {
-            'liquidity_token_address': 0x07c662b10f409d7a0a69c8da79b397fd91187ca5f6230ed30effef2dceddc5b3,
-            'pool_id': 2,
-        },
-        AVAILABLE_FOR_D_W[2]: {
-            'liquidity_token_address': 0x041f9a1e9a4d924273f5a5c0c138d52d66d2e6a8bee17412c6b0f48fe059ae04,
-            'pool_id': 4,
-        }
-    }
