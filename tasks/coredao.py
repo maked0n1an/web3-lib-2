@@ -126,17 +126,19 @@ class CoreDaoData(BridgeContractDataFetcher):
 # region Coredao
 class CoreDaoBridgeImplementation(EvmTask):
     async def bridge(self, bridge_info: OperationInfo) -> str:
+        is_result = False
         check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
             param_type='networks'
         )
+        
         if check_message:
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR, message=check_message
             )
 
-            return False
+            return is_result
         
         from_network_name = self.client.network.name.capitalize()
         to_network_name = bridge_info.to_network.name.capitalize()
@@ -157,7 +159,7 @@ class CoreDaoBridgeImplementation(EvmTask):
                 status=LogStatus.ERROR,
                 message=f'Can not get fee to bridge in {from_network_name.capitalize()}'
             )
-            return False
+            return is_result
 
         native_balance = await self.client.contract.get_balance()
         value = TokenAmount(
@@ -177,7 +179,7 @@ class CoreDaoBridgeImplementation(EvmTask):
                     f'{self.client.network.coin_symbol};'
                 )
             )
-            return False
+            return is_result
 
         if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
@@ -208,35 +210,32 @@ class CoreDaoBridgeImplementation(EvmTask):
 
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
+            is_result = receipt['status']
             
-            if receipt['status']:
+            if is_result:
                 status = LogStatus.BRIDGED
                 message = ''
+                
             else:
                 status = LogStatus.FAILED
                 message = f'Bridge'
-
+            
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {from_network_name} -> {rounded_amount_to} '
                 f'{bridge_info.to_token_name} in {to_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'Try to make slippage more'
-        except Exception as e:
-            error = str(e)
             status = LogStatus.ERROR
-            message = error
-                
+        except Exception as e:
+            message = str(e)
+            status = LogStatus.ERROR
+        
         self.client.custom_logger.log_message(status, message)
 
-        return False
+        return is_result
 
     async def _prepare_params(
         self,

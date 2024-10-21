@@ -129,9 +129,8 @@ class SpaceFiImplementation(EvmTask, Utils):
         self,
         swap_info: OperationInfo
     ) -> bool:
-        contract = await self.client.contract.get(
-            contract=self.SPACE_FI_ROUTER
-        )
+        is_result = False
+        contract = await self.client.contract.get(self.SPACE_FI_ROUTER)
         account_address = self.client.account.address
 
         swap_proposal = await self._create_swap_proposal(swap_info=swap_info)
@@ -207,13 +206,14 @@ class SpaceFiImplementation(EvmTask, Utils):
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
-
+            is_result = receipt['status']
+            
             if receipt['status']:
-                status = LogStatus.SWAPPED
+                log_status = LogStatus.SWAPPED
                 message = ''
 
             else:
-                status = LogStatus.FAILED
+                log_status = LogStatus.FAILED
                 message = f'Failed swap'
 
             message += (
@@ -221,28 +221,21 @@ class SpaceFiImplementation(EvmTask, Utils):
                 f' -> {rounded_amount_to} {swap_info.to_token_name}: '
                 f'{full_path + tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(
-                status, message
-            )
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'Try to make slippage more'
+            log_status = LogStatus.ERROR
         except Exception as e:
-            error = str(e)
-            status = LogStatus.ERROR
-
-            if 'insufficient funds for gas + value' in error:
+            if 'insufficient funds for gas + value' in str(e):
                 message = 'Insufficient funds for gas + value'
                 
             else:
-                message = error
+                message = str(e)
                 
-        self.client.custom_logger.log_message(status, message)
+            log_status = LogStatus.ERROR
+        
+        self.client.custom_logger.log_message(log_status, message)
 
-        return False
+        return is_result
     
     async def _create_swap_proposal(
         self,

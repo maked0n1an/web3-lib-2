@@ -421,19 +421,18 @@ class StargateDataV2(NetworkDataFetcher):
 class StargateImplementation(EvmTask, Utils):
     @property
     def token_path(self) -> str:
-        return self._token_path
+        return self.__token_path
 
     @token_path.setter
     def token_path(self, crosschain_swap_info: OperationInfo):
-        self._token_path = crosschain_swap_info.from_token_name
+        self.__token_path = crosschain_swap_info.from_token_name
         if crosschain_swap_info.to_token_name in StargateDataV1.SPECIAL_COINS:
-            self._token_path += crosschain_swap_info.to_token_name
+            self.__token_path += crosschain_swap_info.to_token_name
             
     def __init__(self, client: EvmClient):
-        super().__init__(
-            client=client
-        )
-        self.src_network_name = self.client.network.name.upper()
+        super().__init__(client)
+        self.__src_network_name = self.client.network.name.upper()
+        self.__token_path = None
 
     async def bridge_v1(
         self,
@@ -441,6 +440,7 @@ class StargateImplementation(EvmTask, Utils):
         max_fee: float = 0.7,
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
+        is_result = False
         check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
@@ -452,13 +452,13 @@ class StargateImplementation(EvmTask, Utils):
                 status=LogStatus.ERROR, message=check_message
             )
 
-            return False
+            return is_result
         
         self.token_path = bridge_info
         dst_network_name_upper = bridge_info.to_network.name.upper()
 
         src_bridge_info = StargateDataV1.get_token_bridge_info(
-            network_name=self.src_network_name,
+            network_name=self.__src_network_name,
             token_symbol=self.token_path
         )
         bridge_info = self._config_slippage_and_gas_price(
@@ -495,10 +495,10 @@ class StargateImplementation(EvmTask, Utils):
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
-                    f'Can not get value for ({self.src_network_name})'
+                    f'Can not get value for ({self.__src_network_name})'
                 )
             )
-            return False
+            return is_result
         
         value = TokenAmount(
             amount=tx_params['value'],
@@ -507,7 +507,7 @@ class StargateImplementation(EvmTask, Utils):
         )
 
         if not await self._check_for_enough_balance(value):
-            return False
+            return is_result
 
         token_price = await self.get_binance_price(
             first_token=self.client.network.coin_symbol
@@ -532,7 +532,7 @@ class StargateImplementation(EvmTask, Utils):
                 )
             )
 
-            return False
+            return is_result
 
         if not bridge_proposal.from_token.is_native_token:
             optional_tx_hash = await self.approve_interface(
@@ -569,40 +569,36 @@ class StargateImplementation(EvmTask, Utils):
             
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
-
-            if receipt['status']:
-                status = LogStatus.BRIDGED
+            is_result = receipt['status']
+            
+            if is_result:
+                log_status = LogStatus.BRIDGED
                 message = 'V1 '
             else:
-                status = LogStatus.FAILED
+                log_status = LogStatus.FAILED
                 message = f'Bridge V1 '
-
+            
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
-                f'from {self.src_network_name} -> {rounded_amount_to} '
+                f'from {self.__src_network_name} -> {rounded_amount_to} '
                 f'{bridge_info.to_token_name} in {dst_network_name_upper}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'V1: Try to make slippage more'
+            log_status = LogStatus.ERROR
         except Exception as e:
-            error = str(e)
-            status = LogStatus.ERROR
-
-            if 'insufficient funds for gas + value' in error:
+            if 'insufficient funds for gas + value' in str(e):
                 message = 'Insufficient funds for gas + value'
 
             else:
-                message = error
-                
-        self.client.custom_logger.log_message(status, message)
+                message = str(e)
+            
+            log_status = LogStatus.ERROR
+        
+        self.client.custom_logger.log_message(log_status, message)
 
-        return False
+        return is_result
 
     async def bridge_v2(
         self,
@@ -610,6 +606,7 @@ class StargateImplementation(EvmTask, Utils):
         bridge_type: str = StargateDataV2.BUS,
         max_fee: float = 0.7,
     ) -> bool:
+        is_result = False
         self.token_path = bridge_info
         dst_network_name = bridge_info.to_network.name.upper()
         
@@ -669,7 +666,7 @@ class StargateImplementation(EvmTask, Utils):
         )
         
         if not await self._check_for_enough_balance(bridge_fee):
-            return False
+            return is_result
         
         token_price = await self.get_binance_price(
             first_token=self.client.network.coin_symbol
@@ -685,7 +682,7 @@ class StargateImplementation(EvmTask, Utils):
                 )
             )
 
-            return False    
+            return is_result    
         
         if not bridge_proposal.from_token.is_native_token:
             optional_tx_hash = await self.approve_interface(
@@ -716,8 +713,9 @@ class StargateImplementation(EvmTask, Utils):
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
             bridge_type = StargateDataV2.get_bridge_type_name(bridge_type)
-
-            if receipt['status']:
+            is_result = receipt['status']
+            
+            if is_result:
                 status = LogStatus.BRIDGED
                 message = f'V2 \'{bridge_type}\' '
             else:
@@ -726,30 +724,25 @@ class StargateImplementation(EvmTask, Utils):
 
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
-                f'from {self.src_network_name} -> {rounded_amount_to} '
+                f'from {self.__src_network_name} -> {rounded_amount_to} '
                 f'{bridge_info.to_token_name} in {dst_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'V2: Try to make slippage more'
-        except Exception as e:
-            error = str(e)
             status = LogStatus.ERROR
-
-            if 'insufficient funds for gas + value' in error:
+        except Exception as e:
+            if 'insufficient funds for gas + value' in str(e):
                 message = 'Insufficient funds for gas + value'
 
             else:
-                message = error
+                message = str(e)
+                
+            status = LogStatus.ERROR
                 
         self.client.custom_logger.log_message(status, message)
 
-        return False
+        return is_result
 
     def _config_slippage_and_gas_price(
         self,
@@ -772,9 +765,9 @@ class StargateImplementation(EvmTask, Utils):
         bridge_info.slippage = round(random.uniform(slippage.from_, slippage.to_), 1)
         gas_prices = slip_and_gas_dict.pop('gas_prices', None)
 
-        if gas_prices and self.src_network_name in gas_prices:
+        if gas_prices and self.__src_network_name in gas_prices:
             bridge_info.gas_price = (
-               gas_prices[self.src_network_name]
+               gas_prices[self.__src_network_name]
             )
 
         return bridge_info
@@ -1023,7 +1016,6 @@ class StargateImplementation(EvmTask, Utils):
         )
 
         return False
-    
 
 
     async def _estimate_send_tokens_fee(

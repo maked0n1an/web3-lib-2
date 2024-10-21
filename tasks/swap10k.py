@@ -38,6 +38,7 @@ class Swap10k(StarknetTask):
     
     @validate_swap_tokens(AVAILABLE_FOR_SWAP, '10kSwap')
     async def swap(self, swap_info: OperationInfo) -> bool:
+        is_result = False
         swap_proposal = await self.create_operation_proposal(swap_info)
         from_token_contract = self.client.contract.get_starknet_contract_from_raw(
             contract=swap_proposal.from_token
@@ -93,11 +94,11 @@ class Swap10k(StarknetTask):
             if tx_receipt.execution_status == TransactionExecutionStatus.SUCCEEDED:
                 log_status = LogStatus.SWAPPED
                 message = ''
-                result = True
+                is_result = True
+                
             else:
-                log_status = LogStatus.ERROR
+                log_status = LogStatus.FAILED
                 message = 'Failed swap '
-                result = False
 
             message += (
                 f'{rounded_amount_from} {swap_proposal.from_token.title}'
@@ -105,14 +106,10 @@ class Swap10k(StarknetTask):
                 f'https://starkscan.co/tx/{hex(tx_receipt.transaction_hash)}'
             )
         except Exception as e:
-            log_status = LogStatus.FAILED
             message = str(e)
-            result = False
-            
-        self.client.custom_logger.log_message(
-            status=log_status,
-            message=message
-        )
+            log_status = LogStatus.ERROR
+ 
+        self.client.custom_logger.log_message(log_status, message)
 
-        return result
+        return is_result
 # endregion Implementation

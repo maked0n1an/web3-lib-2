@@ -5,6 +5,7 @@ from web3 import Web3
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
+from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.token_contracts import TokenContractData, ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
@@ -75,17 +76,24 @@ class MaverickData(TxPayloadDetailsFetcher):
 
 # region Implementation
 class Maverick(EvmTask):
-    MAVERICK_ROUTER = RawContract(
-        title="Maverick Router",
-        address="0x39E098A153Ad69834a9Dac32f0FCa92066aD03f4",
-        abi_path=("data", "abis", "zksync", "maverick", "router_abi.json")
-    )
+    @property
+    def router_contract(self):
+        return self.__router_contract
+    
+    def __init__(self, client: EvmClient):
+        super().__init__(client)
+        self.__router_contract = RawContract(
+            title="Maverick Router",
+            address="0x39E098A153Ad69834a9Dac32f0FCa92066aD03f4",
+            abi_path=("data", "abis", "zksync", "maverick", "router_abi.json")
+        )
 
     @validate_swap_tokens(MaverickData.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo
     ) -> bool:
+        is_result = False
         is_src_token_eth = swap_info.from_token_name == TokenSymbol.ETH
         
         swap_proposal = await self.compute_source_token_amount(
@@ -114,7 +122,7 @@ class Maverick(EvmTask):
 
         account_address = self.client.account.address
         contract = await self.client.contract.get(
-            contract=self.MAVERICK_ROUTER
+            contract=self.router_contract
         )       
          
         if not is_src_token_eth:
@@ -190,8 +198,9 @@ class Maverick(EvmTask):
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
-
-            if receipt['status']:
+            is_result = receipt['status']
+            
+            if is_result:
                 status = LogStatus.SWAPPED
                 message = ''
 
@@ -204,21 +213,14 @@ class Maverick(EvmTask):
                 f' -> {rounded_amount_to} {swap_proposal.to_token.title}: '
                 f'{full_path + tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'Try to make slippage more'
-        except Exception as e:
-            error = str(e)
             status = LogStatus.ERROR
-            message = error
+        except Exception as e:
+            message = str(e)
+            status = LogStatus.ERROR
 
         self.client.custom_logger.log_message(status, message)
 
-        return False
+        return is_result
 # endregion Implementation
-
-

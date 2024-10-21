@@ -37,6 +37,7 @@ class JediSwap(StarknetTask):
     
     @validate_swap_tokens(AVAILABLE_COINS_FOR_SWAP,'JediSwap')
     async def swap(self, swap_info: OperationInfo):
+        is_result = False
         swap_proposal = await self.create_operation_proposal(swap_info)
         from_token_contract = self.client.contract.get_starknet_contract_from_raw(
             contract=swap_proposal.from_token
@@ -55,8 +56,8 @@ class JediSwap(StarknetTask):
             swap_args = {
                 'amountOut': swap_proposal.amount_from.Wei,
                 'amountInMax': swap_proposal.min_amount_to.Wei,
-                
             }
+            
         else:
             function_name = 'swap_exact_tokens_for_tokens'
             swap_args = {
@@ -94,11 +95,10 @@ class JediSwap(StarknetTask):
             if tx_receipt.execution_status == TransactionExecutionStatus.SUCCEEDED:
                 log_status = LogStatus.SWAPPED
                 message = ''
-                result = True
+                is_result = True
             else:
-                log_status = LogStatus.ERROR
+                log_status = LogStatus.FAILED
                 message = 'Failed swap'
-                result = False
                 
             message += (
                 f' {rounded_amount_from} {swap_proposal.from_token.title}'
@@ -106,14 +106,10 @@ class JediSwap(StarknetTask):
                 f'https://starkscan.co/tx/{hex(tx_receipt.transaction_hash)}'
             )
         except Exception as e:
-            log_status = LogStatus.FAILED
+            log_status = LogStatus.ERROR
             message = str(e)
-            result = False
         
-        self.client.custom_logger.log_message(
-            status=log_status,
-            message=message,
-        )
+        self.client.custom_logger.log_message(log_status,message)
             
-        return result
+        return is_result
 # endregion Implementation

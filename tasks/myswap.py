@@ -79,12 +79,13 @@ class MySwap(StarknetTask):
 
     @validate_swap_tokens(AVAILABLE_FOR_SWAP, 'MySwap')
     async def swap(self, swap_info: OperationInfo) -> bool:
+        is_result = False
         pool_id = self._get_pool_id(
             from_token=swap_info.from_token_name,
             to_token=swap_info.to_token_name
         )
         if not pool_id:
-            return False
+            return is_result
 
         swap_proposal = await self.create_operation_proposal(swap_info)
         from_token_contract = self.client.contract.get_starknet_contract_from_raw(
@@ -120,11 +121,10 @@ class MySwap(StarknetTask):
             if tx_receipt.execution_status == TransactionExecutionStatus.SUCCEEDED:
                 log_status = LogStatus.SWAPPED
                 message = ''
-                result = True
+                is_result = True
             else:
-                log_status = LogStatus.ERROR
+                log_status = LogStatus.FAILED
                 message = 'Failed swap'
-                result = False
 
             message += (
                 f' {rounded_amount_from} {swap_proposal.from_token.title}'
@@ -132,18 +132,16 @@ class MySwap(StarknetTask):
                 f'https://starkscan.co/tx/{hex(tx_receipt.transaction_hash)}'
             )
         except Exception as e:
-            log_status = LogStatus.FAILED
             message = str(e)
-            result = False
+            log_status = LogStatus.ERROR
+            
+        self.client.custom_logger.log_message(log_status,message)
 
-        self.client.custom_logger.log_message(
-            status=log_status,
-            message=message,
-        )
-        return result
+        return is_result
 
     @validate_liquidity_tokens(AVAILABLE_FOR_D_W, 'MySwap')
     async def add_liquidity(self, liq_info: OperationInfo):
+        is_result = False
         pool_name = liq_info.from_token_name + liq_info.to_token_name
         dep_proposal = await self.create_operation_proposal(liq_info)
 
@@ -196,11 +194,11 @@ class MySwap(StarknetTask):
             if tx_receipt.execution_status == TransactionExecutionStatus.SUCCEEDED:
                 log_status = LogStatus.DEPOSITED
                 message = ''
-                result = True
+                is_result = True
+                
             else:
                 log_status = LogStatus.ERROR
                 message = 'Failed deposit: '
-                result = False
 
             rounded_amount_from = round(dep_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(dep_proposal.min_amount_to.Ether, 5)
@@ -214,14 +212,10 @@ class MySwap(StarknetTask):
         except Exception as e:
             log_status = LogStatus.FAILED
             message = str(e)
-            result = False
 
-        self.client.custom_logger.log_message(
-            status=log_status,
-            message=message,
-        )
+        self.client.custom_logger.log_message(log_status,message)
 
-        return result
+        return is_result
 
     @validate_liquidity_tokens(AVAILABLE_FOR_D_W, 'MySwap')
     async def withdraw_liquidity(self, liq_info: OperationInfo):
