@@ -588,12 +588,7 @@ class StargateImplementation(EvmTask, Utils):
             message = 'V1: Try to make slippage more'
             log_status = LogStatus.ERROR
         except Exception as e:
-            if 'insufficient funds for gas + value' in str(e):
-                message = 'Insufficient funds for gas + value'
-
-            else:
-                message = str(e)
-            
+            message = str(e)
             log_status = LogStatus.ERROR
         
         self.client.custom_logger.log_message(log_status, message)
