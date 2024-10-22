@@ -74,6 +74,7 @@ class TestnetBridgeImplementation(EvmTask):
         self,
         bridge_info: OperationInfo
     ) -> str:
+        is_result = False
         check_message = self.validate_inputs(
             first_arg=self.client.network.name,
             second_arg=bridge_info.to_network.name,
@@ -84,7 +85,7 @@ class TestnetBridgeImplementation(EvmTask):
                 status=LogStatus.ERROR, message=check_message
             )
 
-            return False
+            return is_result
         
         from_network_name = self.client.network.name.capitalize()
         to_network_name = bridge_info.to_network.name.capitalize()
@@ -152,48 +153,34 @@ class TestnetBridgeImplementation(EvmTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.transaction.sign_and_send(
-                tx_params=tx_params
-            )
-            receipt = await tx.wait_for_tx_receipt(
-                web3=self.client.w3
-            )
-
-            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
-
-            if receipt['status']:
-                status = LogStatus.BRIDGED
-                message = ''
-
-            else:
-                status = LogStatus.FAILED
-                message = f'Swap'
+            tx = await self.client.transaction.sign_and_send(tx_params)
+            receipt = await tx.wait_for_tx_receipt(self.client.w3)
             
-            if receipt['status']:
-                message = f'TestnetBridge | Bridged {rounded_amount_from} {bridge_info.from_token_name}'
+            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
+            is_result = receipt['status']
+
+            if is_result:
+                log_status = LogStatus.BRIDGED
+                message = f''
             else:
-                message = f'TestnetBridge | Failed bridge {rounded_amount_from} {bridge_info.from_token_name}'
+                log_status = LogStatus.FAILED
+                message = f'Bridge '
 
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name}'
                 f' from {from_network_name} -> {to_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-                
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'Try to make slippage more'
+            log_status = LogStatus.ERROR
         except Exception as e:
-            error = str(e)
-            status = LogStatus.ERROR
-            message = error
+            message = str(e)
+            log_status = LogStatus.ERROR
 
-        self.client.custom_logger.log_message(status, message)
+        self.client.custom_logger.log_message(log_status, message)
 
-        return False
+        return is_result
 
     async def _get_estimateSendFee(
         self,
