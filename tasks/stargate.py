@@ -624,8 +624,8 @@ class StargateImplementation(EvmTask, Utils):
             token_symbol=bridge_info.from_token_name
         )
         
-        contract = await self.client.contract.get(
-            contract=bridge_details.bridge_contract
+        contract = self.client.contract.get_evm_contract_from_raw(
+            bridge_details.bridge_contract
         )
         
         _sendParams = TxArgs(
@@ -786,18 +786,18 @@ class StargateImplementation(EvmTask, Utils):
 
         l0_multiplier_fee = 1.06
         address = self.client.account.address
-        router_contract = await self.client.contract.get(
-            contract=token_bridge_info.bridge_contract
+        router_contract = self.client.contract.get_evm_contract_from_raw(
+            token_bridge_info.bridge_contract
         )
         tx_params = TxParams(to=router_contract.address)
         
 
         if bridge_info.from_token_name == TokenSymbol.ETH:
-            router_call_address = (
+            call_address = (
                 await router_contract.functions.stargateRouter().call()
             )
-            router_call_contract = await self.client.contract.get(
-                contract=router_call_address,
+            call_contract = self.client.contract.get_evm_contract_from_raw(
+                address=call_address,
                 abi_or_path=StargateContractsV1.STARGATE_ROUTER_ABI
             )
 
@@ -819,7 +819,7 @@ class StargateImplementation(EvmTask, Utils):
             )
 
             fee = await self._quote_layer_zero_fee(
-                router_contract=router_call_contract,
+                router_contract=call_contract,
                 dst_chain_id=dst_chain_id,
                 lz_tx_params=lz_tx_params,
             )
@@ -829,8 +829,8 @@ class StargateImplementation(EvmTask, Utils):
             and bridge_info.to_token_name == TokenSymbol.USDV
         ):
             msg_contract_address = await router_contract.functions.getRole(3).call()
-            msg_contract = await self.client.contract.get(
-                contract=msg_contract_address,
+            msg_contract = self.client.contract.get_evm_contract(
+                address=msg_contract_address,
                 abi_or_path=StargateContractsV1.STARGATE_MESSAGING_V1_ABI
             )
 
@@ -886,8 +886,8 @@ class StargateImplementation(EvmTask, Utils):
             adapter_params = self.client.w3.to_hex(
                 adapter_params[30:])
 
-            usdv_contract = await self.client.contract.get(
-                contract=bridge_proposal.to_token
+            usdv_contract = self.client.contract.get_evm_contract_from_raw(
+                bridge_proposal.to_token
             )
 
             fee = await self._quote_send_fee(

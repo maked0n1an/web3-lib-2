@@ -130,8 +130,10 @@ class SpaceFiImplementation(EvmTask, Utils):
         swap_info: OperationInfo
     ) -> bool:
         is_result = False
-        contract = await self.client.contract.get(self.SPACE_FI_ROUTER)
         account_address = self.client.account.address
+        contract = self.client.contract.get_evm_contract_from_raw(
+            self.SPACE_FI_ROUTER
+        )
 
         swap_proposal = await self._create_swap_proposal(swap_info=swap_info)
         tx_payload_details = SpaceFiRoutes.get_tx_payload_details(

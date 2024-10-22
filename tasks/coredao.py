@@ -243,7 +243,9 @@ class CoreDaoBridgeImplementation(EvmTask):
         bridge_proposal: OperationProposal,
         bridge_info: OperationInfo,
     ) -> TxParams:
-        contract = await self.client.contract.get(bridge_raw_contract)
+        contract = self.client.contract.get_evm_contract_from_raw(
+            bridge_raw_contract
+        )
         
         callParams = TxArgs(
             refundAddress=self.client.account.address,

@@ -96,8 +96,8 @@ class TestnetBridgeImplementation(EvmTask):
         )
         dst_chain_id = TestnetBridgeData.get_chain_id(to_network_name)
         
-        contract = await self.client.contract.get(
-            contract=bridge_raw_contract
+        contract = self.client.contract.get_evm_contract_from_raw(
+            bridge_raw_contract
         )
 
         bridge_proposal = await self.compute_source_token_amount(bridge_info)
@@ -190,8 +190,8 @@ class TestnetBridgeImplementation(EvmTask):
     ) -> TokenAmount:
         contract_to_get_fee = await contract.functions.oft().call()
 
-        estimate_fee_contract = await self.client.contract.get(
-            contract=contract_to_get_fee,
+        estimate_fee_contract = self.client.contract.get_evm_contract(
+            address=contract_to_get_fee,
             abi_or_path=TestnetBridgeContracts.GET_FEE_ABI_PATH
         )
         

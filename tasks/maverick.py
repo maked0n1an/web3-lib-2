@@ -121,8 +121,8 @@ class Maverick(EvmTask):
             encoded_path_payload += Web3.to_bytes(hexstr=HexStr(address))
 
         account_address = self.client.account.address
-        contract = await self.client.contract.get(
-            contract=self.router_contract
+        contract = self.client.contract.get_evm_contract_from_raw(
+            self.router_contract
         )       
          
         if not is_src_token_eth:

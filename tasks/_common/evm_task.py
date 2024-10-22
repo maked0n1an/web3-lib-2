@@ -51,7 +51,7 @@ class EvmTask(PriceUtils):
         Returns:
             None
         """
-        contract = await client.contract.get(contract=token_address)
+        contract = client.contract.get_token_evm_contract(token_address)
         print('name:', await contract.functions.name().call())
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
@@ -240,7 +240,7 @@ class EvmTask(PriceUtils):
             )
 
         decimals = await self.client.contract.get_decimals(
-            token=operation_proposal.to_token
+            operation_proposal.to_token
         )
 
         min_amount_out = TokenAmount(

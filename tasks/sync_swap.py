@@ -55,8 +55,10 @@ class SyncSwap(EvmTask, Utils):
     @validate_swap_tokens(SYNCSWAP_SWAP_TOKENS)
     async def swap(self, swap_info: OperationInfo) -> bool:
         is_result = False
-        contract = await self.client.contract.get(contract=self.raw_router_contract)
         swap_proposal = await self.compute_source_token_amount(operation_info=swap_info)
+        contract = self.client.contract.get_evm_contract_from_raw(
+            self.raw_router_contract
+        )
 
         is_from_token_eth = swap_info.from_token_name == TokenSymbol.ETH
 
@@ -65,6 +67,7 @@ class SyncSwap(EvmTask, Utils):
 
         if swap_info.to_token_name == TokenSymbol.ETH:
             swap_proposal.to_token = ZkSyncEraTokenContracts.WETH
+            
         else:
             swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
                 token_symbol=swap_info.to_token_name

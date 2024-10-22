@@ -176,8 +176,8 @@ class MuteImplementation(EvmTask):
         swap_info: OperationInfo
     ) -> bool:
         is_result = False
-        contract = await self.client.contract.get(
-            contract=self.raw_router_contract
+        contract = self.client.contract.get_evm_contract_from_raw(
+            self.raw_router_contract
         )
         swap_proposal = await self._create_swap_proposal(
             contract=contract,
