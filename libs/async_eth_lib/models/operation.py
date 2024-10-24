@@ -138,6 +138,11 @@ class TxPayloadDetails:
             self.bool_list = bool_list
             
 class TxPayloadDetailsFetcher:
+    """
+    Derived classes should reassigned 
+        PATHS: dict[str, dict[str: TxPayloadDetails]] = {}
+    from TxPayloadDetailsFetcher to use it's methods
+    """
     PATHS: dict[str, dict[str: TxPayloadDetails]] = {}
 
     @classmethod
