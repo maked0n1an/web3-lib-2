@@ -1,12 +1,12 @@
 from abc import ABC
 
 from .generic import GenericRepository, GenericSqlAlchemyRepository
-from ..models import Stake
+from ..models import StakeORM
 
 
-class StakeRepositoryBase(GenericRepository[Stake], ABC):
+class StakeRepositoryBase(GenericRepository[StakeORM], ABC):
     pass
 
 
-class StakeRepository(GenericSqlAlchemyRepository[Stake], StakeRepositoryBase):
+class StakeRepository(GenericSqlAlchemyRepository[StakeORM], StakeRepositoryBase):
     pass

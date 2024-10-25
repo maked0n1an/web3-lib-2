@@ -1,12 +1,12 @@
 from abc import ABC
 
 from .generic import GenericRepository, GenericSqlAlchemyRepository
-from ..models import Swap
+from ..models import SwapORM
 
 
-class SwapRepositoryBase(GenericRepository[Swap], ABC):
+class SwapRepositoryBase(GenericRepository[SwapORM], ABC):
     pass
 
 
-class SwapRepository(GenericSqlAlchemyRepository[Swap], SwapRepositoryBase):
+class SwapRepository(GenericSqlAlchemyRepository[SwapORM], SwapRepositoryBase):
     pass

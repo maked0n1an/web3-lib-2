@@ -34,7 +34,7 @@ class SqlBaseModel(AsyncAttrs, DeclarativeBase):
 
     @declared_attr.directive
     def __tablename__(cls) -> str:
-        return cls.__name__.lower() + 's'
+        return cls.__name__.split('ORM')[0].lower() + 's'
 
     repr_cols_num = 3
     repr_cols = tuple()
@@ -52,10 +52,10 @@ class SqlBaseModel(AsyncAttrs, DeclarativeBase):
             if col in self.repr_cols or idx < self.repr_cols_num:
                 cols.append(f'{col}={getattr(self, col)}')
 
-        return f'<{self.__class__.__name__}({", ".join(cols)})>'
+        return f'<{self.__class__.__name__} {"| ".join(cols)}>'
 
 
-class Account(SqlBaseModel):
+class AccountORM(SqlBaseModel):
     id: Mapped[int_pk]
     evm_private_key: Mapped[str_66]
     evm_address: Mapped[str_42]
@@ -70,25 +70,25 @@ class Account(SqlBaseModel):
         Index("evm_pk", "evm_private_key"),
     )
 
-    swaps: Mapped[List['Swap']] = relationship(
+    swaps: Mapped[List['SwapORM']] = relationship(
         back_populates='account',
         cascade="all, delete-orphan"
     )
-    mints: Mapped[List['Mint']] = relationship(
+    mints: Mapped[List['MintORM']] = relationship(
         back_populates='account',
         cascade="all, delete-orphan"
     )
-    lendings: Mapped[List["Lending"]] = relationship(
+    lendings: Mapped[List["LendingORM"]] = relationship(
         back_populates='account',
         cascade="all, delete-orphan"
     )
-    stakes: Mapped[List["Stake"]] = relationship(
+    stakes: Mapped[List["StakeORM"]] = relationship(
         back_populates='account',
         cascade="all, delete-orphan"
     )
 
 
-class Mint(SqlBaseModel):
+class MintORM(SqlBaseModel):
     id: Mapped[int_pk]
     nft_name: Mapped[str]
     nft_market_name: Mapped[str]
@@ -101,10 +101,10 @@ class Mint(SqlBaseModel):
     account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
-    account: Mapped['Account'] = relationship(back_populates='mints')
+    account: Mapped['AccountORM'] = relationship(back_populates='mints')
 
 
-class Stake(SqlBaseModel):
+class StakeORM(SqlBaseModel):
     id: Mapped[int_pk]
     platform: Mapped[str]
     amount: Mapped[float]
@@ -117,10 +117,10 @@ class Stake(SqlBaseModel):
     account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
-    account: Mapped['Account'] = relationship(back_populates='stakes')
+    account: Mapped['AccountORM'] = relationship(back_populates='stakes')
 
 
-class Swap(SqlBaseModel):
+class SwapORM(SqlBaseModel):
     id: Mapped[int_pk]
     trade_pair: Mapped[str]
     dex_name: Mapped[str]
@@ -133,10 +133,10 @@ class Swap(SqlBaseModel):
     account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
-    account: Mapped['Account'] = relationship(back_populates='swaps')
+    account: Mapped['AccountORM'] = relationship(back_populates='swaps')
 
 
-class Lending(SqlBaseModel):
+class LendingORM(SqlBaseModel):
     id: Mapped[int_pk]
     platform: Mapped[str]
     amount: Mapped[float]
@@ -148,4 +148,4 @@ class Lending(SqlBaseModel):
     account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
-    account: Mapped['Account'] = relationship(back_populates='lendings')
+    account: Mapped['AccountORM'] = relationship(back_populates='lendings')
