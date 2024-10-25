@@ -1,15 +1,25 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 from .db_init import async_engine
-from .implementations import AccountRepository
+from .repositories.account import AccountRepository
+from .repositories.mints import MintRepository
+from .repositories.stakes import StakeRepository
+from .repositories.swap import SwapRepository
 
 
 class UnitOfWork:
     accounts: AccountRepository
+    mints: MintRepository
+    swaps: SwapRepository
+    stakes: StakeRepository
         
     async def __aenter__(self):
-        self.__session = AsyncSession(bind=async_engine)
+        self.__session = AsyncSession(bind=async_engine,expire_on_commit=False)
         self.accounts = AccountRepository(self.__session)
+        self.mints = MintRepository(self.__session)
+        self.swaps = SwapRepository(self.__session)
+        self.stakes = StakeRepository(self.__session)
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):

@@ -2,11 +2,9 @@ from datetime import datetime
 from typing import Annotated, List
 
 from sqlalchemy import (
-    CheckConstraint,
     ForeignKey,
     Index,
     String,
-    Integer,
     func,
 )
 from sqlalchemy.orm import (
@@ -18,15 +16,17 @@ from sqlalchemy.orm import (
 )
 from sqlalchemy.ext.asyncio import AsyncAttrs
 
-int_pk = Annotated[int, mapped_column(primary_key=True)]
-str_66 = Annotated[str, 66]
-str_42 = Annotated[str, 42]
+
+int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
+str_66 = Annotated[str, 66, mapped_column(unique=True)]
+str_42 = Annotated[str, 42, mapped_column(unique=True)]
 created_at = Annotated[datetime, mapped_column(
     server_default=func.now())]
 
-class SqlBaseModel(DeclarativeBase):
+
+class SqlBaseModel(AsyncAttrs, DeclarativeBase):
     id = None
-    
+
     type_annotation_map = {
         str_66: String(66),
         str_42: String(42),
@@ -35,7 +35,7 @@ class SqlBaseModel(DeclarativeBase):
     @declared_attr.directive
     def __tablename__(cls) -> str:
         return cls.__name__.lower() + 's'
-    
+
     repr_cols_num = 3
     repr_cols = tuple()
 
@@ -67,36 +67,25 @@ class Account(SqlBaseModel):
     completed: Mapped[bool] = mapped_column(default=False, server_default='0')
 
     __table_args__ = (
-        Index("evm_pk", "evm_private_key", unique=True),
+        Index("evm_pk", "evm_private_key"),
     )
 
     swaps: Mapped[List['Swap']] = relationship(
-        back_populates='account', cascade="all, delete-orphan"
+        back_populates='account',
+        cascade="all, delete-orphan"
     )
     mints: Mapped[List['Mint']] = relationship(
-        back_populates='account', cascade="all, delete-orphan"
+        back_populates='account',
+        cascade="all, delete-orphan"
     )
     lendings: Mapped[List["Lending"]] = relationship(
-        back_populates='account', cascade="all, delete-orphan"
+        back_populates='account',
+        cascade="all, delete-orphan"
     )
     stakes: Mapped[List["Stake"]] = relationship(
-        back_populates='account', cascade="all, delete-orphan"
+        back_populates='account',
+        cascade="all, delete-orphan"
     )
-
-
-class Swap(SqlBaseModel):
-    id: Mapped[int_pk]
-    account_id: Mapped[int] = mapped_column(
-        ForeignKey('accounts.id', ondelete="CASCADE"))
-    trade_pair: Mapped[str]
-    dex_name: Mapped[str]
-    volume: Mapped[float]
-    volume_usd: Mapped[float]
-    fee: Mapped[float]
-    date: Mapped[created_at]
-    tx_hash: Mapped[str]
-
-    account: Mapped['Account'] = relationship(back_populates='swaps')
 
 
 class Mint(SqlBaseModel):
@@ -108,24 +97,11 @@ class Mint(SqlBaseModel):
     mint_price_in_usd: Mapped[float]
     date: Mapped[created_at]
     tx_hash: Mapped[str]
-    account_id: Mapped[int] = mapped_column(
-        ForeignKey('accounts.id', ondelete="CASCADE"))
 
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey('accounts.id', ondelete="CASCADE")
+    )
     account: Mapped['Account'] = relationship(back_populates='mints')
-
-
-class Lending(SqlBaseModel):
-    id: Mapped[int_pk]
-    platform: Mapped[str]
-    amount: Mapped[float]
-    currency: Mapped[str]
-    fee: Mapped[float]
-    date: Mapped[created_at]
-    tx_hash: Mapped[str]
-
-    account_id: Mapped[int] = mapped_column(
-        ForeignKey('accounts.id', ondelete="CASCADE"))
-    account: Mapped['Account'] = relationship(back_populates='lendings')
 
 
 class Stake(SqlBaseModel):
@@ -139,5 +115,37 @@ class Stake(SqlBaseModel):
     tx_hash: Mapped[str]
 
     account_id: Mapped[int] = mapped_column(
-        ForeignKey('accounts.id', ondelete="CASCADE"))
+        ForeignKey('accounts.id', ondelete="CASCADE")
+    )
     account: Mapped['Account'] = relationship(back_populates='stakes')
+
+
+class Swap(SqlBaseModel):
+    id: Mapped[int_pk]
+    trade_pair: Mapped[str]
+    dex_name: Mapped[str]
+    volume: Mapped[float]
+    volume_usd: Mapped[float]
+    fee: Mapped[float]
+    date: Mapped[created_at]
+    tx_hash: Mapped[str]
+
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey('accounts.id', ondelete="CASCADE")
+    )
+    account: Mapped['Account'] = relationship(back_populates='swaps')
+
+
+class Lending(SqlBaseModel):
+    id: Mapped[int_pk]
+    platform: Mapped[str]
+    amount: Mapped[float]
+    currency: Mapped[str]
+    fee: Mapped[float]
+    date: Mapped[created_at]
+    tx_hash: Mapped[str]
+
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey('accounts.id', ondelete="CASCADE")
+    )
+    account: Mapped['Account'] = relationship(back_populates='lendings')
