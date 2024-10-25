@@ -1,10 +1,10 @@
 from abc import ABC
 
-from .generic import GenericSqlAlchemyRepository
+from .generic import GenericRepository, GenericSqlAlchemyRepository
 from ..models import Swap
 
 
-class SwapRepositoryBase(ABC):
+class SwapRepositoryBase(GenericRepository[Swap], ABC):
     pass
 
 

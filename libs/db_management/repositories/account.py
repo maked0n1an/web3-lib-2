@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 
-from .generic import GenericSqlAlchemyRepository
+from .generic import GenericRepository, GenericSqlAlchemyRepository
 from ..models import Account
 
 
-class AccountRepositoryBase(ABC):
+class AccountRepositoryBase(GenericRepository[Account], ABC):
     @abstractmethod
     async def get_by_evm_private_key(self, pk: str) -> Account | None:
         raise NotImplementedError()

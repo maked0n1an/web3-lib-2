@@ -1,10 +1,10 @@
 from abc import ABC
 
+from .generic import GenericRepository, GenericSqlAlchemyRepository
 from ..models import Stake
-from ..repositories.generic import GenericSqlAlchemyRepository
 
 
-class StakeRepositoryBase(ABC):
+class StakeRepositoryBase(GenericRepository[Stake], ABC):
     pass
 
 

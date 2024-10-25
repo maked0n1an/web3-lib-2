@@ -1,10 +1,10 @@
 from abc import ABC
 
-from .generic import GenericSqlAlchemyRepository
+from .generic import GenericRepository, GenericSqlAlchemyRepository
 from ..models import Mint
 
 
-class MintRepositoryBase(ABC):
+class MintRepositoryBase(GenericRepository[Mint], ABC):
     pass
 
 
