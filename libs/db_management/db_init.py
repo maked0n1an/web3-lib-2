@@ -7,7 +7,7 @@ from .models import SqlBaseModel
 async_engine = create_async_engine(
     'sqlite+aiosqlite:///./wallets.db',
     pool_pre_ping=True,
-    echo=True,
+    echo=False,
     future=True
 )
 

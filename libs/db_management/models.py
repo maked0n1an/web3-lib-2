@@ -18,8 +18,10 @@ from sqlalchemy.ext.asyncio import AsyncAttrs
 
 
 int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
-str_66 = Annotated[str, 66, mapped_column(unique=True)]
+str_8 = Annotated[str, 8]
+str_30 = Annotated[str, 30]
 str_42 = Annotated[str, 42, mapped_column(unique=True)]
+str_66 = Annotated[str, 66, mapped_column(unique=True)]
 created_at = Annotated[datetime, mapped_column(
     server_default=func.now())]
 
@@ -30,6 +32,8 @@ class SqlBaseModel(AsyncAttrs, DeclarativeBase):
     type_annotation_map = {
         str_66: String(66),
         str_42: String(42),
+        str_30: String(25),
+        str_8: String(8)
     }
 
     @declared_attr.directive
@@ -70,16 +74,11 @@ class AccountORM(SqlBaseModel):
     __table_args__ = (
         Index("evm_pk", "evm_private_key"),
     )
-
-    swaps: Mapped[List['SwapORM']] = relationship(
+    bridges: Mapped[List['BridgeORM']] = relationship(
         back_populates='account',
-        cascade="all, delete-orphan"
+        cascade='all, delete-orphan'
     )
     mints: Mapped[List['MintORM']] = relationship(
-        back_populates='account',
-        cascade="all, delete-orphan"
-    )
-    lendings: Mapped[List["LendingORM"]] = relationship(
         back_populates='account',
         cascade="all, delete-orphan"
     )
@@ -87,15 +86,38 @@ class AccountORM(SqlBaseModel):
         back_populates='account',
         cascade="all, delete-orphan"
     )
+    swaps: Mapped[List['SwapORM']] = relationship(
+        back_populates='account',
+        cascade="all, delete-orphan"
+    )
+
+class BridgeORM(SqlBaseModel):
+    id: Mapped[int_pk]
+    from_network: Mapped[str_30]
+    to_network: Mapped[str_30]
+    src_amount: Mapped[float]
+    src_token: Mapped[str_8]
+    dst_amount: Mapped[float]
+    dst_token: Mapped[str_8]
+    fee: Mapped[float]
+    fee_in_usd: Mapped[float]
+    platform: Mapped[str_30]
+    date: Mapped[created_at]
+    tx_hash: Mapped[str]
+    
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey('accounts.id', ondelete="CASCADE")
+    )
+    account: Mapped['AccountORM'] = relationship(back_populates='bridges')
 
 
 class MintORM(SqlBaseModel):
     id: Mapped[int_pk]
-    nft_name: Mapped[str]
-    nft_market_name: Mapped[str]
-    nft_quantity_by_mint: Mapped[str]
+    nft: Mapped[str]
+    nft_quantity_by_mint: Mapped[int]
     mint_price: Mapped[float]
     mint_price_in_usd: Mapped[float]
+    platform: Mapped[str_30]
     date: Mapped[created_at]
     tx_hash: Mapped[str]
 
@@ -107,11 +129,11 @@ class MintORM(SqlBaseModel):
 
 class StakeORM(SqlBaseModel):
     id: Mapped[int_pk]
-    platform: Mapped[str]
+    token: Mapped[str_8]
     amount: Mapped[float]
-    currency: Mapped[str]
     reward_rate: Mapped[float]
-    unfreeze_date: Mapped[datetime | None]
+    unfreeze_date: Mapped[datetime | None]    
+    platform: Mapped[str_30]
     date: Mapped[created_at]
     tx_hash: Mapped[str]
 
@@ -123,11 +145,15 @@ class StakeORM(SqlBaseModel):
 
 class SwapORM(SqlBaseModel):
     id: Mapped[int_pk]
-    trade_pair: Mapped[str]
-    dex_name: Mapped[str]
-    volume: Mapped[float]
+    network: Mapped[str_30]
+    src_amount: Mapped[float]
+    src_token: Mapped[str_8]
+    dst_amount: Mapped[float]
+    dst_token: Mapped[str_8]
     volume_usd: Mapped[float]
     fee: Mapped[float]
+    fee_in_usd: Mapped[float]
+    platform: Mapped[str_30]
     date: Mapped[created_at]
     tx_hash: Mapped[str]
 
@@ -135,18 +161,3 @@ class SwapORM(SqlBaseModel):
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
     account: Mapped['AccountORM'] = relationship(back_populates='swaps')
-
-
-class LendingORM(SqlBaseModel):
-    id: Mapped[int_pk]
-    platform: Mapped[str]
-    amount: Mapped[float]
-    currency: Mapped[str]
-    fee: Mapped[float]
-    date: Mapped[created_at]
-    tx_hash: Mapped[str]
-
-    account_id: Mapped[int] = mapped_column(
-        ForeignKey('accounts.id', ondelete="CASCADE")
-    )
-    account: Mapped['AccountORM'] = relationship(back_populates='lendings')

@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 
 from .db_init import async_engine
+from .repositories.bridges import BridgeRepository
 from .repositories.account import AccountRepository
 from .repositories.mints import MintRepository
 from .repositories.stakes import StakeRepository
@@ -10,16 +11,18 @@ from .repositories.swap import SwapRepository
 
 class UnitOfWork:
     accounts: AccountRepository
+    bridges: BridgeRepository
     mints: MintRepository
-    swaps: SwapRepository
     stakes: StakeRepository
+    swaps: SwapRepository
         
     async def __aenter__(self):
         self.__session = AsyncSession(bind=async_engine,expire_on_commit=False)
         self.accounts = AccountRepository(self.__session)
+        self.bridges = BridgeRepository(self.__session)
         self.mints = MintRepository(self.__session)
-        self.swaps = SwapRepository(self.__session)
         self.stakes = StakeRepository(self.__session)
+        self.swaps = SwapRepository(self.__session)
         return self
         
     async def __aexit__(self, exc_type, exc_val, exc_tb):
