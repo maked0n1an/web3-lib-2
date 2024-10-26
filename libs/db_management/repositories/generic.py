@@ -4,7 +4,7 @@ from abc import (
 from typing import (
     Generic, List, Type, TypeVar
 )
-from sqlalchemy import and_, select, update, insert
+from sqlalchemy import select, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,8 +15,6 @@ T = TypeVar("T", bound=SqlBaseModel)
 
 
 class GenericRepository(Generic[T], ABC):
-    model: type[T]
-    
     @abstractmethod
     async def get(self, id: int) -> T | None:
         raise NotImplementedError()
@@ -42,15 +40,16 @@ class GenericRepository(Generic[T], ABC):
         raise NotImplementedError()
 
 
-class GenericSqlAlchemyRepository(GenericRepository[T], ABC):
-    def __init__(self, session: AsyncSession):
+class GenericSqlAlchemyRepository(GenericRepository[T]):
+    def __init__(self, session: AsyncSession, model_cls: Type[T]):
         self.__session = session
+        self.__model_cls = model_cls
 
     async def get(self, id: int) -> T | None:
-        return await self.__session.get(self.model, id)
+        return await self.__session.get(self.__model_cls, id)
 
     async def get_with_filters(self, filters: dict) -> T | None:
-        query = select(self.model).filter_by(**filters).limit(1)
+        query = select(self.__model_cls).filter_by(**filters).limit(1)
         result = await self.__session.execute(query)
         record = result.scalar_one_or_none()
         return record
@@ -61,7 +60,7 @@ class GenericSqlAlchemyRepository(GenericRepository[T], ABC):
         return await self.get_all_with_filters({})
 
     async def get_all_with_filters(self, filters: dict) -> List[T]:
-        query = select(self.model).filter_by(**filters)
+        query = select(self.__model_cls).filter_by(**filters)
         result = await self.__session.execute(query)
         records = result.scalars().all()
         return records
@@ -95,16 +94,16 @@ class GenericSqlAlchemyRepository(GenericRepository[T], ABC):
         try:
             if returning:
                 result = await self.__session.execute(
-                    insert(self.model)
+                    insert(self.__model_cls)
                     .execution_options(render_nulls=True)
-                    .returning(self.model), 
+                    .returning(self.__model_cls), 
                     params=[*values]
                 )
                 await self.__session.flush()
                 return result.scalars().all()
             else:
                 await self.__session.execute(
-                    insert(self.model)
+                    insert(self.__model_cls)
                     .execution_options(render_nulls=True), 
                     params=[*values]
                 )
@@ -187,12 +186,12 @@ class GenericSqlAlchemyRepository(GenericRepository[T], ABC):
         return True
     
     # def _construct_search_query(self, **filters):
-    #     query = select(self.model)
+    #     query = select(self.__model_cls)
     #     where_clauses = []
     #     for attr, value in filters.items():
-    #         if not hasattr(self.model, attr):
+    #         if not hasattr(self.__model_cls, attr):
     #             raise ValueError(f'Invalid column name {attr}')
-    #         where_clauses.append(getattr(self.model, attr) == value)
+    #         where_clauses.append(getattr(self.__model_cls, attr) == value)
 
     #     if len(where_clauses) == 1:
     #         query = query.where(where_clauses[0])

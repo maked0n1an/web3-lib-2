@@ -57,6 +57,7 @@ class SqlBaseModel(AsyncAttrs, DeclarativeBase):
 
 class AccountORM(SqlBaseModel):
     id: Mapped[int_pk]
+    account_name: Mapped[Annotated[str, mapped_column(String(30), nullable=True)]]
     evm_private_key: Mapped[str_66]
     evm_address: Mapped[str_42]
     next_action_time: Mapped[datetime | None]
