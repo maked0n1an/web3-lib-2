@@ -148,10 +148,7 @@ class TestnetBridgeImplementation(EvmTask):
             tx_params['value'] += bridge_proposal.amount_from.Wei      
         
         try:
-            tx_params = self.set_all_gas_params(
-                operation_info=bridge_info,
-                tx_params=tx_params
-            )
+            tx_params = self.set_all_gas_params(bridge_info, tx_params)
 
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)

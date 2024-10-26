@@ -185,12 +185,8 @@ class Maverick(EvmTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.transaction.sign_and_send(
-                tx_params=tx_params
-            )
-            receipt = await tx.wait_for_tx_receipt(
-                web3=self.client.w3
-            )
+            tx = await self.client.transaction.sign_and_send(tx_params)
+            receipt = await tx.wait_for_tx_receipt(self.client.w3)
 
             full_path = (
                 self.client.network.explorer

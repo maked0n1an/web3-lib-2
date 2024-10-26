@@ -183,8 +183,9 @@ class CoreDaoBridgeImplementation(EvmTask):
 
         if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
-                token_address=bridge_proposal.from_token.address,
-                spender=tx_params['to'],
+                operation_info=bridge_info,
+                token_contract=bridge_proposal.from_token,
+                tx_params=tx_params,
                 amount=bridge_proposal.amount_from,
             )
 
@@ -192,7 +193,7 @@ class CoreDaoBridgeImplementation(EvmTask):
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{bridge_proposal.from_token.title}'
+                        f'{bridge_proposal.from_token.title} '
                         f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
@@ -206,7 +207,7 @@ class CoreDaoBridgeImplementation(EvmTask):
                 tx_params=tx_params
             )
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(client=self.client, timeout=300)
+            receipt = await tx.wait_for_tx_receipt(web3=self.client.w3, timeout=300)
 
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)

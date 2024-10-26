@@ -118,7 +118,7 @@ class EvmTask(PriceUtils):
         token_contract: RawContract,
         tx_params: TxParams | dict,
         amount: ParamsTypes.Amount | None = None,
-        is_approve_infinity: bool = None
+        is_approve_infinity: bool = False
     ) -> str | bool:
         """
         Approve spending of a specific amount by a spender on behalf of the owner.

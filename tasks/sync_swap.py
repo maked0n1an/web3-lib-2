@@ -145,11 +145,10 @@ class SyncSwap(EvmTask, Utils):
 
         if swap_info.from_token_name != TokenSymbol.ETH:
             approved = await self.approve_interface(
-                token_contract=swap_proposal.from_token,
-                spender_address=contract.address,
-                amount=swap_proposal.amount_from,
                 operation_info=swap_info,
+                token_contract=swap_proposal.from_token,
                 tx_params=tx_params,
+                amount=swap_proposal.amount_from,
             )
             if approved:
                 self.client.custom_logger.log_message(
@@ -168,8 +167,8 @@ class SyncSwap(EvmTask, Utils):
 
         try:
             tx_params = self.set_all_gas_params(swap_info, tx_params)
+            
             tx = await self.client.transaction.sign_and_send(tx_params)
-
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
 
             account_network = self.client.network
