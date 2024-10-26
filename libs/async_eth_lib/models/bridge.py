@@ -38,8 +38,6 @@ class FetcherBase:
         cls,
         network_name: str
     ) -> NetworkData:
-        network_name = network_name.lower()
-
         if network_name not in cls.NETWORKS_DATA:
             raise exceptions.NetworkNotAdded(
                 f"The '{network_name}' network has not been "

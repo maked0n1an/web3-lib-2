@@ -76,7 +76,7 @@ class WooFi(EvmTask):
             network=self.client.network.name
         )
 
-        contract = await self.client.contract.get(contract=dex_contract)
+        contract = self.client.contract.get_evm_contract_from_raw(dex_contract)
         swap_query = await self.create_swap_proposal(contract=contract, swap_info=swap_info)
 
         args = TxArgs(
@@ -100,10 +100,10 @@ class WooFi(EvmTask):
 
         if not swap_query.from_token.is_native_token:
             await self.approve_interface(
+                operation_info=swap_info,
                 token_contract=swap_query.from_token,
-                spender_address=contract.address,
+                tx_params=tx_params,
                 amount=swap_query.amount_from,
-                tx_params=tx_params
             )
             await sleep(15, 30)
         else:

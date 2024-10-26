@@ -158,19 +158,26 @@ class MuteRoutes(TxPayloadDetailsFetcher):
 
 # region Implementation
 class MuteImplementation(EvmTask):
-    MUTE_UNIVERSAL = RawContract(
-        title='Mute',
-        address='0x8b791913eb07c32779a16750e3868aa8495f5964',
-        abi_path=('data', 'abis', 'zksync', 'mute', 'abi.json')
-    )
+    @property
+    def raw_router_contract(self):
+        return self.__router_contract
+    
+    def __init__(self, client: EvmClient):
+        super.__init__(client)
+        self.__router_contract = RawContract(
+            title='Mute',
+            address='0x8b791913eb07c32779a16750e3868aa8495f5964',
+            abi_path=('data', 'abis', 'zksync', 'mute', 'abi.json')
+        )
 
     @validate_swap_tokens(MuteRoutes.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo
     ) -> bool:
-        contract = await self.client.contract.get(
-            contract=self.MUTE_UNIVERSAL
+        is_result = False
+        contract = self.client.contract.get_evm_contract_from_raw(
+            self.raw_router_contract
         )
         swap_proposal = await self._create_swap_proposal(
             contract=contract,
@@ -229,21 +236,18 @@ class MuteImplementation(EvmTask):
                 tx_params=tx_params
             )
 
-            tx = await self.client.transaction.sign_and_send(
-                tx_params=tx_params
-            )
-            receipt = await tx.wait_for_tx_receipt(
-                web3=self.client.w3
-            )
-
+            tx = await self.client.transaction.sign_and_send(tx_params)
+            receipt = await tx.wait_for_tx_receipt(self.client.w3)
+            
             full_path = (
                 self.client.network.explorer
                 + self.client.network.TX_PATH
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
-
-            if receipt['status']:
+            is_result = receipt['status']
+            
+            if is_result:
                 status = LogStatus.SWAPPED
                 message = ''
 
@@ -256,21 +260,16 @@ class MuteImplementation(EvmTask):
                 f' -> {rounded_amount_to} {swap_info.to_token_name}: '
                 f'{full_path + tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
-            status = LogStatus.ERROR
             message = 'Try to make slippage more'
-        except Exception as e:
-            error = str(e)
             status = LogStatus.ERROR
-            message = error
+        except Exception as e:
+            message = str(e)
+            status = LogStatus.ERROR
 
         self.client.custom_logger.log_message(status, message)
 
-        return False
+        return is_result
 
     async def _create_swap_proposal(
         self,

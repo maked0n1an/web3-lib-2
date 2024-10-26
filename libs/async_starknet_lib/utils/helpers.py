@@ -8,7 +8,7 @@ from aiohttp import (
     ClientSession
 )
 
-from . import exceptions as exceptions
+from ..models import exceptions as exceptions
 
 def center_output(message: str):
     print(f"| {message:^59}|")

@@ -38,16 +38,16 @@ class Contract:
 
         return contract
 
-    def get_token_contract(
+    def get_starknet_contract_from_raw(
         self,
-        token: RawContract | AddressRepresentation
+        contract: RawContract | AddressRepresentation
     ) -> stark_Contract:
-        if isinstance(token, AddressRepresentation):
-            address = token
+        if isinstance(contract, AddressRepresentation):
+            address = contract
             abi = None
         else:
-            address = token.address
-            abi = token.abi_path
+            address = contract.address
+            abi = contract.abi_path
 
         contract = self.get_starknet_contract(address, abi)
 
@@ -62,7 +62,7 @@ class Contract:
             account_address = self.account.address
 
         if token:
-            token_contract = self.get_token_contract(token=token)
+            token_contract = self.get_starknet_contract_from_raw(contract=token)
 
             amount = (
                 await (token_contract.functions['balanceOf'].call(account_address))
@@ -99,7 +99,7 @@ class Contract:
         if getattr(token, 'decimals', None) is not None:
             return token.decimals
         
-        contract = self.get_token_contract(token)
+        contract = self.get_starknet_contract_from_raw(token)
         decimals = int((await contract.functions['decimals'].call())[0])
         
         if isinstance(token, TokenContract):

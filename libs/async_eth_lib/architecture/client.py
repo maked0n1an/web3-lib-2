@@ -3,7 +3,7 @@ import random
 import requests
 
 from fake_useragent import UserAgent
-from web3 import Web3
+from web3 import Web3, AsyncWeb3
 from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
@@ -67,8 +67,8 @@ class EvmClient:
         }
 
     def _init_web3(self) -> Web3:
-        self.w3 = Web3(
-            Web3.AsyncHTTPProvider(
+        self.w3 = AsyncWeb3(
+            AsyncWeb3.AsyncHTTPProvider(
                 endpoint_uri=(
                     random.choice(self.network.rpc)
                     if isinstance(self.network.rpc, list)

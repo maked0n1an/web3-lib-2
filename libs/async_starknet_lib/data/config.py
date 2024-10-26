@@ -1,5 +1,4 @@
 from pathlib import Path
-import json
 
 
 def get_node_urls():

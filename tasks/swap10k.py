@@ -2,6 +2,8 @@ import time
 
 from starknet_py.net.client_models import TransactionExecutionStatus
 
+from libs.async_starknet_lib.architecture.client import StarknetClient
+from libs.async_starknet_lib.models.contract import RawContract
 from libs.async_starknet_lib.utils.decorators import validate_swap_tokens
 from libs.async_starknet_lib.models.operation import OperationInfo
 from libs.async_starknet_lib.models.others import (
@@ -22,17 +24,27 @@ AVAILABLE_FOR_SWAP = [
 
 # region Implementation
 class Swap10k(StarknetTask):
+    @property
+    def raw_router_contract(self):
+        return self.__router_contract
+    
+    def __init__(self, client: StarknetClient):
+        super().__init__(client)
+        self.__router_contract = RawContract(
+            title='10kSwap Router',
+            address=0x07a6f98c03379b9513ca84cca1373ff452a7462a3b61598f0af5bb27ad7f76d1,
+            abi_path=('data', 'abis', '10kswap', 'router_abi.json')
+        )
+    
     @validate_swap_tokens(AVAILABLE_FOR_SWAP, '10kSwap')
     async def swap(self, swap_info: OperationInfo) -> bool:
-        swap_router = 0x07a6f98c03379b9513ca84cca1373ff452a7462a3b61598f0af5bb27ad7f76d1
-        router_abi = ('data', 'abis', '10kswap', 'router_abi.json')
-
+        is_result = False
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = self.client.contract.get_token_contract(
-            token=swap_proposal.from_token
+        from_token_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=swap_proposal.from_token
         )
-        router_contract = self.client.contract.get_starknet_contract(
-            address=swap_router, abi_or_path=router_abi,
+        router_contract = self.client.contract.get_starknet_contract_from_raw(
+            contract=self.raw_router_contract
         )
         
         if swap_proposal.from_token.is_native_token:
@@ -60,7 +72,7 @@ class Swap10k(StarknetTask):
         )
 
         approve_call = from_token_contract.functions['approve'].prepare_call(
-            spender=swap_router,
+            spender=router_contract.address,
             amount=swap_proposal.amount_from.Wei
         )
         swap_call = router_contract.functions[function_name].prepare_call(
@@ -82,11 +94,11 @@ class Swap10k(StarknetTask):
             if tx_receipt.execution_status == TransactionExecutionStatus.SUCCEEDED:
                 log_status = LogStatus.SWAPPED
                 message = ''
-                result = True
+                is_result = True
+                
             else:
-                log_status = LogStatus.ERROR
+                log_status = LogStatus.FAILED
                 message = 'Failed swap '
-                result = False
 
             message += (
                 f'{rounded_amount_from} {swap_proposal.from_token.title}'
@@ -94,15 +106,10 @@ class Swap10k(StarknetTask):
                 f'https://starkscan.co/tx/{hex(tx_receipt.transaction_hash)}'
             )
         except Exception as e:
-            log_status = LogStatus.FAILED
             message = str(e)
-            result = False
-            
-        self.client.custom_logger.log_message(
-            status=log_status,
-            message=message,
-            call_place=__class__.__name__
-        )
+            log_status = LogStatus.ERROR
+ 
+        self.client.custom_logger.log_message(log_status, message)
 
-        return result
+        return is_result
 # endregion Implementation
