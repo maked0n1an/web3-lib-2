@@ -309,21 +309,33 @@ class MuteImplementation(EvmTask):
 class Mute(EvmTask):
     async def swap(self) -> bool:
         settings = MuteSettings()
+        swap_routes = get_mute_paths()
         
-        client = EvmClient(
-            account_id=self.client.account_id,
-            private_key=self.client.account._private_key,
-            network=Networks.zkSync_Era,
-            proxy=self.client.proxy
-        )
+        random_networks = list(swap_routes)
+        random.shuffle(random_networks)
         
-        (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
-            op_name='swap',
-            op_data=get_mute_paths(),
-            op_settings=settings.swap,
-            client=client
-        )
-        
+        for network in random_networks:
+            client = EvmClient(
+                account_id=self.client.account_id,
+                private_key=self.client.account._private_key,
+                network=network,
+                proxy=self.client.proxy
+            )
+            self.client.custom_logger.log_message(
+                status=LogStatus.INFO,
+                message='Started to search enough balance for swap'
+            )
+            
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
+                op_name='swap',
+                op_data=swap_routes,
+                op_settings=settings.swap,
+                client=client
+            )
+            
+            if operation_info:
+                break
+            
         if not dst_data:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,

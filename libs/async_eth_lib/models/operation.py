@@ -17,12 +17,12 @@ class OperationInfo:
         slippage: float = 0.5,
         from_network: Network = Networks.Goerli,
         to_network: Network | None = None,
-        amount: float | None = None,
-        amount_from: float = 0.0,
+        amount: float = 0,
+        amount_from: float = 0,
         amount_to: float | None = None,
         ndigits: int = 5,
-        min_percent: float = 0.0,
-        max_percent: float = 100.0,
+        min_percent: float = 0,
+        max_percent: float = 100,
         gas_price: float | None = None,
         gas_limit: int | None = None,
         multiplier_of_gas: float | None = None
@@ -51,7 +51,7 @@ class OperationInfo:
         self.to_token_name = to_token_name
         self.from_network = from_network
         self.to_network = to_network
-        self.amount = amount
+        self.amount = abs(amount)
         self.slippage = slippage
         self.amount_by_percent = 0
         self.gas_price = gas_price
@@ -76,8 +76,8 @@ class OperationInfo:
 
     def _get_random_amount_by_percent(
         self, 
-        min_percent: int, 
-        max_percent: int,
+        min_percent: float, 
+        max_percent: float,
         ndigits: int
     ) -> float:
         random_percent_amount = random.uniform(min_percent, max_percent) / 100

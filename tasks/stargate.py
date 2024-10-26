@@ -215,6 +215,12 @@ class StargateContractsV2:
         address='0x19cfce47ed54a88614648dc3f19a5980097007dd',
         abi_path=STARGATE_V2_ABI
     )
+    
+    POLYGON_USDT = RawContract(
+        title='StargatePoolMigratable_USDT (POL)',
+        address='0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7',
+        abi_path=STARGATE_V2_ABI
+    )
 # endregion Stargate contracts
 
 
@@ -401,6 +407,9 @@ class StargateDataV2(NetworkDataFetcher):
         Networks.Polygon.name: NetworkData(
             chain_id=30109,
             bridge_dict={
+                TokenSymbol.USDT: TokenBridgeInfo(
+                    bridge_contract=StargateContractsV2.POLYGON_USDT
+                )
             }
         )
     }
@@ -431,7 +440,6 @@ class StargateImplementation(EvmTask, Utils):
             
     def __init__(self, client: EvmClient):
         super().__init__(client)
-        self.__src_network_name = self.client.network.name.upper()
         self.__token_path = None
 
     async def bridge_v1(
@@ -455,10 +463,10 @@ class StargateImplementation(EvmTask, Utils):
             return is_result
         
         self.token_path = bridge_info
-        dst_network_name_upper = bridge_info.to_network.name.upper()
+        dst_network_name_upper = bridge_info.to_network.name
 
         src_bridge_info = StargateDataV1.get_token_bridge_info(
-            network_name=self.__src_network_name,
+            network_name=self.client.network.name,
             token_symbol=self.token_path
         )
         bridge_info = self._config_slippage_and_gas_price(
@@ -495,7 +503,7 @@ class StargateImplementation(EvmTask, Utils):
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
                 message=(
-                    f'Can not get value for ({self.__src_network_name})'
+                    f'Can not get value for ({self.client.network.name})'
                 )
             )
             return is_result
@@ -576,7 +584,7 @@ class StargateImplementation(EvmTask, Utils):
             
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
-                f'from {self.__src_network_name} -> {rounded_amount_to} '
+                f'from {self.client.network.name} -> {rounded_amount_to} '
                 f'{bridge_info.to_token_name} in {dst_network_name_upper}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
@@ -599,7 +607,6 @@ class StargateImplementation(EvmTask, Utils):
     ) -> bool:
         is_result = False
         self.token_path = bridge_info
-        dst_network_name = bridge_info.to_network.name.upper()
         
         bridge_info = self._config_slippage_and_gas_price(
             bridge_info
@@ -756,9 +763,9 @@ class StargateImplementation(EvmTask, Utils):
         bridge_info.slippage = round(random.uniform(slippage.from_, slippage.to_), 1)
         gas_prices = slip_and_gas_dict.pop('gas_prices', None)
 
-        if gas_prices and self.__src_network_name in gas_prices:
+        if gas_prices and self.client.network.name in gas_prices:
             bridge_info.gas_price = (
-               gas_prices[self.__src_network_name]
+               gas_prices[self.client.network.name]
             )
 
         return bridge_info
@@ -1093,7 +1100,7 @@ class Stargate(EvmTask):
         settings = StargateSettings()
         bridge_data = get_stargate_routes_v1()
 
-        random_networks = list(bridge_data.keys())
+        random_networks = list(bridge_data)
         random.shuffle(random_networks)
 
         self.client.custom_logger.log_message(
@@ -1109,7 +1116,7 @@ class Stargate(EvmTask):
                 proxy=self.client.proxy
             )
 
-            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
                 op_name='bridge',
                 op_data=bridge_data,
                 op_settings=settings.bridge,
