@@ -209,6 +209,7 @@ class CoreDaoBridgeImplementation(EvmTask):
             receipt = await tx.wait_for_tx_receipt(web3=self.client.w3, timeout=300)
 
             rounded_amount_from = round(init_bridge_proposal.amount_from.Ether, 5)
+
             is_result = receipt['status']
             
             if is_result:
@@ -218,17 +219,13 @@ class CoreDaoBridgeImplementation(EvmTask):
             else:
                 status = LogStatus.FAILED
                 message = f'Bridge'
-
+            
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {from_network_name} -> {rounded_amount_from} '
                 f'{bridge_info.to_token_name} in {to_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
-
-            self.client.custom_logger.log_message(status, message)
-
-            return receipt['status']
         except web3_exceptions.ContractCustomError as e:
             message = 'Try to make slippage more'
             status = LogStatus.ERROR

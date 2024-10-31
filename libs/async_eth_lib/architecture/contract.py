@@ -103,7 +103,6 @@ class Contract:
 
         return function
     
-
     def get_abi(
         self,
         abi_or_path: str | tuple | list[dict]
