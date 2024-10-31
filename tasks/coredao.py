@@ -28,11 +28,10 @@ class CoreDaoBridgeSettings():
             module_name='coredao',
             action_name='bridge'
         )
-        
 # endregion Settings
 
 
-# region Contracts 
+# region Contracts
 class CoreDaoBridgeContracts:
     TO_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'to_core_bridge_abi.json')
     FROM_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'from_core_bridge_abi.json')
@@ -54,11 +53,11 @@ class CoreDaoBridgeContracts:
         address='0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
         abi_path=TO_CORE_BRIDGE_ABI
     )
-        
+
     OPTIMISM = RawContract(
         title='OriginalTokenBridge (OPTIMISM)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
-        # ShimmerBridge (0x9C6D5a71FdD306329287a835e9B8EDb7F0F17898)    
+        # ShimmerBridge (0x9C6D5a71FdD306329287a835e9B8EDb7F0F17898)
         abi_path=TO_CORE_BRIDGE_ABI
     )
 
@@ -139,25 +138,25 @@ class CoreDaoBridgeImplementation(EvmTask):
             )
 
             return is_result
-        
-        from_network_name = self.client.network.name.capitalize()
-        to_network_name = bridge_info.to_network.name.capitalize()
+
+        from_network_name = self.client.network.name
+        to_network_name = bridge_info.to_network.name
 
         bridge_raw_contract = CoreDaoData.get_only_contract_for_bridge(
             network_name=from_network_name,
             token_symbol=bridge_info.from_token_name
         )
 
-        bridge_proposal = await self.compute_source_token_amount(bridge_info)
+        init_bridge_proposal = await self.compute_source_token_amount(bridge_info)
 
         tx_params = await self._prepare_params(
-            bridge_raw_contract, bridge_proposal, bridge_info
+            bridge_raw_contract, init_bridge_proposal, bridge_info
         )
 
         if not tx_params['value']:
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
-                message=f'Can not get fee to bridge in {from_network_name.capitalize()}'
+                message=f'Can not get fee to bridge in {from_network_name}'
             )
             return is_result
 
@@ -173,7 +172,7 @@ class CoreDaoBridgeImplementation(EvmTask):
                 status=LogStatus.ERROR,
                 message=(
                     f'Too low balance: '
-                    f'balance - {round(native_balance.Ether, 5)} ' 
+                    f'balance - {round(native_balance.Ether, 5)} '
                     f'{self.client.network.coin_symbol}; '
                     f'needed fee to bridge - {round(value.Ether, 5)} '
                     f'{self.client.network.coin_symbol};'
@@ -181,36 +180,34 @@ class CoreDaoBridgeImplementation(EvmTask):
             )
             return is_result
 
-        if not bridge_proposal.from_token.is_native_token:
+        if not init_bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=bridge_info,
-                token_contract=bridge_proposal.from_token,
+                token_contract=init_bridge_proposal.from_token,
                 tx_params=tx_params,
-                amount=bridge_proposal.amount_from,
+                amount=init_bridge_proposal.amount_from,
             )
 
             if is_approved:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{bridge_proposal.from_token.title} '
-                        f'{bridge_proposal.amount_from.Ether}'
+                        f'{init_bridge_proposal.amount_from.Ether} '
+                        f'{init_bridge_proposal.from_token.title}'
                     )
                 )
                 await sleep(20, 50)
         else:
-            tx_params['value'] += bridge_proposal.amount_from.Wei
-        
+            tx_params['value'] += init_bridge_proposal.amount_from.Wei
+
         try:
             tx_params = self.set_all_gas_params(
                 operation_info=bridge_info,
                 tx_params=tx_params
             )
+            
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(web3=self.client.w3, timeout=300)
-
-            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
-            rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
             is_result = receipt['status']
             
             if is_result:
@@ -223,7 +220,7 @@ class CoreDaoBridgeImplementation(EvmTask):
             
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
-                f'from {from_network_name} -> {rounded_amount_to} '
+                f'from {from_network_name} -> {rounded_amount_from} '
                 f'{bridge_info.to_token_name} in {to_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
@@ -257,7 +254,7 @@ class CoreDaoBridgeImplementation(EvmTask):
             adapter_params = abi.encode(["uint8", "uint64"], [1, 100000])
             adapter_params = self.client.w3.to_hex(adapter_params[30:])
         else:
-            adapter_params='0x'
+            adapter_params = '0x'
 
         if self.client.network == Networks.Core:
             dst_chain_id = CoreDaoData.get_chain_id(
@@ -279,9 +276,6 @@ class CoreDaoBridgeImplementation(EvmTask):
                 False,
                 adapter_params
             ).call()
-
-            fee = TokenAmount(amount=result[0], wei=True)
-            multiplier = 1.03
         else:
             args = TxArgs(
                 token=bridge_proposal.from_token.address,
@@ -296,13 +290,12 @@ class CoreDaoBridgeImplementation(EvmTask):
                 adapter_params
             ).call()
 
-            fee = TokenAmount(
-                amount=result[0],
-                decimals=self.client.network.decimals,
-                wei=True
-            )
-            multiplier = 1.03
-
+        fee = TokenAmount(
+            amount=result[0],
+            decimals=self.client.network.decimals,
+            wei=True
+        )
+        multiplier = 1.03
         fee.Wei = int(fee.Wei * multiplier)
 
         tx_params = TxParams(
@@ -322,9 +315,9 @@ class CoreDaoBridgeImplementation(EvmTask):
 class CoreDaoBridge(EvmTask):
     async def bridge(self) -> bool:
         settings = CoreDaoBridgeSettings()
-        bridge_data = get_coredao_bridge_routes()
+        bridge_routes = get_coredao_bridge_routes()
 
-        random_networks = list(bridge_data.keys())
+        random_networks = list(bridge_routes)
         random.shuffle(random_networks)
 
         self.client.custom_logger.log_message(
@@ -340,9 +333,9 @@ class CoreDaoBridge(EvmTask):
                 proxy=self.client.proxy
             )
         
-            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
                 op_name='bridge',
-                op_data=bridge_data,
+                op_data=bridge_routes,
                 op_settings=settings.bridge,
                 client=client
             )

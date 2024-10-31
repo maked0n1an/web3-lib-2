@@ -87,8 +87,8 @@ class TestnetBridgeImplementation(EvmTask):
 
             return is_result
         
-        from_network_name = self.client.network.name.capitalize()
-        to_network_name = bridge_info.to_network.name.capitalize()
+        from_network_name = self.client.network.name
+        to_network_name = bridge_info.to_network.name
         
         bridge_raw_contract = TestnetBridgeData.get_only_contract_for_bridge(
             network_name=self.client.network.name,
@@ -250,7 +250,7 @@ class TestnetBridge(EvmTask):
                 proxy=self.client.proxy
             )
 
-            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
                 op_name='bridge',
                 op_data=get_testnet_bridge_routes(),
                 op_settings=settings.bridge,
