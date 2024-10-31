@@ -15,7 +15,7 @@ class OperationInfo:
         from_token_name: str = None,
         to_token_name: str = None,
         slippage: float = 0.5,
-        from_network: Network = Networks.Goerli,
+        # from_network: Network = Networks.Goerli,
         to_network: Network | None = None,
         amount: float = 0,
         amount_from: float = 0,
@@ -34,22 +34,22 @@ class OperationInfo:
             from_token_name (str): The token to swap from.
             to_token_name (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
-            from_network (Network | None): The source network for the swap (default is None).
+           
             to_network (Network | None): The destination network for the swap (default is None).
             amount (float | None): The amount to swap (default is None).
             amount_from (float | None): The minimum amount for random amount generation.
             amount_to (float | None): The maximum amount for random amount generation.
             ndigits (int): The number of digits places for random amount generation (default is 5).
-            min_percent (int | None): The minimum percentage for random amount generation.
-            max_percent (int | None): The maximum percentage for random amount generation.
+            min_percent (float): The minimum percentage for random amount generation. Default is 0.
+            max_percent (float): The maximum percentage for random amount generation. Default is 100.
             multiplier_of_gas (int | None): A multiplier for gas calculation (default is None).
             gas_price (float | None): Gas price for the transaction (default is None).
             gas_limit (int | None): Gas limit for the transaction (default is None).
 
         """
+        #  from_network (Network | None): The source network for the swap (default is None).
         self.from_token_name = from_token_name
         self.to_token_name = to_token_name
-        self.from_network = from_network
         self.to_network = to_network
         self.amount = abs(amount)
         self.slippage = slippage
@@ -71,7 +71,7 @@ class OperationInfo:
         amount_to: float, 
         ndigits: int
     ) -> float:
-        random_value = random.uniform(amount_from, amount_to)
+        random_value = abs(random.uniform(amount_from, amount_to))
         return round(random_value, ndigits)
 
     def _get_random_amount_by_percent(
