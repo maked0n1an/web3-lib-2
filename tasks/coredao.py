@@ -31,7 +31,7 @@ class CoreDaoBridgeSettings():
 # endregion Settings
 
 
-# region Contracts 
+# region Contracts
 class CoreDaoBridgeContracts:
     TO_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'to_core_bridge_abi.json')
     FROM_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'from_core_bridge_abi.json')
@@ -53,11 +53,11 @@ class CoreDaoBridgeContracts:
         address='0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
         abi_path=TO_CORE_BRIDGE_ABI
     )
-        
+
     OPTIMISM = RawContract(
         title='OriginalTokenBridge (OPTIMISM)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
-        # ShimmerBridge (0x9C6D5a71FdD306329287a835e9B8EDb7F0F17898)    
+        # ShimmerBridge (0x9C6D5a71FdD306329287a835e9B8EDb7F0F17898)
         abi_path=TO_CORE_BRIDGE_ABI
     )
 
@@ -205,11 +205,9 @@ class CoreDaoBridgeImplementation(EvmTask):
                 operation_info=bridge_info,
                 tx_params=tx_params
             )
+            
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(web3=self.client.w3, timeout=300)
-
-            rounded_amount_from = round(init_bridge_proposal.amount_from.Ether, 5)
-
             is_result = receipt['status']
             
             if is_result:
