@@ -192,8 +192,8 @@ class CoreDaoBridgeImplementation(EvmTask):
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{init_bridge_proposal.from_token.title} '
-                        f'{init_bridge_proposal.amount_from.Ether}'
+                        f'{init_bridge_proposal.amount_from.Ether} '
+                        f'{init_bridge_proposal.from_token.title}'
                     )
                 )
                 await sleep(20, 50)
@@ -338,7 +338,7 @@ class CoreDaoBridge(EvmTask):
                 proxy=self.client.proxy
             )
         
-            (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
                 op_name='bridge',
                 op_data=bridge_routes,
                 op_settings=settings.bridge,
