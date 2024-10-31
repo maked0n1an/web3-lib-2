@@ -1,15 +1,19 @@
 import asyncio
+from datetime import datetime
 import json
+import random
 
 from data.config import PRIVATE_KEYS
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.models.operation import OperationInfo
+from libs.db_management.models import Account
+from libs.db_management.unit_of_work import UnitOfWork
 from tasks import SyncSwap
 
 
 async def main():
-    client = EvmClient(network=Networks.Ethereum)
+    # client = EvmClient(network=Networks.Ethereum)
     # res = await client.transaction.find_tx_by_function_name(
     #     contract_address='0x32400084C286CF3E17e7B677ea9583e60a000324',
     #     function_name='requestL2Transaction',
@@ -27,6 +31,59 @@ async def main():
     # )
     
     # await sync_swap.swap(swap_info)
+    new_wallet = Account(
+        evm_private_key='55555555',
+        evm_address='55555555555555',
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
+    new_wallet_2 = Account(
+        evm_private_key='666666',
+        evm_address='6666',
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
+    new_wallet_3 = Account(
+        evm_private_key='adfsadfas',
+        evm_address='ads',
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
+    new_wallet_4 = Account(
+        evm_private_key='100001010010',
+        evm_address='100001010010',
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
+    new_wallet_5 = Account(
+        evm_private_key='hehehehehe1',
+        evm_address='heheheh1',
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
+    new_wallet_5 = Account(
+        id=13,
+        next_action_time=datetime.now(),
+        planned_swaps_count=random.randint(1, 10),
+        planned_mint_count=random.randint(1, 10),
+        planned_lending_count=random.randint(1, 10),
+        planned_stake_count=random.randint(1, 10),
+    )
 
 if __name__ == '__main__':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

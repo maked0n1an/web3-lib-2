@@ -103,7 +103,6 @@ class Contract:
 
         return function
     
-    @lru_cache(maxsize=128)
     def get_abi(
         self,
         abi_or_path: str | tuple | list[dict]
@@ -282,8 +281,6 @@ class Contract:
 
         if not amount:
             amount = await self.get_balance(token)
-        if not amount: 
-            return False
 
         if isinstance(amount, float | int):
             amount = TokenAmount(

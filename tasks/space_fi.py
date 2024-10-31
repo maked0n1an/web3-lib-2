@@ -276,7 +276,7 @@ class SpaceFi(EvmTask):
             message='Started to search enough balance for swap'
         )
         
-        (operation_info, dst_data) = await RandomChoiceHelper.get_random_token_for_operation(
+        (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
             op_name='swap',
             op_data=get_space_fi_paths(),
             op_settings=settings.swap,

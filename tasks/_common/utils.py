@@ -1,14 +1,13 @@
 import asyncio
 import random
-from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 
 from curl_cffi.requests import AsyncSession
 
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
-from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 
@@ -131,27 +130,29 @@ class StandardSettings:
         module_name: str,
         action_name: str
     ):
-        act_stgs: dict = settings[module_name][action_name]
+        action_settings: dict = settings[module_name][action_name]
         from_ = 'from'
         to_ = 'to'
         min_percent = 'min_percent'
         max_percent = 'max_percent'
 
-        self.eth_amount = self.init_from_to(act_stgs, 'eth_amount', from_, to_)
+        self.eth_amount = self.init_from_to(
+            action_settings, 'eth_amount', from_, to_
+        )
         self.eth_amount_percent = self.init_from_to(
-            act_stgs, 'eth_amount', min_percent, max_percent
+            action_settings, 'eth_amount', min_percent, max_percent
         )
 
         self.token_amount = self.init_from_to(
-            act_stgs, 'token_amount', from_, to_)
+            action_settings, 'token_amount', from_, to_)
         self.token_amount_percent = self.init_from_to(
-            act_stgs, 'token_amount', min_percent, max_percent
+            action_settings, 'token_amount', min_percent, max_percent
         )
 
-        if 'slippage' in act_stgs:
-            self.slippage = float(act_stgs['slippage'])
-        if 'max_fee_in_usd' in act_stgs:
-            self.max_fee_in_usd = float(act_stgs['max_fee_in_usd'])
+        if 'slippage' in action_settings:
+            self.slippage = float(action_settings['slippage'])
+        if 'max_fee_in_usd' in action_settings:
+            self.max_fee_in_usd = float(action_settings['max_fee_in_usd'])
 
     def init_from_to(
         self,
@@ -175,97 +176,74 @@ class StandardSettings:
 class RandomChoiceHelper:
     '''To get random token from available options for operation'''
     @staticmethod
-    async def get_random_token_for_operation(
+    async def get_partial_operation_info_and_dst_data(
         op_name: str,
         op_data: dict[Network, dict[str, list[Any]]],
         op_settings: StandardSettings,
         client: EvmClient,
-    ) -> tuple[Optional[OperationInfo], Optional[list[tuple]]]:
+    ) -> tuple[OperationInfo | None, list | None]:
         tokens_dict = list(op_data[client.network].keys())
         random.shuffle(tokens_dict)
 
-        operation_info = dst_data = None
+        partial_op = dst_data = None
 
         for src_token_sym in tokens_dict:
-            token_contract = ContractsFactory.get_contract(
-                client.network.name, src_token_sym
+            partial_op = await RandomChoiceHelper.get_partial_operation_info(
+                token_name=src_token_sym,
+                op_settings=op_settings,
+                client=client
             )
 
-            if token_contract.is_native_token:
-                balance = await client.contract.get_balance()
-
-                operation_info = RandomChoiceHelper._get_operation_info(
-                    balance=balance,
-                    amount_setting=op_settings.eth_amount,
-                    amount_percent_setting=op_settings.eth_amount_percent,
-                    token_name=src_token_sym
-                )
-
-            else:
-                balance = await client.contract.get_balance(token_contract)
-
-                operation_info = RandomChoiceHelper._get_operation_info(
-                    balance=balance,
-                    amount_setting=op_settings.token_amount,
-                    amount_percent_setting=op_settings.token_amount_percent,
-                    token_name=src_token_sym
-                )
-
-            if operation_info:
-                dst_data = op_data[client.network][src_token_sym]
-
-                if not operation_info.amount:
-                    operation_info.amount = round(
-                        float(Decimal(operation_info.amount_by_percent)
-                              * balance.Ether),
-                        token_contract.decimals
-                    )
+            if partial_op:
+                dst_data = op_data[client.network][partial_op.from_token_name]
 
                 client.custom_logger.log_message(
                     status=LogStatus.INFO,
                     message=(
-                        f'Found {operation_info.amount} '
-                        f'{operation_info.from_token_name} for {op_name}()'
+                        f'Found {partial_op.amount} '
+                        f'{partial_op.from_token_name} for {op_name}()'
                     ),
                     call_depth_or_custom_call_place=2
                 )
                 break
 
-        return operation_info, dst_data
+        return partial_op, dst_data
 
     @staticmethod
-    def _get_operation_info(
-        balance: TokenAmount,
+    async def get_partial_operation_info(
         token_name: str,
-        amount_setting: Optional[FromTo] = None,
-        amount_percent_setting: Optional[FromTo] = None,
-    ) -> Optional[OperationInfo]:
-        if (
-            amount_setting
-            and
-            float(balance.Ether) > amount_setting.from_
-        ):
-            if amount_setting.to_ != 0:
-                upper_bound = min(float(balance.Ether), amount_setting.to_)
-            else:
-                upper_bound = float(balance.Ether)
+        op_settings: StandardSettings,
+        client: EvmClient,
+    ) -> OperationInfo | None:
+        token_contract = ContractsFactory.get_contract(
+            client.network.name, token_name
+        )
+
+        if token_contract.is_native_token:
+            balance = await client.contract.get_balance()
+            amount_setting = op_settings.eth_amount
+            amount_percent_setting = op_settings.eth_amount_percent
+        else:
+            balance = await client.contract.get_balance(token_contract)
+            amount_setting = op_settings.token_amount
+            amount_percent_setting = op_settings.token_amount_percent
+
+        if amount_setting and float(balance.Ether) > amount_setting.from_:
+            amount_setting.to_ = min(float(balance.Ether), amount_setting.to_)
 
             return OperationInfo(
                 from_token_name=token_name,
                 amount_from=amount_setting.from_,
-                amount_to=upper_bound
+                amount_to=amount_setting.to_
             )
-
-        if (
-            amount_percent_setting
-            and balance.Ether != 0
-            and not amount_setting
-        ):
-            return OperationInfo(
+        if amount_percent_setting and balance.Ether > 0:
+            op_info = OperationInfo(
                 from_token_name=token_name,
                 min_percent=amount_percent_setting.from_,
                 max_percent=amount_percent_setting.to_
             )
+            op_info.amount = op_info.amount_by_percent * float(balance.Ether)
+            return op_info
+
         return None
 # endregion RandomChoice
-
