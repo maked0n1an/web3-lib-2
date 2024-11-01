@@ -65,9 +65,9 @@ class BridgeDTO(GeneralDTO):
     account_id: int
     from_network: str
     to_network: str
-    src_amount: float
+    src_amount: Decimal | float | int
     src_token: str
-    dst_amount: float
+    dst_amount: Decimal | float | int
     dst_token: str
     volume_usd: Decimal | float | int
     fee: Decimal | float | int
@@ -80,13 +80,13 @@ class BridgeDTO(GeneralDTO):
         account_id: int,
         from_network: str,
         to_network: str,
-        src_amount: float,
+        src_amount: Decimal | float | int,
         src_token: str,
-        dst_amount: float,
+        dst_amount: Decimal | float | int,
         dst_token: str,
-        volume_usd: Decimal | float | int,
         fee: Decimal | float | int,
-        fee_in_usd: float,
+        from_token_price: float | int,
+        native_token_price: float | int,
         platform: str,
         tx_hash: str
     ):
@@ -96,9 +96,9 @@ class BridgeDTO(GeneralDTO):
         self.src_token = str(src_token)
         self.dst_amount = round(float(dst_amount), 6)
         self.dst_token = str(dst_token)
-        self.volume_usd = round(float(volume_usd), 6)
+        self.volume_usd = round(from_token_price * float(src_amount), 6)
         self.fee = round(float(fee), 6)
-        self.fee_in_usd = round(fee_in_usd, 2)
+        self.fee_in_usd = round(native_token_price * float(fee), 6)
         self.platform = str(platform)
         self.tx_hash = str(tx_hash)
         self.account_id = int(account_id)

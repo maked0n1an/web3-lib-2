@@ -1,24 +1,24 @@
 from typing import List
 
 from .generic import GenericService
-from ..dtos import BridgeDTO
+from ..dtos import SwapDTO
 from ..helpers.service_result import ServiceResult
-from ...data_access.models import BridgeEntity
+from ...data_access.models import SwapEntity
 from ...data_access.repository.sql_alchemy import GenericRepository
 
 
-class BridgeService(GenericService[BridgeDTO]):
-    def __init__(self, repository: GenericRepository[BridgeEntity]):
+class SwapService(GenericService[SwapDTO]):
+    def __init__(self, repository: GenericRepository[SwapEntity]):
         super().__init__(repository)
-    
+
     async def get_all_by_account_id(
         self, 
         account_id: int
-    ) -> ServiceResult[List[BridgeDTO]]:
+    ) -> ServiceResult[List[SwapDTO]]:
         entities = await self.repository.get_all_with_filters({'account_id': account_id})
         
-        self.object_mapper.create_map(BridgeEntity, BridgeDTO)
-        dtos = [self.object_mapper.map(entity, BridgeDTO) for entity in entities]
+        self.object_mapper.create_map(self.repository.entity_type, self.dto_type)
+        dtos = [self.object_mapper.map(entity, self.dto_type) for entity in entities]
         
         return (
             ServiceResult.create_success(dtos)

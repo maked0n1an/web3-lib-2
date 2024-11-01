@@ -1,17 +1,21 @@
 from abc import ABC, abstractmethod
-from typing import List, TypeVar, Generic
+from typing import (
+    List,
+    Type, 
+    TypeVar, 
+    Generic
+)
 from mapper.object_mapper import ObjectMapper
 
-from libs.db_management.business_logic.dtos import GeneralDTO
-
+from ..dtos import GeneralDTO
 from ..helpers.service_result import ServiceResult
-from ...data_access.repositories.generic import GenericRepository, TEntity
+from ...data_access.repository.sql_alchemy import GenericRepository, TEntity
 
 
 DTO = TypeVar("DTO", bound=GeneralDTO)
 
 
-class GenericServiceBase(Generic[DTO], ABC):
+class GenericService(Generic[DTO], ABC):
     @abstractmethod
     async def get(self, id: int) -> ServiceResult[DTO]:
         raise NotImplementedError()
@@ -45,15 +49,24 @@ class GenericServiceBase(Generic[DTO], ABC):
         raise NotImplementedError()
 
 
-class GenericService(GenericServiceBase):
-    def __init__(self, repository: GenericRepository[DTO]):
+class Service(GenericService[DTO], ABC):
+    def __init__(
+        self, 
+        repository: GenericRepository[TEntity], 
+        dto_type: Type[DTO]
+    ):
         self.repository = repository
+        self.dto_type = dto_type
         self.object_mapper = ObjectMapper()
     
     async def add(self, dto: DTO) -> ServiceResult[int]:
-        self.object_mapper.create_map(DTO, TEntity)
-        entity = self.object_mapper.map(dto, TEntity)
+        dto_type = self.dto_type
+        entity_type = self.repository.entity_type
+        self.object_mapper.create_map(dto_type, entity_type)
+        entity = self.object_mapper.map(dto, self.repository.entity_type)
+        
         id = await self.repository.add(entity)
+        
         return (
             ServiceResult.create_success(id)
             if id > 0
@@ -61,7 +74,9 @@ class GenericService(GenericServiceBase):
         )
     
     async def add_all(self, dtos: List[DTO]) -> ServiceResult[List[int]]:
-        self.object_mapper.create_map(DTO, TEntity)
-        entities = [self.object_mapper.map(dto, TEntity) for dto in dtos]
+        self.object_mapper.create_map(self.dto_type, self.repository.entity_type)
+        entities = [self.object_mapper.map(dto, self.repository.entity_type) for dto in dtos]
+        
         ids = await self.repository.add_all(entities)
+        
         return ServiceResult.create_success(ids)

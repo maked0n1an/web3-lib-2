@@ -1,63 +1,23 @@
-from abc import (
-    ABC, abstractmethod
-)
-from typing import (
-    Generic, List, Type, TypeVar
-)
+from abc import ABC
+from typing import List
+
 from sqlalchemy import select, insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models import SqlBaseModel
+from .generic import TEntity, GenericRepository
 
 
-TEntity = TypeVar("TEntity", bound=SqlBaseModel)
-
-
-class GenericRepository(Generic[TEntity], ABC):
-    @abstractmethod
-    async def get(self, id: int) -> TEntity | None:
-        raise NotImplementedError()
-    
-    @abstractmethod
-    async def get_with_filters(self, filters: dict) -> TEntity | None:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def get_all(self, filters) -> List[TEntity] | None:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def get_all_with_filters(self, filters: dict) -> List[TEntity]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def add(self, entity: TEntity) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def add_all(self, entities: List[TEntity]) -> List[int]:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def update(self, entity: TEntity) -> int:
-        raise NotImplementedError()
-
-    @abstractmethod
-    async def delete(self, id: int) -> bool:
-        raise NotImplementedError()
-
-
-class GenericSqlAlchemyRepository(GenericRepository[TEntity]):
-    def __init__(self, session: AsyncSession, model_cls: Type[TEntity]):
+class GenericSqlAlchemyRepository(GenericRepository[TEntity], ABC):
+    def __init__(self, session: AsyncSession, entity_type: type[TEntity]):
         self.__session = session
-        self.model_cls = model_cls
+        self.entity_type = entity_type
 
     async def get(self, id: int) -> TEntity | None:
-        return await self.__session.get(self.model_cls, id)
+        return await self.__session.get(self.entity_type, id)
 
     async def get_with_filters(self, filters: dict) -> TEntity | None:
-        query = select(self.model_cls).filter_by(**filters).limit(1)
+        query = select(self.entity_type).filter_by(**filters).limit(1)
         result = await self.__session.execute(query)
         record = result.scalar_one_or_none()
         return record
@@ -68,7 +28,7 @@ class GenericSqlAlchemyRepository(GenericRepository[TEntity]):
         return await self.get_all_with_filters({})
 
     async def get_all_with_filters(self, filters: dict) -> List[TEntity]:
-        query = select(self.model_cls).filter_by(**filters)
+        query = select(self.entity_type).filter_by(**filters)
         result = await self.__session.execute(query)
         records = result.scalars().all()
         return records
@@ -101,9 +61,9 @@ class GenericSqlAlchemyRepository(GenericRepository[TEntity]):
         values = [entity.__dict__.items() for entity in entities]
         
         try:
-            command = insert(self.model_cls).execution_options(render_nulls=True)
+            command = insert(self.entity_type).execution_options(render_nulls=True)
             if returning:
-                command = command.returning(self.model_cls)
+                command = command.returning(self.entity_type)
                 
             result = await self.__session.execute(statement=command, params=[*values]) 
             await self.__session.flush()

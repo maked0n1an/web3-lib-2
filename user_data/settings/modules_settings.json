@@ -110,8 +110,8 @@
         "max_percent": 50
       },
       "token_amount": {
-        "from": 0.001,
-        "to": 2,
+        "from": 0,
+        "to": 0,
         "min_percent": 100,
         "max_percent": 100
       },
