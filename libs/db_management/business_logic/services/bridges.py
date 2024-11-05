@@ -1,24 +1,22 @@
 from typing import List
 
-from .generic import GenericService
+from ._generic import Service
 from ..dtos import BridgeDTO
 from ..helpers.service_result import ServiceResult
-from ...data_access.models import BridgeEntity
-from ...data_access.repository.sql_alchemy import GenericRepository
+from ...data_access.entities import BridgeEntity
+from ...data_access.repository._generic import GenericRepository
 
 
-class BridgeService(GenericService[BridgeDTO]):
+class BridgeService(Service[BridgeDTO]):
     def __init__(self, repository: GenericRepository[BridgeEntity]):
-        super().__init__(repository)
-    
+        super().__init__(repository, BridgeDTO)
+
     async def get_all_by_account_id(
         self, 
         account_id: int
     ) -> ServiceResult[List[BridgeDTO]]:
         entities = await self.repository.get_all_with_filters({'account_id': account_id})
-        
-        self.object_mapper.create_map(BridgeEntity, BridgeDTO)
-        dtos = [self.object_mapper.map(entity, BridgeDTO) for entity in entities]
+        dtos = [BridgeDTO.model_validate(entity) for entity in entities]
         
         return (
             ServiceResult.create_success(dtos)

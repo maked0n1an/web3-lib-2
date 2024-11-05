@@ -1,39 +1,51 @@
 from abc import ABC
-from typing import List
+from typing import List, Type
 
 from sqlalchemy import select, insert
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .generic import TEntity, GenericRepository
+from ._generic import TEntity, GenericRepository
 
 
-class GenericSqlAlchemyRepository(GenericRepository[TEntity], ABC):
-    def __init__(self, session: AsyncSession, entity_type: type[TEntity]):
+class SqlAlchemyRepository(GenericRepository[TEntity], ABC):
+    def __init__(
+        self, 
+        session: AsyncSession, 
+        entity_type: Type[TEntity]
+    ):
         self.__session = session
         self.entity_type = entity_type
 
-    async def get(self, id: int) -> TEntity | None:
-        return await self.__session.get(self.entity_type, id)
+    async def get_by_id(self, id: int) -> TEntity | None:
+        return await self.get_with_filters({'id': id})
 
-    async def get_with_filters(self, filters: dict) -> TEntity | None:
-        query = select(self.entity_type).filter_by(**filters).limit(1)
-        result = await self.__session.execute(query)
-        record = result.scalar_one_or_none()
-        return record
-        # query = self._construct_search_query(**filters).limit(1)
-        # return (await self.__session.execute(query)).scalar_one_or_none()
+    async def get_with_filters(
+        self, 
+        filter_dict: dict
+    ) -> TEntity | None:
+        try:
+            query = select(self.entity_type).filter_by(**filter_dict).limit(1)
+            result = await self.__session.execute(query)
+            record = result.scalar_one_or_none()
+            return record
+        except SQLAlchemyError as e:
+            raise 
 
     async def get_all(self) -> List[TEntity] | None:
-        return await self.get_all_with_filters({})
+        return await self.get_all_with_filters()
 
-    async def get_all_with_filters(self, filters: dict) -> List[TEntity]:
-        query = select(self.entity_type).filter_by(**filters)
-        result = await self.__session.execute(query)
-        records = result.scalars().all()
-        return records
-        # query = self._construct_search_query(**filters)
-        # return (await self.__session.execute(query)).scalars().all()
+    async def get_all_with_filters(
+        self, 
+        filter_dict: dict
+    ) -> List[TEntity] | None:
+        try:
+            query = select(self.entity_type).filter_by(**filter_dict)
+            result = await self.__session.execute(query)
+            records = result.scalars().all()
+            return records
+        except SQLAlchemyError as e:
+            raise
 
     async def add(self, entity: TEntity) -> int:
         """
@@ -50,7 +62,11 @@ class GenericSqlAlchemyRepository(GenericRepository[TEntity], ABC):
             int: The id of the added entity.
         """
         self.__session.add(entity)
-        await self.__session.flush()
+        try:
+            await self.__session.flush()
+        except SQLAlchemyError as e:
+            await self.__session.rollback()
+            raise e
         return entity.id
         
     async def _execute_insert_some(
@@ -100,7 +116,7 @@ class GenericSqlAlchemyRepository(GenericRepository[TEntity], ABC):
         Returns:
             List[int]: A list of ids of the added entities.
         """
-        await self._execute_insert_some(entities, False)
+        return await self._execute_insert_some(entities, False)
 
     async def add_all_and_return(
         self, 
@@ -136,29 +152,14 @@ class GenericSqlAlchemyRepository(GenericRepository[TEntity], ABC):
             int: The updated or newly created entity's id.
         """
         await self.__session.merge(entity)
-        await self.__session.flush()
+        await self.__session.commit()
         return entity.id
 
     async def delete(self, id: int) -> bool:
-        db_record = await self.get(id)
+        db_record = await self.get_by_id(id)
         if not db_record: 
             return False
         
         await self.__session.delete(db_record)
-        await self.__session.flush()
+        await self.__session.commit()
         return True
-    
-    # def _construct_search_query(self, **filters):
-    #     query = select(self.__model_cls)
-    #     where_clauses = []
-    #     for attr, value in filters.items():
-    #         if not hasattr(self.__model_cls, attr):
-    #             raise ValueError(f'Invalid column name {attr}')
-    #         where_clauses.append(getattr(self.__model_cls, attr) == value)
-
-    #     if len(where_clauses) == 1:
-    #         query = query.where(where_clauses[0])
-    #     elif len(where_clauses) > 1:
-    #         query = query.where(and_(*where_clauses))
-
-    #     return query

@@ -1,14 +1,14 @@
-from .generic import GenericService, Service
+from ._generic import Service
 from ..dtos import AccountDTO
 from ..helpers.service_result import ServiceResult
-from ...data_access.models import AccountEntity
-from ...data_access.repository.sql_alchemy import GenericRepository
+from ...data_access.entities import AccountEntity
+from ...data_access.repository._generic import GenericRepository
 
 
-class AccountService(GenericService[AccountDTO]):
+class AccountService(Service[AccountDTO]):
     def __init__(self, repository: GenericRepository[AccountEntity]):
-        super().__init__(repository)
-    
+        super().__init__(repository, AccountDTO)
+
     async def get_by_evm_private_key(
         self, 
         evm_private_key: str
@@ -20,9 +20,7 @@ class AccountService(GenericService[AccountDTO]):
             raise ValueError('Invalid len of EVM private key')
         
         account = await self.repository.get_with_filters({'evm_private_key': evm_private_key})
-
-        self.object_mapper.create_map(AccountEntity, AccountDTO)
-        dto = self.object_mapper.map(account, AccountDTO)
+        dto = AccountDTO.model_validate(account)
         
         return (
             ServiceResult.create_success(dto) 
@@ -41,8 +39,7 @@ class AccountService(GenericService[AccountDTO]):
             raise ValueError('Invalid len of EVM address')
         
         account = await self.repository.get_with_filters({'evm_address': evm_address})
-        self.object_mapper.create_map(AccountEntity, AccountDTO)
-        dto = self.object_mapper.map(account, AccountDTO)
+        dto = AccountDTO.model_validate(account)
        
         return (
             ServiceResult.create_success(dto)

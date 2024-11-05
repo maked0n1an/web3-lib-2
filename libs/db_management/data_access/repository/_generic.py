@@ -1,31 +1,34 @@
-from abc import (
-    ABC, abstractmethod
-)
+from abc import ABC, abstractmethod
 from typing import (
-    Generic, List, Type, TypeVar
+    Type, 
+    Generic, 
+    TypeVar, 
+    List
 )
 
-from ..models import SqlBaseModel
+from ..entities import SqlBaseModel
 
 
 TEntity = TypeVar("TEntity", bound=SqlBaseModel)
 
 
 class GenericRepository(Generic[TEntity], ABC):
+    entity_type: Type[TEntity]
+
     @abstractmethod
-    async def get(self, id: int) -> TEntity | None:
+    async def get_by_id(self, id: int) -> TEntity | None:
         raise NotImplementedError()
-    
+
     @abstractmethod
     async def get_with_filters(self, filters: dict) -> TEntity | None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_all(self, filters) -> List[TEntity] | None:
+    async def get_all(self) -> List[TEntity] | None:
         raise NotImplementedError()
 
     @abstractmethod
-    async def get_all_with_filters(self, filters: dict) -> List[TEntity]:
+    async def get_all_with_filters(self, filters: dict) -> List[TEntity] | None:
         raise NotImplementedError()
 
     @abstractmethod
