@@ -17,7 +17,7 @@ from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
+from tasks._common.utils import PriceFetcher, RandomChoiceHelper, StandardSettings, TxUtils
 from tasks.config import get_stargate_routes_v1
 
 
@@ -427,7 +427,7 @@ class StargateDataV2(NetworkDataFetcher):
 
 
 # region Implementation
-class StargateImplementation(EvmTask, Utils):
+class StargateImplementation(EvmTask):
     @property
     def token_path(self) -> str:
         return self.__token_path
@@ -517,14 +517,14 @@ class StargateImplementation(EvmTask, Utils):
         if not await self._check_for_enough_balance(value):
             return is_result
 
-        token_price = await self.get_binance_price(
+        token_price = await PriceFetcher.get_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(value.Ether) * token_price
 
         dst_native_amount_price = 0
         if dst_fee:
-            dst_native_token_price = await self.get_binance_price(
+            dst_native_token_price = await PriceFetcher.get_price(
                 dst_network.coin_symbol
             )
             dst_native_amount_price = (
@@ -633,7 +633,7 @@ class StargateImplementation(EvmTask, Utils):
         
         _sendParams = TxArgs(
             dstEid=dst_chain_id,
-            to=self.zfill_hex_value(self.client.account.address),
+            to=TxUtils.zfill_hex_value(self.client.account.address),
             amountLd=bridge_proposal.amount_from.Wei,
             minAmountLd=bridge_proposal.min_amount_to.Wei,
             extraOptions='0x',
@@ -666,7 +666,7 @@ class StargateImplementation(EvmTask, Utils):
         if not await self._check_for_enough_balance(bridge_fee):
             return is_result
         
-        token_price = await self.get_binance_price(
+        token_price = await PriceFetcher.get_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(bridge_fee.Ether) * token_price
@@ -856,7 +856,7 @@ class StargateImplementation(EvmTask, Utils):
 
             tx_args = TxArgs(
                 _param=TxArgs(
-                    to=self.to_cut_hex_prefix_and_zfill(address),
+                    to=TxUtils.to_cut_hex_prefix_and_zfill(address),
                     amountLD=bridge_proposal.amount_from.Wei,
                     minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
@@ -908,7 +908,7 @@ class StargateImplementation(EvmTask, Utils):
                 ).get_tuple(),
                 _color=color,
                 _param=TxArgs(
-                    to=self.to_cut_hex_prefix_and_zfill(address),
+                    to=TxUtils.to_cut_hex_prefix_and_zfill(address),
                     amountLD=bridge_proposal.amount_from.Wei,
                     minAmountLD=bridge_proposal.min_amount_to.Wei,
                     dstEid=dst_chain_id
@@ -1054,7 +1054,7 @@ class StargateImplementation(EvmTask, Utils):
         adapter_params: str,
         use_lz_token: bool = False,
     ) -> TokenAmount:
-        address = self.to_cut_hex_prefix_and_zfill(
+        address = TxUtils.to_cut_hex_prefix_and_zfill(
             self.client.account.address
         )
 

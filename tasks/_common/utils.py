@@ -13,7 +13,7 @@ from libs.pretty_utils.type_functions.dataclasses import FromTo
 
 
 # region To construct tx
-class Utils:
+class TxUtils:
     @staticmethod
     def to_cut_hex_prefix_and_zfill(hex_data: str, length: int = 64):
         """
@@ -35,12 +35,12 @@ class Utils:
 
     @staticmethod
     def zfill_hex_value(hex_value: str, length: int = 64) -> str:
-        hex_value = Utils.to_cut_hex_prefix_and_zfill(hex_value, length)
+        hex_value = TxUtils.to_cut_hex_prefix_and_zfill(hex_value, length)
         return '0x' + hex_value
 
 
 # region To get prices
-class PriceUtils:
+class PriceFetcher:
     STABLES = {
         TokenSymbol.USDT:   1.0,
         TokenSymbol.USDC:   1.0,
@@ -48,44 +48,70 @@ class PriceUtils:
         TokenSymbol.USDV:   1.0
     }
 
-    async def get_binance_price(
-        self,
+    @staticmethod
+    async def get_price(
         first_token: str = TokenSymbol.ETH,
         second_token: str = TokenSymbol.USDT
     ) -> float | None:
         first_token = first_token.lstrip('W')
         second_token = second_token.lstrip('W')
-
-        if first_token in self.STABLES and second_token in self.STABLES:
+        
+        if first_token in PriceFetcher.STABLES and second_token in PriceFetcher.STABLES:
             return 1.0
-
+        
         async with AsyncSession() as session:
-            price = await self._get_price_from_binance(session, first_token, second_token)
-            if price:
-                return price
-            else:
-                return await self._get_price_from_binance(session, second_token, first_token)
-
-    async def _get_price_from_binance(
-        self,
-        session: AsyncSession,
-        first_token: str,
-        second_token: str
-    ) -> float | None:
-        first_token, second_token = first_token.upper(), second_token.upper()
-        for _ in range(5):
-            try:
-                response = await session.get(
-                    f'https://api.binance.com/api/v3/ticker/price?symbol={first_token}{second_token}')
-                if response.status_code != 200:
-                    return None
-                result_dict = response.json()
-                if 'price' in result_dict:
-                    return float(result_dict['price'])
-            except Exception as e:
-                await asyncio.sleep(2)
+            for _ in range(5):
+                price = (
+                    await PriceFetcher._get_binance_price(
+                        first_token, second_token, session
+                    )
+                    or
+                    await PriceFetcher._get_cryptocompare_price(
+                        first_token, second_token, session
+                    )
+                )
+                if price:
+                    return price
         raise ValueError(
-            f'Can not get {first_token}{second_token} price from Binance')
+            f'Can not get {first_token}/{second_token} price from available sources')
+  
+    @staticmethod
+    async def _get_binance_price(
+        first_token: str,
+        second_token: str,
+        session: AsyncSession,
+    ) -> float | None:
+        try:
+            response = await session.get(
+                f'https://api.binance.com/api/v3/ticker/price'
+                f'?symbol={first_token}{second_token}'
+            )
+            if response.status_code != 200:
+                return None
+            result_dict = response.json()
+            if 'price' in result_dict:
+                return float(result_dict['price'])
+        except Exception as e:
+            await asyncio.sleep(0.2)
+    
+    @staticmethod
+    async def _get_cryptocompare_price(
+        first_token: str,
+        second_token: str,
+        session: AsyncSession,
+    ) -> float | None:
+        try:
+            response = await session.get(
+                f'https://min-api.cryptocompare.com/data/price?'
+                f'fsym={first_token}&tsyms={second_token}'
+            )
+            if response.status_code != 200:
+                return None
+            result_dict = response.json()
+            if second_token in result_dict:
+                return float(result_dict[second_token])
+        except Exception as e:
+            await asyncio.sleep(0.2)
 # endregion To get prices
 
 

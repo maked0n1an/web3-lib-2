@@ -14,6 +14,7 @@ from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.evm_task import EvmTask
+from tasks._common.utils import PriceFetcher
 
 
 # region Pools and paths
@@ -100,8 +101,8 @@ class Maverick(EvmTask):
             operation_info=swap_info
         )
 
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
+        from_token_price = await PriceFetcher.get_price(swap_info.from_token_name)
+        second_token_price = await PriceFetcher.get_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
             / second_token_price

@@ -15,7 +15,7 @@ from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import RandomChoiceHelper, StandardSettings
+from tasks._common.utils import PriceFetcher, RandomChoiceHelper, StandardSettings
 from tasks.config import get_coredao_bridge_routes
 
 
@@ -33,44 +33,44 @@ class CoreDaoBridgeSettings():
 
 # region Contracts
 class CoreDaoBridgeContracts:
-    TO_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'to_core_bridge_abi.json')
-    FROM_CORE_BRIDGE_ABI = ('data', 'abis', 'coredao', 'from_core_bridge_abi.json')
+    TO_CORE_BRIDGE_ABI_PATH = ('data', 'abis', 'coredao', 'to_core_bridge_abi.json')
+    FROM_CORE_BRIDGE_ABI_PATH = ('data', 'abis', 'coredao', 'from_core_bridge_abi.json')
 
-    BSC = RawContract(
+    BSC_STABLES = RawContract(
         title='OriginalTokenBridge (BSC)',
         address='0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
-        abi_path=TO_CORE_BRIDGE_ABI
+        abi_path=TO_CORE_BRIDGE_ABI_PATH
     )
 
-    CORE = RawContract(
+    CORE_STABLES = RawContract(
         title='WrappedTokenBridge (CORE)',
         address='0xA4218e1F39DA4AaDaC971066458Db56e901bcbdE',
-        abi_path=FROM_CORE_BRIDGE_ABI
+        abi_path=FROM_CORE_BRIDGE_ABI_PATH
     )
 
-    POLYGON = RawContract(
+    POLYGON_STABLES = RawContract(
         title='OriginalTokenBridge (POLYGON)',
         address='0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
-        abi_path=TO_CORE_BRIDGE_ABI
+        abi_path=TO_CORE_BRIDGE_ABI_PATH
     )
 
-    OPTIMISM = RawContract(
+    OPTIMISM_STABLES = RawContract(
         title='OriginalTokenBridge (OPTIMISM)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
         # ShimmerBridge (0x9C6D5a71FdD306329287a835e9B8EDb7F0F17898)
-        abi_path=TO_CORE_BRIDGE_ABI
+        abi_path=TO_CORE_BRIDGE_ABI_PATH
     )
 
-    ARBITRUM = RawContract(
+    ARBITRUM_STABLES = RawContract(
         title='OriginalTokenBridge (ARBITRUM)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
-        abi_path=TO_CORE_BRIDGE_ABI
+        abi_path=TO_CORE_BRIDGE_ABI_PATH
     )
 
-    AVALANCHE = RawContract(
+    AVALANCHE_STABLES = RawContract(
         title='OriginalTokenBridge (AVALANCHE)',
         address='0x29d096cD18C0dA7500295f082da73316d704031A',
-        abi_path=TO_CORE_BRIDGE_ABI
+        abi_path=TO_CORE_BRIDGE_ABI_PATH
     )
 # endregion Contracts
 
@@ -80,43 +80,43 @@ class CoreDaoData(BridgeContractDataFetcher):
         Networks.Arbitrum.name: NetworkData(
             chain_id=110,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.ARBITRUM,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.ARBITRUM
+                TokenSymbol.USDT: CoreDaoBridgeContracts.ARBITRUM_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.ARBITRUM_STABLES
             }
         ),
         Networks.Avalanche.name: NetworkData(
             chain_id=106,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.AVALANCHE,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.AVALANCHE,
+                TokenSymbol.USDT: CoreDaoBridgeContracts.AVALANCHE_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.AVALANCHE_STABLES,
             }
         ),
         Networks.BSC.name: NetworkData(
             chain_id=102,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.BSC,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.BSC,
+                TokenSymbol.USDT: CoreDaoBridgeContracts.BSC_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.BSC_STABLES,
             }
         ),
         Networks.Core.name: NetworkData(
             chain_id=153,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.CORE,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.CORE,
+                TokenSymbol.USDT: CoreDaoBridgeContracts.CORE_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.CORE_STABLES,
             }
         ),
         Networks.Optimism.name: NetworkData(
             chain_id=111,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.OPTIMISM,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.OPTIMISM,
+                TokenSymbol.USDT: CoreDaoBridgeContracts.OPTIMISM_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.OPTIMISM_STABLES,
             }
         ),
         Networks.Polygon.name: NetworkData(
             chain_id=109,
             bridge_dict={
-                TokenSymbol.USDT: CoreDaoBridgeContracts.POLYGON,
-                TokenSymbol.USDC: CoreDaoBridgeContracts.POLYGON,
+                TokenSymbol.USDT: CoreDaoBridgeContracts.POLYGON_STABLES,
+                TokenSymbol.USDC: CoreDaoBridgeContracts.POLYGON_STABLES,
             }
         ),
     }

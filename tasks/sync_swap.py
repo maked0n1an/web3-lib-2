@@ -16,7 +16,7 @@ from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import Utils
+from tasks._common.utils import PriceFetcher, TxUtils
 
 
 SYNCSWAP_SWAP_TOKENS = {
@@ -27,7 +27,7 @@ SYNCSWAP_SWAP_TOKENS = {
     TokenSymbol.WBTC
 }
 
-class SyncSwap(EvmTask, Utils):
+class SyncSwap(EvmTask, TxUtils):
     LIQUIDITY_POOLS = {
         (TokenSymbol.ETH, TokenSymbol.USDC):
             "0x80115c708e12edd42e504c1cd52aea96c547c05c",
@@ -44,8 +44,6 @@ class SyncSwap(EvmTask, Utils):
         return self.__router_contract
     
     def __init__(self, client: EvmClient):
-        EvmTask.__init__(client)
-        Utils.__init__()
         self.__router_contract = RawContract(
             title="SyncSwap Router",
             address="0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295",
@@ -73,8 +71,8 @@ class SyncSwap(EvmTask, Utils):
                 token_symbol=swap_info.to_token_name
             )
 
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
+        from_token_price = await PriceFetcher.get_price(swap_info.from_token_name)
+        second_token_price = await PriceFetcher.get_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
             / second_token_price
@@ -97,10 +95,10 @@ class SyncSwap(EvmTask, Utils):
             )
             return is_result
 
-        zfilled_from_token = self.to_cut_hex_prefix_and_zfill(
+        zfilled_from_token = TxUtils.to_cut_hex_prefix_and_zfill(
             swap_proposal.from_token.address
         )
-        zfilled_address = self.to_cut_hex_prefix_and_zfill(
+        zfilled_address = TxUtils.to_cut_hex_prefix_and_zfill(
             self.client.account.address
         )
         tokenIn = (

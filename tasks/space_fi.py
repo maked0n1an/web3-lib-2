@@ -18,12 +18,12 @@ from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
+from tasks._common.utils import PriceFetcher, RandomChoiceHelper, StandardSettings, TxUtils
 from tasks.config import get_space_fi_paths
 
 
 # region Settings
-class SpaceFiSettings():
+class SpaceFiSettings:
     def __init__(self):
         settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
         self.swap = StandardSettings(
@@ -38,7 +38,7 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
     PATHS = {
         TokenSymbol.ETH: {
             TokenSymbol.USDC: TxPayloadDetails(
-                method_name='swapExactETHForToken',
+                method_name='swapExactETHForTokens',
                 addresses=[
                     ZkSyncEraTokenContracts.WETH.address,
                     ZkSyncEraTokenContracts.USDC.address
@@ -46,7 +46,7 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
                 function_signature="0x7ff36ab5"
             ),
             TokenSymbol.USDT: TxPayloadDetails(
-                method_name='swapExactETHForToken',
+                method_name='swapExactETHForTokens',
                 addresses=[
                     ZkSyncEraTokenContracts.WETH.address,
                     ZkSyncEraTokenContracts.USDT.address
@@ -54,7 +54,7 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
                 function_signature="0x7ff36ab5"
             ),
             TokenSymbol.WBTC: TxPayloadDetails(
-                method_name='swapExactETHForToken',
+                method_name='swapExactETHForTokens',
                 addresses=[
                     ZkSyncEraTokenContracts.WETH.address,
                     ZkSyncEraTokenContracts.WBTC.address
@@ -117,7 +117,7 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
 
 
 # region Implementation    
-class SpaceFiImplementation(EvmTask, Utils):
+class SpaceFiImplementation(EvmTask):
     SPACE_FI_ROUTER = RawContract(
         title='SpaceFiRouter',
         address='0xbE7D1FD1f6748bbDefC4fbaCafBb11C6Fc506d1d',
@@ -148,20 +148,20 @@ class SpaceFiImplementation(EvmTask, Utils):
 
         data = [
             f'{tx_payload_details.function_signature}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(swap_proposal.min_amount_to.Wei))}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(memory_address))}',
-            f'{self.to_cut_hex_prefix_and_zfill(account_address).lower()}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(int(time.time() + 20 * 60)))}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(len(tx_payload_details.swap_path)))}'
+            f'{TxUtils.to_cut_hex_prefix_and_zfill(hex(swap_proposal.min_amount_to.Wei))}',
+            f'{TxUtils.to_cut_hex_prefix_and_zfill(hex(memory_address))}',
+            f'{TxUtils.to_cut_hex_prefix_and_zfill(account_address).lower()}',
+            f'{TxUtils.to_cut_hex_prefix_and_zfill(hex(int(time.time() + 20 * 60)))}',
+            f'{TxUtils.to_cut_hex_prefix_and_zfill(hex(len(tx_payload_details.swap_path)))}'
         ]
 
         for contract_address in tx_payload_details.swap_path:
             data.append(
-                self.to_cut_hex_prefix_and_zfill(contract_address.lower())
+                TxUtils.to_cut_hex_prefix_and_zfill(contract_address.lower())
             )
 
         if swap_info.from_token_name != TokenSymbol.ETH:
-            data.insert(1, self.to_cut_hex_prefix_and_zfill(
+            data.insert(1, TxUtils.to_cut_hex_prefix_and_zfill(
                 hex(swap_proposal.amount_from.Wei)))
 
         data = ''.join(data)
@@ -247,8 +247,8 @@ class SpaceFiImplementation(EvmTask, Utils):
             swap_info.to_token_name
         )
 
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
+        from_token_price = await PriceFetcher.get_price(swap_info.from_token_name)
+        second_token_price = await PriceFetcher.get_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
             / second_token_price

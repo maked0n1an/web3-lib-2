@@ -4,10 +4,10 @@ from libs.async_starknet_lib.models.operation import (
 )
 from libs.async_starknet_lib.models.others import TokenAmount
 from libs.async_starknet_lib.architecture.client import StarknetClient
-from tasks._common.utils import PriceUtils
+from tasks._common.utils import PriceFetcher
 
 
-class StarknetTask(PriceUtils):
+class StarknetTask:
     def __init__(self, client: StarknetClient):
         self.client = client
 
@@ -17,10 +17,10 @@ class StarknetTask(PriceUtils):
     ) -> OperationProposal:
         swap_proposal = await self.compute_source_token_amount(swap_info)
 
-        from_token_price = await self.get_binance_price(
+        from_token_price = await PriceFetcher.get_price(
             first_token=swap_info.from_token_name
         )
-        to_token_price = await self.get_binance_price(
+        to_token_price = await PriceFetcher.get_price(
             first_token=swap_info.to_token_name
         )
 

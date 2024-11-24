@@ -1,15 +1,13 @@
+from web3.types import TxParams
+
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
-from tasks._common.utils import PriceUtils
 
 
-from web3.types import TxParams
-
-
-class EvmTask(PriceUtils):
+class EvmTask:
     def __init__(self, client: EvmClient):
         self.client = client
         
@@ -32,6 +30,8 @@ class EvmTask(PriceUtils):
             function_signature = params[:10]
             print('Function signature:', function_signature)
             params = params[10:]
+        else:
+            params = params[2:]
 
         count = 0
         while params:
