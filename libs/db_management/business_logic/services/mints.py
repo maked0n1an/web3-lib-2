@@ -1,25 +1,38 @@
 from typing import List
 
 from ._generic import Service
-# from ..dtos import MintDTO
-from ..helpers.service_result import ServiceResult
-from ...data_access.entities import MintEntity
-from ...data_access.repository._generic import GenericRepository
+from ...data_access.repositories.mints import MintRepository
+from ...core.dtos import GetByAccountId, MintDTO
+from ...core.helpers import ServiceResult
 
 
-class MintService(Service[object]):
-    def __init__(self, repository: GenericRepository[MintEntity]):
-        super().__init__(repository, object)
-        
-    # async def get_all_by_account_id(
-    #     self, 
-    #     account_id: int
-    # ) -> ServiceResult[List[object]]:
-    #     entities = await self.repository.get_all_with_filters({'account_id': account_id})
-    #     dtos = [MintDTO.model_validate(entity) for entity in entities]
-        
-    #     return (
-    #         ServiceResult.create_success(dtos)
-    #         if len(dtos) > 0
-    #         else ServiceResult.create_failure(f'No bridges found with account ID {account_id}')
-    #     )
+class MintService(Service[MintDTO]):
+    def __init__(self, repository: MintRepository):
+        self.repository = repository
+
+    async def get_all_by_account_id(
+        self,
+        account_id: int
+    ) -> ServiceResult[List[MintDTO]]:
+        entities = await self.get_all(
+            filters=GetByAccountId(account_id)
+        )
+        dtos = [self.dto_type.model_validate(entity) for entity in entities]
+
+        return (
+            ServiceResult.create_success(dtos)
+            if len(dtos) > 0
+            else ServiceResult.create_failure(f'No mints found with account ID {account_id}')
+        )
+    
+    async def count_mints(
+        self,
+        account_id: int
+    ) -> ServiceResult[int]:
+        count = await self.repository.count(account_id)
+
+        return (
+            ServiceResult.create_success(count)
+            if count > 0
+            else ServiceResult.create_failure(f'No mints found with account ID {account_id}')
+        )

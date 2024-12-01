@@ -1,41 +1,45 @@
 from datetime import datetime
-from typing import Annotated, List
+from typing import List
 
-from pydantic import BaseModel
 from sqlalchemy import (
     ForeignKey,
     Index,
-    String,
+    Integer,
     func,
 )
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.dialects.sqlite import DATETIME
 from sqlalchemy.orm import (
     DeclarativeBase,
     declared_attr,
     Mapped,
     mapped_column,
-    relationship
+    relationship,
 )
-from sqlalchemy.ext.asyncio import AsyncAttrs
 
+from .custom_types import (
+    int_pk_an,
+    str_66_unique_an,
+    str_42_unique_an,
+    str_30_an,
+    str_10_an,
+)
 
-int_pk = Annotated[int, mapped_column(primary_key=True, autoincrement=True)]
-str_8 = Annotated[str, 8]
-str_30 = Annotated[str, 30]
-str_42 = Annotated[str, 42, mapped_column(unique=True)]
-str_66 = Annotated[str, 66, mapped_column(unique=True)]
-created_at = Annotated[datetime, mapped_column(
-    server_default=func.now())]
-
-
-class SqlBaseModel(AsyncAttrs, DeclarativeBase):
-    id = None
-
-    type_annotation_map = {
-        str_66: String(66),
-        str_42: String(42),
-        str_30: String(25),
-        str_8: String(8)
-    }
+class BaseSqlModel(AsyncAttrs, DeclarativeBase):
+    __abstract__ = True
+    
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True, 
+        autoincrement=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        server_default=func.now()
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        server_default=func.now(),
+        onupdate=func.now()
+    )
 
     @declared_attr.directive
     def __tablename__(cls) -> str:
@@ -60,12 +64,12 @@ class SqlBaseModel(AsyncAttrs, DeclarativeBase):
         return f'<{self.__class__.__name__}({" | ".join(cols)})>'
 
 
-class AccountEntity(SqlBaseModel):
-    id: Mapped[int_pk]
-    account_name: Mapped[Annotated[str, mapped_column(String(30), nullable=True)]]
-    evm_private_key: Mapped[str_66]
-    evm_address: Mapped[str_42]
-    next_action_time: Mapped[datetime | None]
+class AccountEntity(BaseSqlModel):
+    id: Mapped[int_pk_an]
+    account_name: Mapped[str_30_an | None]
+    evm_private_key: Mapped[str_66_unique_an]
+    evm_address: Mapped[str_42_unique_an]
+    next_action_time: Mapped[datetime] = mapped_column(DATETIME(truncate_microseconds=True))
     planned_swaps_count: Mapped[int]
     planned_mint_count: Mapped[int]
     planned_lending_count: Mapped[int]
@@ -92,35 +96,34 @@ class AccountEntity(SqlBaseModel):
         cascade="all, delete-orphan"
     )
 
-class BridgeEntity(SqlBaseModel):
-    id: Mapped[int_pk]
-    from_network: Mapped[str_30]
-    to_network: Mapped[str_30]
+
+class BridgeEntity(BaseSqlModel):
+    id: Mapped[int_pk_an]
+    from_network: Mapped[str_30_an]
+    to_network: Mapped[str_30_an]
     src_amount: Mapped[float]
-    src_token: Mapped[str_8]
+    src_token: Mapped[str_10_an]
     dst_amount: Mapped[float]
-    dst_token: Mapped[str_8]
+    dst_token: Mapped[str_10_an]
     volume_usd: Mapped[float]
     fee: Mapped[float]
     fee_in_usd: Mapped[float]
-    platform: Mapped[str_30]
-    date: Mapped[created_at]
+    platform: Mapped[str_30_an]
     tx_hash: Mapped[str]
-    
+
     account_id: Mapped[int] = mapped_column(
         ForeignKey('accounts.id', ondelete="CASCADE")
     )
     account: Mapped['AccountEntity'] = relationship(back_populates='bridges')
 
 
-class MintEntity(SqlBaseModel):
-    id: Mapped[int_pk]
+class MintEntity(BaseSqlModel):
+    id: Mapped[int_pk_an]
     nft: Mapped[str]
     nft_quantity_by_mint: Mapped[int]
     mint_price: Mapped[float]
     mint_price_in_usd: Mapped[float]
-    platform: Mapped[str_30]
-    date: Mapped[created_at]
+    platform: Mapped[str_30_an]
     tx_hash: Mapped[str]
 
     account_id: Mapped[int] = mapped_column(
@@ -129,14 +132,13 @@ class MintEntity(SqlBaseModel):
     account: Mapped['AccountEntity'] = relationship(back_populates='mints')
 
 
-class StakeEntity(SqlBaseModel):
-    id: Mapped[int_pk]
-    token: Mapped[str_8]
+class StakeEntity(BaseSqlModel):
+    id: Mapped[int_pk_an]
+    token: Mapped[str_10_an]
     amount: Mapped[float]
     reward_rate: Mapped[float]
-    unfreeze_date: Mapped[datetime | None]    
-    platform: Mapped[str_30]
-    date: Mapped[created_at]
+    unfreeze_date: Mapped[datetime | None]
+    platform: Mapped[str_30_an]
     tx_hash: Mapped[str]
 
     account_id: Mapped[int] = mapped_column(
@@ -145,18 +147,17 @@ class StakeEntity(SqlBaseModel):
     account: Mapped['AccountEntity'] = relationship(back_populates='stakes')
 
 
-class SwapEntity(SqlBaseModel):
-    id: Mapped[int_pk]
-    network: Mapped[str_30]
+class SwapEntity(BaseSqlModel):
+    id: Mapped[int_pk_an]
+    network: Mapped[str_30_an]
     src_amount: Mapped[float]
-    src_token: Mapped[str_8]
+    src_token: Mapped[str_10_an]
     dst_amount: Mapped[float]
-    dst_token: Mapped[str_8]
+    dst_token: Mapped[str_10_an]
     volume_usd: Mapped[float]
     fee: Mapped[float]
     fee_in_usd: Mapped[float]
-    platform: Mapped[str_30]
-    date: Mapped[created_at]
+    platform: Mapped[str_30_an]
     tx_hash: Mapped[str]
 
     account_id: Mapped[int] = mapped_column(

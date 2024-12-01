@@ -1,33 +1,33 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from .services.account import AccountService
-from .services.bridges import BridgeService
-from .services.mints import MintService
-from .services.stakes import StakeService
-from .services.swaps import SwapService
-from ..data_access.repository.sql_alchemy import SqlAlchemyRepository
-from ..data_access.entities import (
-    AccountEntity, BridgeEntity, MintEntity, StakeEntity, SwapEntity
+from .services import (
+    AccountService,
+    BridgeService,
+    MintService,
+    StakeService,
+    SwapService
 )
-
+from ..data_access.repositories import (
+    AccountRepository,
+    BridgeRepository,
+    MintRepository,
+    StakeRepository,
+    SwapRepository
+)
 from .. import async_engine
 
 
 class ServiceUnitOfWork:
     async def __aenter__(self):
         self.__session = AsyncSession(
-            bind=async_engine, expire_on_commit=False)
+            bind=async_engine, expire_on_commit=False
+        )
 
-        self.accounts = AccountService(
-            SqlAlchemyRepository(self.__session, AccountEntity))
-        self.bridges = BridgeService(
-            SqlAlchemyRepository(self.__session, BridgeEntity))
-        self.mints = MintService(
-            SqlAlchemyRepository(self.__session, MintEntity))
-        self.stakes = StakeService(
-            SqlAlchemyRepository(self.__session, StakeEntity))
-        self.swaps = SwapService(
-            SqlAlchemyRepository(self.__session, SwapEntity))
+        self.accounts = AccountService(AccountRepository(self.__session))
+        self.bridges = BridgeService(BridgeRepository(self.__session))
+        self.mints = MintService(MintRepository(self.__session))
+        self.stakes = StakeService(StakeRepository(self.__session))
+        self.swaps = SwapService(SwapRepository(self.__session))
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
