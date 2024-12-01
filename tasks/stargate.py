@@ -722,8 +722,8 @@ class StargateImplementation(EvmTask, Utils):
 
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
-                f'from {self.__src_network_name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {dst_network_name}: '
+                f'from {self.client.network.name} -> {rounded_amount_to} '
+                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
         except web3_exceptions.ContractCustomError as e:
