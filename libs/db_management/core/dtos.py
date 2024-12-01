@@ -39,9 +39,9 @@ class AccountDTO(GeneralDTO):
     evm_address: Optional[str] = Field(None)
     next_action_time: Optional[datetime] = Field(None)
     planned_swaps_count: Optional[int] = Field(None)
-    planned_mint_count: Optional[int] = Field(None)
-    planned_lending_count: Optional[int] = Field(None)
-    planned_stake_count: Optional[int] = Field(None)
+    planned_mints_count: Optional[int] = Field(None)
+    planned_bridges_count: Optional[int] = Field(None)
+    planned_stakes_count: Optional[int] = Field(None)
     completed: Optional[bool] = Field(None)
 
     @field_validator('evm_private_key', mode='before')

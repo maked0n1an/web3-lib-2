@@ -34,9 +34,11 @@ class BaseSqlModel(AsyncAttrs, DeclarativeBase):
         autoincrement=True
     )
     created_at: Mapped[datetime] = mapped_column(
+        DATETIME(truncate_microseconds=True),
         server_default=func.now()
     )
     updated_at: Mapped[datetime] = mapped_column(
+        DATETIME(truncate_microseconds=True),
         server_default=func.now(),
         onupdate=func.now()
     )
@@ -71,9 +73,9 @@ class AccountEntity(BaseSqlModel):
     evm_address: Mapped[str_42_unique_an]
     next_action_time: Mapped[datetime] = mapped_column(DATETIME(truncate_microseconds=True))
     planned_swaps_count: Mapped[int]
-    planned_mint_count: Mapped[int]
-    planned_lending_count: Mapped[int]
-    planned_stake_count: Mapped[int]
+    planned_mints_count: Mapped[int]
+    planned_bridges_count: Mapped[int]
+    planned_stakes_count: Mapped[int]
     completed: Mapped[bool] = mapped_column(default=False, server_default='0')
 
     __table_args__ = (

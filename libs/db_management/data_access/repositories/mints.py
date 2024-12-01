@@ -1,7 +1,7 @@
 from sqlalchemy import select, func
 
-from ...data_access.repositories._generic import GenericSqlRepository
 from ...core.entities import MintEntity
+from ...data_access.repositories._generic import GenericSqlRepository
 
 
 class MintRepository(GenericSqlRepository[MintEntity]):
