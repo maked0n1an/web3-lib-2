@@ -1,4 +1,3 @@
-from functools import lru_cache
 from typing import Any
 
 from web3 import Web3
@@ -10,7 +9,6 @@ from web3.contract import (
     Contract as web3_Contract,
     AsyncContract as web3_AsyncContract
 )
-from eth_typing import ChecksumAddress
 
 from .transaction import Transaction
 from ..models.contract import RawContract, TokenContract
@@ -27,21 +25,6 @@ from ..utils.helpers import (
 class Contract:
     def __init__(self, transaction: Transaction):
         self.transaction = transaction
-
-    @staticmethod
-    def get_checksum_address(
-        address: ParamsTypes.Address
-    ) -> ChecksumAddress:
-        """
-        Convert an address to its checksummed format.
-
-        Args:
-            address (ParamsTypes.Address): The address to checksum.
-
-        Returns:
-            ChecksumAddress: The checksummed address.
-        """
-        return Web3.to_checksum_address(address)
 
     @staticmethod
     async def get_signature(hex_signature: str) -> list | None:
@@ -102,7 +85,7 @@ class Contract:
             function['inputs'].append(input_)
 
         return function
-    
+
     def get_abi(
         self,
         abi_or_path: str | tuple | list[dict]
@@ -120,7 +103,7 @@ class Contract:
             return abi_or_path
         else:
             return read_json(abi_or_path)
-    
+
     def get_evm_contract(
         self,
         address: ParamsTypes.Address,
@@ -136,16 +119,14 @@ class Contract:
         Returns:
             Contract | AsyncContract: The contract instance.
         """
-        address = Contract.get_checksum_address(address)
+        address = Web3.to_checksum_address(address)
         abi = self.get_abi(abi_or_path)
-        
-        address = self.transaction.w3.eth.contract(
+
+        return self.transaction.w3.eth.contract(
             address=address,
             abi=abi
         )
 
-        return address
-    
     def get_evm_contract_from_raw(
         self,
         contract: RawContract
@@ -185,11 +166,11 @@ class Contract:
             abi_path = (
                 contract.abi_path or abi_or_path or DefaultAbis.Token
             )
-            
+
         else:
             address = contract
             abi_path = abi_or_path or DefaultAbis.Token
-        
+
         return self.get_evm_contract(address, abi_path)
 
     async def approve(
@@ -212,7 +193,7 @@ class Contract:
             TxReceipt: The transaction receipt.
         """
         web3_contract = self.get_token_evm_contract(token_contract)
-        spender_address = Contract.get_checksum_address(tx_params['to'])
+        spender_address = Web3.to_checksum_address(tx_params['to'])
 
         if not amount:
             amount = (
@@ -277,7 +258,7 @@ class Contract:
             TxReceipt: The transaction receipt.
         """
         receiver = Contract.get_checksum_address(receiver_address)
-        contract = self.get_token_evm_contract(token)
+        receiver = Web3.to_checksum_address(receiver)
 
         if not amount:
             amount = await self.get_balance(token)
@@ -324,7 +305,7 @@ class Contract:
             owner = self.transaction.account.address
             
         spender_address = Contract.get_checksum_address(spender_address)
-        web3_contract = self.get_token_evm_contract(token_contract)
+        spender_address = Web3.to_checksum_address(spender_address)
 
         amount = await web3_contract.functions.allowance(
             owner,
