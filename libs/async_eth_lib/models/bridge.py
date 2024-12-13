@@ -11,10 +11,10 @@ from .contract import RawContract
 class TokenBridgeInfo:
     def __init__(
         self,
-        bridge_contract: RawContract,
+        contract: RawContract,
         pool_id: int | None = None
     ) -> None:
-        self.bridge_contract = bridge_contract
+        self.contract = contract
         self.pool_id = pool_id
 # endregion About token bridge        
         
@@ -69,6 +69,7 @@ class FetcherBase:
             )   
 
 class NetworkDataFetcher(FetcherBase):
+    '''Use \'NETWORKS_DATA\' to add networks data'''
     @classmethod
     def get_token_bridge_info(
         cls,
@@ -118,7 +119,8 @@ class NetworkDataFetcher(FetcherBase):
         return (chain_id, pool_id)
     
             
-class BridgeContractDataFetcher(FetcherBase): 
+class BridgeContractDataFetcher(FetcherBase):
+    '''Use \'NETWORKS_DATA\' to add networks data'''
     @classmethod
     def get_only_contract_for_bridge(
         cls,

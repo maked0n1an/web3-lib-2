@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class DefaultAbis:
-    Token = [
+    ERC_20 = [
         {
             'constant': True,
             'inputs': [],

@@ -1,11 +1,4 @@
 from decimal import Decimal
-from web3 import types
-from web3.contract import AsyncContract, Contract
-
-from .contract import (
-    NativeTokenContract,
-    TokenContract
-)
 
 
 # region Constants
@@ -27,7 +20,7 @@ class TokenSymbol:
     GLMR = 'GLMR'
     HECO = 'HECO'
     KAVA = 'KAVA'
-    MATIC = 'MATIC'
+    POL = 'POL'
     STG = 'STG'
     USDT = 'USDT'
     USDC = 'USDC'
@@ -114,14 +107,3 @@ class TokenAmount:
 
         """
         return str(self.Ether)
-
-
-#region Params types
-class ParamsTypes:
-    Web3Contract = AsyncContract | Contract
-    TokenContract = TokenContract | NativeTokenContract
-    Address = str | types.Address | types.ChecksumAddress | types.ENS
-    Amount = float | int | TokenAmount
-    GasPrice = float | int | TokenAmount
-    GasLimit = int | TokenAmount
-#endregion Params types

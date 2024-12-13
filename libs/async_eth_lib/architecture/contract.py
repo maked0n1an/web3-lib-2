@@ -166,7 +166,7 @@ class Contract:
         """
         return self.get_evm_contract(
             address,
-            DefaultAbis.Token
+            DefaultAbis.ERC_20
         )
 
     async def approve(

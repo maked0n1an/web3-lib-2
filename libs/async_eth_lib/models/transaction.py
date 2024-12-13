@@ -12,6 +12,7 @@ from . import exceptions as exceptions
 from .common import AutoRepr
 from ..architecture.network import Network
 
+
 # region TxArgs class
 class TxArgs(AutoRepr):
     """

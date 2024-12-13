@@ -5,7 +5,6 @@ from ..models.others import TokenSymbol
 
 
 class TokenContractData:
-    NATIVE_ETH = NativeTokenContract(title=TokenSymbol.ETH)
     ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
     @classmethod
@@ -55,11 +54,11 @@ class ContractsFactory:
 
 
 class EthereumTokenContracts(TokenContractData):
-    ETH = TokenContractData.NATIVE_ETH
+    ETH = NativeTokenContract()
 
 
 class ArbitrumTokenContracts(TokenContractData):
-    ETH = TokenContractData.NATIVE_ETH
+    ETH = NativeTokenContract()
 
     ARB = TokenContract(
         title=TokenSymbol.ARB,
@@ -157,7 +156,7 @@ class AvalancheTokenContracts(TokenContractData):
 
 
 class BaseTokenContracts(TokenContractData):
-    ETH = TokenContractData.NATIVE_ETH
+    ETH = NativeTokenContract()
 
     USDC = TokenContract(
         title=TokenSymbol.USDC,
@@ -221,6 +220,8 @@ class CoreTokenContracts(TokenContractData):
 
 
 class FantomTokenContracts(TokenContractData):
+    FTM = NativeTokenContract(title=TokenSymbol.FTM)
+
     USDC = TokenContract(
         title=TokenSymbol.USDC,
         address='0x04068DA6C83AFCFA0e13ba15A6696662335D5B75',
@@ -243,7 +244,7 @@ class KavaTokenContracts(TokenContractData):
 
 
 class OptimismTokenContracts(TokenContractData):
-    ETH = TokenContractData.NATIVE_ETH
+    ETH = NativeTokenContract()
 
     USDC = TokenContract(
         title=TokenSymbol.USDC,
@@ -292,7 +293,7 @@ class OptimismTokenContracts(TokenContractData):
 
 
 class PolygonTokenContracts(TokenContractData):
-    MATIC = NativeTokenContract(title=TokenSymbol.MATIC)
+    POL = NativeTokenContract(title=TokenSymbol.POL)
 
     USDC = TokenContract(
         title=TokenSymbol.USDC,
@@ -336,10 +337,7 @@ class PolygonTokenContracts(TokenContractData):
 
 
 class ZkSyncEraTokenContracts(TokenContractData):
-    ETH = NativeTokenContract(
-        title=TokenSymbol.ETH,
-        address=TokenContractData.ZERO_ADDRESS
-    )
+    ETH = NativeTokenContract(address=TokenContractData.ZERO_ADDRESS)
 
     BUSD = TokenContract(
         title=TokenSymbol.BUSD,
@@ -378,5 +376,5 @@ class ZkSyncEraTokenContracts(TokenContractData):
 
 
 class SepoliaTokenContracts(TokenContractData):
-    ETH = TokenContractData.NATIVE_ETH
+    ETH = NativeTokenContract()
 # endregion All token contracts
