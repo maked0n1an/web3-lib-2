@@ -2,6 +2,7 @@ from typing import Any
 
 from web3 import Web3
 from web3.types import (
+    Wei,
     TxParams,
     TxReceipt,
 )
@@ -15,8 +16,14 @@ from ..models.contract import RawContract, TokenContract
 from ..models.dataclasses import (
     CommonValues, DefaultAbis
 )
-from ..models.others import ParamsTypes, TokenAmount
-from ..models.transaction import TxArgs
+from ..models.others import TokenAmount
+from ..models.params_types import (
+    AddressType,
+    AmountType,
+    GasLimitType,
+    GasPriceType,
+    Web3ContractType,
+)
 from ..utils.helpers import (
     make_async_request, read_json, text_between
 )
@@ -32,10 +39,10 @@ class Contract:
         Find all matching signatures in the 4byte.directory database.
 
         Args:
-            hex_signature (str): A signature hash.
+            - `hex_signature` (str): A signature hash.
 
         Returns:
-            list | None: A list of matching signatures or None if none found.
+            - `list | None`: A list of matching signatures or None if none found.
         """
         try:
             url = f'https://www.4byte.directory/api/v1/signatures/?hex_signature={hex_signature}'
@@ -51,10 +58,10 @@ class Contract:
         Construct a function dictionary for the ABI based on the provided text signature.
 
         Args:
-            text_signature (str): A text signature, e.g. approve(address,uint256).
+            - `text_signature` (str): A text signature, e.g. approve(address,uint256).
 
         Returns:
-            dict: The function dictionary for the ABI.
+            - `dict`: The function dictionary for the ABI.
         """
         name, sign = text_signature.split('(', 1)
         sign = sign[:-1]
@@ -94,10 +101,10 @@ class Contract:
         Retrieve the ABI from a given path or return the default ABI.
 
         Args:
-            abi_or_path (list | tuple | str | list[dict] | None): The ABI or path to the ABI.
+            - `abi_or_path` (list | tuple | str | list[dict] | None): The ABI or path to the ABI.
 
         Returns:
-            list[dict] | None: The ABI as a list of dictionaries or None if not found.
+            - `list[dict] | None`: The ABI as a list of dictionaries or None if not found.
         """
         if all(isinstance(item, dict) for item in abi_or_path):
             return abi_or_path
@@ -106,26 +113,25 @@ class Contract:
 
     def get_evm_contract(
         self,
-        address: ParamsTypes.Address,
+        address: AddressType,
         abi_or_path: str | list[dict[str, Any]]
     ) -> web3_Contract | web3_AsyncContract:
         """
         Retrieves an EVM contract instance from a given address and ABI or ABI path.
 
         Args:
-            address (ParamsTypes.Address): The address of the contract.
-            abi_or_path (str | list[dict[str, Any]]): The ABI of the contract or a path to the ABI file.
+            - `address` (str | Address | ChecksumAddress): The address of the contract.
+            - `abi_or_path` (str | list[dict[str, Any]]): The ABI of the contract or a path to the ABI file.
 
         Returns:
-            Contract | AsyncContract: The contract instance.
+            - `Contract | AsyncContract`: The contract instance.
         """
-        address = Web3.to_checksum_address(address)
-        abi = self.get_abi(abi_or_path)
-
-        return self.transaction.w3.eth.contract(
-            address=address,
-            abi=abi
+        contract = self.transaction.w3.eth.contract(
+            address=Web3.to_checksum_address(address),
+            abi=self.get_abi(abi_or_path)
         )
+
+        return contract
 
     def get_evm_contract_from_raw(
         self,
@@ -135,86 +141,69 @@ class Contract:
         Retrieves an EVM contract instance from a given RawContract object.
 
         Args:
-            contract (RawContract): The RawContract object containing the contract's address and ABI path.
+            - `contract` (RawContract): The RawContract object containing the contract's address and ABI path.
 
         Returns:
-            Contract | AsyncContract: The contract instance.
+            - `Contract | AsyncContract`: The contract instance.
         """
-        return self.get_evm_contract(contract.address, contract.abi_path)
-    
+        return self.get_evm_contract(
+            contract.address,
+            contract.abi_path
+        )
+
     def get_token_evm_contract(
         self,
-        contract: RawContract | ParamsTypes.Address,
-        abi_or_path: str | tuple | list[dict[str, Any]] = None
+        address: AddressType,
     ) -> web3_Contract | web3_AsyncContract:
         """
-        Retrieves an EVM contract instance for a token contract.
-
-        This method can handle both RawContract objects and direct addresses. 
-        It attempts to use the ABI path from the RawContract if provided, 
-        otherwise falls back to the default ABI path for tokens.
+        Retrieves an EVM contract instance for a token contract with ERC-20 standard.
 
         Args:
-            contract (RawContract | str | Address | ChecksumAddress | ENS): The token contract, contract instance, or address.
-            abi_or_path (str | tuple | list[dict[str, Any]] | None): The ABI or path to the ABI file. Defaults to None.
+            - `address` (str | Address | ChecksumAddress): The address of the token contract.
 
         Returns:
-            Contract | AsyncContract: The contract instance.
+            - `Contract | AsyncContract`: The contract instance for ERC-20 token.
         """
-        if isinstance(contract, RawContract):
-            address = contract.address
-            abi_path = (
-                contract.abi_path or abi_or_path or DefaultAbis.Token
-            )
-
-        else:
-            address = contract
-            abi_path = abi_or_path or DefaultAbis.Token
-
-        return self.get_evm_contract(address, abi_path)
+        return self.get_evm_contract(
+            address,
+            DefaultAbis.Token
+        )
 
     async def approve(
         self,
-        token_contract: RawContract | ParamsTypes.Address,
+        token_address: AddressType,
         tx_params: TxParams | dict,
-        amount: ParamsTypes.Amount | None = None,
+        amount: AmountType | None = None,
         is_approve_infinity: bool = False
     ) -> TxReceipt:
         """
         Approve a spender to spend a certain amount of tokens on behalf of the user.
 
         Args:
-            token_contract (RawContract | str | Address | ChecksumAddress | ENS): The token contract, contract instance, or address.
-            amount (float | int | TokenAmount | None): The amount of tokens to approve (default is None).
-            tx_params (TxParams | dict | None): Transaction parameters (default is None).
-            is_approve_infinity (bool): If True, approves an infinite amount (default is False).
+            - `token_address` (str | Address | ChecksumAddress): The token address.
+            - `amount` (float | int | TokenAmount | None): The amount of tokens to approve (default is None).
+            - `tx_params` (TxParams | dict | None): Transaction parameters (default is None).
+            - `is_approve_infinity` (bool): If True, approves an infinite amount (default is False).
 
         Returns:
-            TxReceipt: The transaction receipt.
+            - `TxReceipt`: The transaction receipt.
         """
-        web3_contract = self.get_token_evm_contract(token_contract)
+        web3_contract = self.get_token_evm_contract(token_address)
         spender_address = Web3.to_checksum_address(tx_params['to'])
 
         if not amount:
-            amount = (
+            amount_wei = (
                 CommonValues.InfinityInt
                 if is_approve_infinity
-                else await self.get_balance(token=web3_contract)
+                else await self.get_balance(token_address)
             )
 
-        elif isinstance(amount, (int, float)):
-            decimals = await self.get_decimals(contract=token_contract)
-            token_amount = TokenAmount(amount=amount, decimals=decimals).Wei
-
-        else:
-            token_amount = amount.Wei
+        if isinstance(amount, TokenAmount):
+            amount_wei = amount.Wei
 
         data = web3_contract.encodeABI(
-            'approve',
-            args=TxArgs(
-                spender=spender_address,
-                amount=token_amount
-            ).get_tuple()
+            fn_name='approve',
+            args=(spender_address, amount_wei)
         )
 
         keys_to_include = [
@@ -228,7 +217,7 @@ class Contract:
             new_tx_params = {}
 
         new_tx_params.update({
-            'to': token_contract.address,
+            'to': token_address,
             'data': data
         })
 
@@ -240,148 +229,138 @@ class Contract:
 
     async def transfer(
         self,
-        receiver_address: ParamsTypes.Address,
-        token: TokenContract | ParamsTypes.Address = None,
-        amount: ParamsTypes.Amount | None = None,
-        tx_params: TxParams | dict = {},
+        token_contract: TokenContract,
+        receiver_address: AddressType,
+        amount: AmountType | None = None,
+        tx_params: TxParams | dict = {}
     ) -> TxReceipt:
         """
         Transfer tokens to a specified address.
 
         Args:
-            receiver_address (ParamsTypes.Address): The address to receive the tokens.
-            token (TokenContract | ParamsTypes.Address | None): The token contract or address (default is None).
-            amount (ParamsTypes.Amount | None): The amount of tokens to transfer (default is None).
-            tx_params (TxParams | dict): Transaction parameters (default is empty dict).
+            - `token_contract` (TokenContract): The token contract.
+            - `receiver_address` (Address): The address to receive the tokens.
+            - `amount` (float | int | TokenAmount | None): The amount of tokens to transfer (default is None).
+            - `tx_params` (TxParams | dict): Transaction parameters (default is empty dict).
 
         Returns:
-            TxReceipt: The transaction receipt.
+            - `TxReceipt`: The transaction receipt.
         """
-        receiver = Contract.get_checksum_address(receiver_address)
-        receiver = Web3.to_checksum_address(receiver)
+        web3_contract = self.get_token_evm_contract(token_contract.address)
 
         if not amount:
-            amount = await self.get_balance(token)
+            amount_wei = await self.get_balance(token_contract.address)
 
-        if isinstance(amount, float | int):
-            amount = TokenAmount(
-                amount=amount,
-                decimals=await self.get_decimals(token)
-            )
+            if token_contract.is_native_token:
+                amount_wei -= await self.transaction.get_tx_cost()
+
+        if isinstance(amount, TokenAmount):
+            amount_wei = amount.Wei
 
         tx_params = TxParams(
-            to=contract.address,
-            data=contract.encodeABI(
+            to=token_contract.address,
+            data=web3_contract.encodeABI(
                 fn_name='transfer',
-                args=(receiver, amount.Wei)
+                args=(
+                    Web3.to_checksum_address(receiver_address),
+                    amount_wei
+                )
             )
         )
 
         tx = await self.transaction.sign_and_send(tx_params)
-        receipt = await tx.wait_for_tx_receipt(
+        return await tx.wait_for_tx_receipt(
             web3=self.transaction.w3,
-            timeout=300
+            timeout=240
         )
-        return receipt
 
     async def get_approved_amount(
         self,
-        token_contract: RawContract | ParamsTypes.Address,
-        spender_address: ParamsTypes.Address,
-        owner: ParamsTypes.Address | None = None
-    ) -> TokenAmount:
+        token_contract: TokenContract,
+        spender_address: AddressType,
+        owner_address: AddressType | None = None
+    ) -> Wei:
         """
         Get the approved amount of tokens for a spender.
 
         Args:
-            token_contract (RawContract | ParamsTypes.Address): The token contract or address.
-            spender_address (ParamsTypes.Address): The address of the spender.
-            owner (ParamsTypes.Address | None): The address of the token owner (default is None).
+            - `token_contract` (TokenContract): The token contract.
+            - `spender_address` (str | Address | ChecksumAddress): The address of the spender.
+            - `owner_address` (str | Address | ChecksumAddress | None): The address of the token owner (default is None).
 
         Returns:
-            TokenAmount: The approved amount of tokens.
+            - `Wei`: The approved amount of tokens.
         """
-        if not owner:
-            owner = self.transaction.account.address
-            
-        spender_address = Contract.get_checksum_address(spender_address)
-        spender_address = Web3.to_checksum_address(spender_address)
+        if not owner_address:
+            owner_address = self.transaction.account.address
+
+        web3_contract = self.get_token_evm_contract(token_contract.address)
 
         amount = await web3_contract.functions.allowance(
-            owner,
-            spender_address,
+            owner_address,
+            Web3.to_checksum_address(spender_address)
         ).call()
-        decimals = await self.get_decimals(web3_contract)
 
-        return TokenAmount(amount, decimals, wei=True)
+        return amount
 
     async def get_balance(
         self,
-        token: RawContract | ParamsTypes.Web3Contract | ParamsTypes.Address | None = None,
-        address: ParamsTypes.Address | None = None
-    ) -> TokenAmount:
+        token_address: AddressType | None = None,
+        account_address: AddressType | None = None
+    ) -> Wei:
         """
         Get the balance of an Ethereum address.
 
         Args:
-            token (RawContract | ParamsTypes.Web3Contract | ParamsTypes.Address | None): The token contract or address (default is None).
-            address (ParamsTypes.Address | None): The Ethereum address for which to retrieve the balance (default is None).
+            - `token_address` (str | Address | ChecksumAddress | None): The token address (default is None).
+            - `account_address` (str | Address | ChecksumAddress | None): The Ethereum address for which to retrieve the balance (default is None).
 
         Returns:
-            TokenAmount: An object representing the token balance, including the amount and decimals.
+            - `Wei`: The balance of the Ethereum address.
 
         Note:
-            If `token_contract` is provided, it retrieves the token balance.
-            If `token_contract` is None, it retrieves the native token balance.
+            If `token_address` is provided, it retrieves the token balance.
+            If `token_address` is None, it retrieves the native token balance.
         """
-        if not address:
-            address = self.transaction.account.address
-            
-        if token is None:
-            amount = await self.transaction.w3.eth.get_balance(account=address)
-            decimals = self.transaction.network.decimals
+        if not account_address:
+            account_address = self.transaction.account.address
 
-        elif type(token) in ParamsTypes.Web3Contract.__args__:
-            amount = await token.functions.balanceOf(address).call()
-            decimals = await self.get_decimals(token)
-            
+        if token_address:
+            web3_contract = self.get_token_evm_contract(token_address)
+            return await web3_contract.functions.balanceOf(account_address).call()
+
         else:
-            web3_contract = self.get_token_evm_contract(token)
-            amount = await web3_contract.functions.balanceOf(address).call()
-            decimals = await self.get_decimals(token)
-        
-        return TokenAmount(
-            amount=amount,
-            decimals=decimals,
-            wei=True
-        )
+            return await self.transaction.w3.eth.get_balance(account=account_address)
 
     async def get_decimals(
         self,
-        contract: RawContract | ParamsTypes.TokenContract | ParamsTypes.Web3Contract
+        token: AddressType | TokenContract | Web3ContractType
     ) -> int:
         """
-        Retrieve the decimals of a token contract or contract.
+        Retrieve the decimals of a token contract or token address.
 
         Args:
-            token (RawContract | ParamsTypes.TokenContract | ParamsTypes.Web3Contract): The token contract address or contract instance.
+            - `token` (str | Address | ChecksumAddress | TokenContract | web3_Contract): The token to get decimals for.
+                - If `token` is a `TokenContract` instance, it uses the `decimals` attribute.
+                - If 'token.decimals' is None, it retrieves the decimals from the web3_contract and assigns it to the `decimals` attribute.
 
         Returns:
-        - `int`: The number of token decimals.
+            - `int`: The number of decimals for the token
         """
-        if isinstance(contract, ParamsTypes.Web3Contract):
-            return await contract.functions.decimals().call()
+        if isinstance(token, TokenContract):
+            if getattr(token, 'decimals', None) is not None:
+                return token.decimals
 
-        if getattr(contract, 'decimals', None) is not None:
-            return contract.decimals
+            web3_contract = self.get_token_evm_contract(token.address)
+            decimals = await web3_contract.functions.decimals().call()
+            token.decimals = decimals
+            return decimals
 
-        web3_contract = self.get_token_evm_contract(contract)
-        decimals = await web3_contract.functions.decimals().call()
+        if isinstance(token, AddressType):
+            web3_contract = self.get_token_evm_contract(token)
+            return await web3_contract.functions.decimals().call()
 
-        if isinstance(contract, TokenContract):
-            contract.decimals = decimals
-
-        return decimals
+        return await token.functions.decimals().call()
 
     def add_multiplier_of_gas(
         self,
@@ -392,29 +371,28 @@ class Contract:
         Set the gas multiplier in the transaction parameters.
 
         Args:
-            multiplier (float | None): The gas multiplier to set.
-            tx_params (TxParams | dict): The transaction parameters.
+            - `multiplier` (float | None): The gas multiplier to set.
+            - `tx_params` (TxParams | dict): The transaction parameters.
 
         Returns:
-            TxParams | dict: The updated transaction parameters.
+            - `TxParams | dict`: The updated transaction parameters.
         """
         tx_params['multiplier'] = multiplier
-        return tx_params
 
     def set_gas_price(
         self,
-        gas_price: ParamsTypes.GasPrice,
+        gas_price: GasPriceType,
         tx_params: TxParams | dict,
     ) -> TxParams | dict:
         """
         Set the gas limit in the transaction parameters.
 
         Args:
-            gas_limit (ParamsTypes.GasLimit): The gas limit to set.
-            tx_params (dict | TxParams): The transaction parameters.
+            - `gas_price` (float | int): The gas price to set.
+            - `tx_params` (TxParams | dict): The transaction parameters.
 
         Returns:
-            dict | TxParams: The updated transaction parameters.
+            - `dict | TxParams`: The updated transaction parameters.
         """
         if isinstance(gas_price, float | int):
             gas_price = TokenAmount(
@@ -423,23 +401,21 @@ class Contract:
                 set_gwei=True
             )
         tx_params['gasPrice'] = gas_price.GWei
-        return tx_params
 
     def set_gas_limit(
         self,
-        gas_limit: ParamsTypes.GasLimit,
+        gas_limit: GasLimitType,
         tx_params: dict | TxParams,
     ) -> dict | TxParams:
         """
         Set the gas limit in the transaction parameters.
 
         Args:
-            gas_limit (int | TokenAmount): The gas limit to set.
-            tx_params (dict | TxParams): The transaction parameters.
+            - `gas_limit` (int | TokenAmount): The gas limit to set.
+            - `tx_params` (dict | TxParams): The transaction parameters.
 
         Returns:
-            dict | TxParams: The updated transaction parameters.
-
+            - `dict | TxParams`: The updated transaction parameters.
         """
         if isinstance(gas_limit, int):
             gas_limit = TokenAmount(
@@ -448,4 +424,3 @@ class Contract:
                 wei=True
             )
         tx_params['gas'] = gas_limit.Wei
-        return tx_params
