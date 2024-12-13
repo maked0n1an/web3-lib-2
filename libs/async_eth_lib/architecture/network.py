@@ -18,24 +18,24 @@ class Network:
         self,
         name: str,
         rpc: str | List[str],
+        explorer: str,
         chain_id: int | None = None,
-        tx_type: int = 0,
         coin_symbol: str | None = None,
-        decimals: int | None = None,
-        explorer: str | None = None,
+        decimals: int = 18,
+        tx_type: int = 0,
         api: EvmApiClient | ZkApiClient | None = None
-    ) -> None:
-        self.name: str = name
-        self.rpc: str | List[str] = rpc
-        self.chain_id: int | None = chain_id
-        self.tx_type: int = tx_type
-        self.coin_symbol: str | None = coin_symbol
-        self.decimals: int | None = decimals
-        self.explorer: str | None = explorer
+    ):
+        self.name = name
+        self.explorer = explorer
+        self.rpc = rpc
+        self.chain_id = chain_id
+        self.coin_symbol = coin_symbol
+        self.decimals = decimals
+        self.tx_type = tx_type
         self.api = api
         
         self._initialize_chain_id()
-        self._initialize_coin_symbol_and_decimals()
+        self._initialize_coin_symbol()
         self._coin_symbol_to_upper()
 
     def _initialize_chain_id(self):
@@ -46,17 +46,16 @@ class Network:
         except Exception as e:
             raise exceptions.WrongChainId(f'Can not get chainID: {e}')
         
-    def _initialize_coin_symbol_and_decimals(self):
+    def _initialize_coin_symbol(self):
         chain_id_url = 'https://chainid.network/chains.json'
         
-        if self.coin_symbol and self.decimals:
+        if self.coin_symbol:
             return 
         try:
             response = requests.get(chain_id_url).json()
             for network in response:
                 if network['chainId'] == self.chain_id:
                     self.coin_symbol = network['nativeCurrency']['symbol']
-                    self.decimals = network['nativeCurrency']['decimals']
                     break
         except Exception as e:
             raise exceptions.WrongCoinSymbol(f'Can not get coin_symbol: {e}')
