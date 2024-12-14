@@ -2,7 +2,7 @@ import random
 from typing import List
 
 from . import exceptions as exceptions
-from .contract import TokenContract
+from .contract import TokenContract, TokenContractBase
 from .others import TokenAmount
 from ..architecture.network import Network
 from ..data.networks import Networks
@@ -15,18 +15,17 @@ class OperationInfo:
         from_token_name: str = None,
         to_token_name: str = None,
         slippage: float = 0.5,
-        # from_network: Network = Networks.Goerli,
-        to_network: Network | None = None,
+        to_network: Network = None,
         amount: float = 0,
         amount_from: float = 0,
-        amount_to: float | None = None,
+        amount_to: float = None,
         ndigits: int = 5,
         min_percent: float = 0,
         max_percent: float = 100,
-        gas_price: float | None = None,
-        gas_limit: int | None = None,
-        multiplier_of_gas: float | None = None
-    ) -> None:
+        gas_price: float = None,
+        gas_limit: int = None,
+        multiplier_of_gas: float = None
+    ):
         """
         Initialize the OperationInfo class.
 
@@ -34,7 +33,6 @@ class OperationInfo:
             from_token_name (str): The token to swap from.
             to_token_name (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
-           
             to_network (Network | None): The destination network for the swap (default is None).
             amount (float | None): The amount to swap (default is None).
             amount_from (float | None): The minimum amount for random amount generation.
@@ -89,13 +87,13 @@ class OperationInfo:
 class OperationProposal:
     def __init__(
         self,
-        from_token: TokenContract,
+        from_token: TokenContractBase,
         amount_from: TokenAmount,
-        to_token: TokenContract | None = None,
+        to_token: TokenContractBase | None = None,
         min_amount_to: TokenAmount | None = None
     ) -> None:
         """
-        Initialize the SwapQuery class.
+        Initialize the OperationProposal class.
 
         Args:
             from_token (TokenContract): The contract of the token to swap from.

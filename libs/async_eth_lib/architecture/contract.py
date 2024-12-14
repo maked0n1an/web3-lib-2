@@ -153,20 +153,28 @@ class Contract:
 
     def get_token_evm_contract(
         self,
-        address: AddressType,
+        contract: TokenContract | AddressType,
     ) -> web3_Contract | web3_AsyncContract:
         """
-        Retrieves an EVM contract instance for a token contract with ERC-20 standard.
+        Retrieves an EVM token contract instance for a token contract with ERC-20 standard.
 
         Args:
-            - `address` (str | Address | ChecksumAddress): The address of the token contract.
+            - `contract` (TokenContract | str | Address | ChecksumAddress): The token contract or its address.
 
         Returns:
             - `Contract | AsyncContract`: The contract instance for ERC-20 token.
         """
+        if isinstance(contract, TokenContract):
+            address = contract.address
+            contract_abi = contract.abi_path
+
+        else:
+            address = contract
+            contract_abi = DefaultAbis.ERC_20
+
         return self.get_evm_contract(
             address,
-            DefaultAbis.ERC_20
+            contract_abi
         )
 
     async def approve(
@@ -246,7 +254,7 @@ class Contract:
         Returns:
             - `TxReceipt`: The transaction receipt.
         """
-        web3_contract = self.get_token_evm_contract(token_contract.address)
+        web3_contract = self.get_token_evm_contract(token_contract)
 
         if not amount:
             amount_wei = await self.get_balance(token_contract.address)
@@ -276,7 +284,7 @@ class Contract:
 
     async def get_approved_amount(
         self,
-        token_contract: TokenContract,
+        token_address: AddressType,
         spender_address: AddressType,
         owner_address: AddressType | None = None
     ) -> Wei:
@@ -284,7 +292,7 @@ class Contract:
         Get the approved amount of tokens for a spender.
 
         Args:
-            - `token_contract` (TokenContract): The token contract.
+            - `token_contract` (str | Address | ChecksumAddress): The token contract.
             - `spender_address` (str | Address | ChecksumAddress): The address of the spender.
             - `owner_address` (str | Address | ChecksumAddress | None): The address of the token owner (default is None).
 
@@ -294,7 +302,7 @@ class Contract:
         if not owner_address:
             owner_address = self.transaction.account.address
 
-        web3_contract = self.get_token_evm_contract(token_contract.address)
+        web3_contract = self.get_token_evm_contract(token_address)
 
         amount = await web3_contract.functions.allowance(
             owner_address,
@@ -351,7 +359,7 @@ class Contract:
             if getattr(token, 'decimals', None) is not None:
                 return token.decimals
 
-            web3_contract = self.get_token_evm_contract(token.address)
+            web3_contract = self.get_token_evm_contract(token)
             decimals = await web3_contract.functions.decimals().call()
             token.decimals = decimals
             return decimals
@@ -365,7 +373,7 @@ class Contract:
     def add_multiplier_of_gas(
         self,
         tx_params: TxParams | dict,
-        multiplier: float | None = None
+        multiplier: float
     ) -> TxParams | dict:
         """
         Set the gas multiplier in the transaction parameters.
@@ -377,12 +385,12 @@ class Contract:
         Returns:
             - `TxParams | dict`: The updated transaction parameters.
         """
-        tx_params['multiplier'] = multiplier
+        tx_params['gas'] = int(tx_params['gas'] * multiplier)
 
     def set_gas_price(
         self,
-        gas_price: GasPriceType,
         tx_params: TxParams | dict,
+        gas_price: GasPriceType,
     ) -> TxParams | dict:
         """
         Set the gas limit in the transaction parameters.
@@ -404,8 +412,8 @@ class Contract:
 
     def set_gas_limit(
         self,
-        gas_limit: GasLimitType,
         tx_params: dict | TxParams,
+        gas_limit: GasLimitType,
     ) -> dict | TxParams:
         """
         Set the gas limit in the transaction parameters.

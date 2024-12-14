@@ -5,7 +5,7 @@ from fake_useragent import UserAgent
 from .utils import api_key_required
 from ...models import exceptions as exceptions
 from ...models.explorer import Sort, Tag
-from ...models.others import ParamsTypes
+from ...models.params_types import Address
 from ...utils.helpers import make_async_request
 
 
@@ -197,8 +197,8 @@ class Account(Module):
 
     async def get_token_tx(
         self,
-        contract_address: ParamsTypes.Address,
-        address: ParamsTypes.Address,
+        contract_address: Address,
+        address: Address,
         page: int = 1,
         offset: int = 0,
         startblock: int | None = None,

@@ -6,7 +6,7 @@ from datetime import (
 
 from fake_useragent import UserAgent
 
-from ...models.others import ParamsTypes
+from ...models.params_types import Address
 from ...utils.helpers import make_async_request
 
 
@@ -184,9 +184,9 @@ class Account(Module):
     
     async def find_tx_by_method_id(
         self,
-        contract_address: ParamsTypes.Address | list[ParamsTypes.Address],
+        contract_address: Address | list[Address],
         method_id: str,
-        address: ParamsTypes.Address | None = None,
+        address: Address | None = None,
     ) -> dict[str, Any]:
         """
         Find all transactions of interaction with the contract, in addition, you can filter transactions by

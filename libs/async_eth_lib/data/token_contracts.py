@@ -1,6 +1,10 @@
 from .networks import Networks
 from ..models import exceptions as exceptions
-from ..models.contract import NativeTokenContract, TokenContract
+from ..models.contract import (
+    NativeTokenContract, 
+    TokenContract, 
+    TokenContractBase
+)
 from ..models.others import TokenSymbol
 
 
@@ -12,7 +16,7 @@ class TokenContractData:
         cls,
         token_symbol: str,  # GETH (GETH, LZ)
         project_prefix: str | None = None,  # LZ
-    ) -> TokenContract:
+    ) -> TokenContractBase:
         contract_name = (
             f'{token_symbol.upper()}_{project_prefix.upper()}'
             if project_prefix
@@ -30,8 +34,11 @@ class TokenContractData:
 
 class ContractsFactory:
     @staticmethod
-    def get_contract(network_name: str, token_symbol: str) -> TokenContract:
-        supported_networks: dict[str, TokenContractData] = {
+    def get_contract(
+        network_name: str,
+        token_symbol: str
+    ) -> TokenContractBase:
+        supported_networks: dict[str, type[TokenContractData]] = {
             Networks.Ethereum.name: EthereumTokenContracts,
             Networks.Arbitrum.name: ArbitrumTokenContracts,
             Networks.Avalanche.name: AvalancheTokenContracts,
@@ -50,9 +57,8 @@ class ContractsFactory:
 
         return supported_networks[network_name].get_token(token_symbol)
 
+
 # region All token contracts
-
-
 class EthereumTokenContracts(TokenContractData):
     ETH = NativeTokenContract()
 
@@ -92,7 +98,7 @@ class ArbitrumTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
+        abi_or_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     DAI = TokenContract(
@@ -141,7 +147,7 @@ class AvalancheTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
+        abi_or_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     FRAX = TokenContract(
@@ -192,7 +198,7 @@ class BscTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json'),
+        abi_or_path=('data', 'abis', 'stargate', 'usdv_abi.json'),
         decimals=6,
     )
 
@@ -277,7 +283,7 @@ class OptimismTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
+        abi_or_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     STG = TokenContract(
@@ -316,7 +322,7 @@ class PolygonTokenContracts(TokenContractData):
     USDV = TokenContract(
         title=TokenSymbol.USDV,
         address='0x323665443CEf804A3b5206103304BD4872EA4253',
-        abi_path=('data', 'abis', 'stargate', 'usdv_abi.json')
+        abi_or_path=('data', 'abis', 'stargate', 'usdv_abi.json')
     )
 
     DAI = TokenContract(
@@ -347,7 +353,7 @@ class ZkSyncEraTokenContracts(TokenContractData):
     WETH = TokenContract(
         title=TokenSymbol.WETH,
         address='0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
-        abi_path=('data', 'abis', 'zksync', 'weth_abi.json')
+        abi_or_path=('data', 'abis', 'zksync', 'weth_abi.json')
     )
 
     WBTC = TokenContract(

@@ -1,3 +1,4 @@
+from abc import ABC
 from web3 import Web3
 from web3.types import (
     Address,
@@ -31,44 +32,59 @@ class RawContract(AutoRepr):
 # endregion RawContract
 
 
-# region TokenContract
-class TokenContract(RawContract):
+# region TokenContractBase
+class TokenContractBase(ABC, AutoRepr):
+    """
+    An abstract class of a token contract.
+    """
     def __init__(
         self,
         title: str,
         address: str | Address | ChecksumAddress,
-        abi_path: list[str] | tuple[str] | str = DefaultAbis.ERC_20,
+        is_native_token: bool,
+    ):
+        self.title = title
+        self.address = Web3.to_checksum_address(address)
+        self.is_native_token = is_native_token
+# endregion TokenContractBase
+
+
+# region TokenContract
+class TokenContract(TokenContractBase):
+    """
+    An instance of a ERC_20 token contract.
+    """
+    def __init__(
+        self,
+        title: str,
+        address: str | Address | ChecksumAddress,
+        abi_or_path: list[str] | tuple[str] | str = DefaultAbis.ERC_20,
         decimals: int | None = None,
     ):
         """
-        Initialize the class.
+        Initialize the TokenContract class.
 
         Args:
             title (str): a contract title.
-            address (str): a contract address.
-            abi_path (tuple | list | str): a path to get contract ABI from file.
+            address (str | Address | ChecksumAddress): a contract address.
+            abi_path (list[str] | tuple[str] | str): a path to get contract ABI from file (default is ERC_20 abi).
             decimals (int): a contract decimals.
-            is_native_token (bool): is this contract native token of network (False).
         """
         super().__init__(
             title=title,
             address=address,
-            abi_path=abi_path
+            is_native_token=False
         )
+        self.abi_path = abi_or_path
         self.decimals = decimals
-        self.is_native_token = False
 # endregion TokenContract
 
 
 # region NativeTokenContract
-class NativeTokenContract(AutoRepr):
+class NativeTokenContract(TokenContractBase):
     """
     An instance of a native token contract.
-
-    Attributes:
-        title (str): The title or name of the native token.
     """
-
     def __init__(
         self,
         title: str = 'ETH',
@@ -79,10 +95,11 @@ class NativeTokenContract(AutoRepr):
 
         Args:
             title (str): The title or name of the native token.
-
+            address (str): The address of the native token.
         """
-        self.title = title
-        self.address = Web3.to_checksum_address(address)
-        self.decimals = 18
-        self.is_native_token = True
+        super().__init__(
+            title=title,
+            address=address,
+            is_native_token=True
+        )
 # endregion NativeTokenContract

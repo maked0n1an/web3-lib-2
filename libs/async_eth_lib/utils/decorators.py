@@ -1,6 +1,3 @@
-import inspect
-import os
-
 from ..architecture.logger import console_logger
 from ..models.operation import OperationInfo
 
@@ -27,7 +24,7 @@ def validate_operation_tokens(
                 return
             if from_token == to_token:
                 console_logger.error(
-                    f'The tokens for {op_name}() are equal:'
+                    f'The tokens for {op_name}() are equal in {class_name}:'
                     f' {from_token} == {to_token} '
                 )
                 return
