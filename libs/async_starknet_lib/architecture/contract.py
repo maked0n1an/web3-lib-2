@@ -106,7 +106,7 @@ class Contract:
 
     async def get_decimals(
         self,
-        token: AddressRepresentation | TokenContract | stark_Contract | None = None
+        token: AddressRepresentation | TokenContract | stark_Contract
     ) -> int:
         """
         Retrieve the decimals of a token contract or token address.
@@ -120,9 +120,6 @@ class Contract:
         Returns:
             - `int`: The number of decimals for the token.
         """
-        if not token:
-            return 18
-        
         if isinstance(token, TokenContract):
             if getattr(token, 'decimals', None) is not None:
                 return token.decimals

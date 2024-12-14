@@ -38,6 +38,7 @@ class StarknetClient(StarknetNodeClient):
         self._init_logger(create_log_file_per_account)
         
         self.contract = Contract(self.account)
+        self.network_decimals = 18
 
     async def __aexit__(self, exc_type, exc, tb):
         if self.proxy:
