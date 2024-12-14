@@ -7,13 +7,13 @@ from curl_cffi.requests import AsyncSession
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
-from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo
 from libs.pretty_utils.type_functions.dataclasses import FromTo
 
 
 # region To construct tx
-class Utils:
+class HashUtils:
     @staticmethod
     def to_cut_hex_prefix_and_zfill(hex_data: str, length: int = 64):
         """
@@ -29,45 +29,60 @@ class Utils:
         if hex_data.startswith('0x'):
             hex_data = hex_data[2:]
         else:
-            raise ValueError("Hex address must start with '0x'")
+            raise ValueError("Hex data must start with '0x'")
 
         return hex_data.zfill(length)
 
     @staticmethod
     def zfill_hex_value(hex_value: str, length: int = 64) -> str:
-        hex_value = Utils.to_cut_hex_prefix_and_zfill(hex_value, length)
+        hex_value = HashUtils.to_cut_hex_prefix_and_zfill(hex_value, length)
         return '0x' + hex_value
 
 
 # region To get prices
 class PriceUtils:
-    STABLES = {
-        TokenSymbol.USDT:   1.0,
-        TokenSymbol.USDC:   1.0,
-        TokenSymbol.USDC_E: 1.0,
-        TokenSymbol.USDV:   1.0
-    }
+    STABLES = [
+        TokenSymbol.USDT,
+        TokenSymbol.USDC,
+        TokenSymbol.USDC_E,
+        TokenSymbol.USDV
+    ]
 
-    async def get_binance_price(
-        self,
+    @staticmethod
+    async def get_cex_price(
         first_token: str = TokenSymbol.ETH,
         second_token: str = TokenSymbol.USDT
     ) -> float | None:
-        first_token = first_token.lstrip('W')
-        second_token = second_token.lstrip('W')
+        first_token = (
+            first_token.lstrip('W') 
+            if len(first_token) > 2 
+            else first_token
+        )
+        second_token = (
+            second_token.lstrip('W') 
+            if len(second_token) > 2 
+            else second_token
+        )
 
-        if first_token in self.STABLES and second_token in self.STABLES:
+        if first_token in PriceUtils.STABLES and second_token in PriceUtils.STABLES:
             return 1.0
 
         async with AsyncSession() as session:
-            price = await self._get_price_from_binance(session, first_token, second_token)
-            if price:
-                return price
-            else:
-                return await self._get_price_from_binance(session, second_token, first_token)
-
+            tasks = [
+                PriceUtils._get_price_from_binance(session, first_token, second_token),
+                PriceUtils._get_price_from_cryptocompare(session, first_token, second_token)
+            ]
+            
+            for price in await asyncio.gather(*tasks, return_exceptions=True):
+                if isinstance(price, float):
+                    return price
+                    
+            raise ValueError(
+                f'Could not get {first_token}{second_token} price from Binance or Cryptocompare'
+            )
+    
+    @staticmethod
     async def _get_price_from_binance(
-        self,
         session: AsyncSession,
         first_token: str,
         second_token: str
@@ -77,15 +92,32 @@ class PriceUtils:
             try:
                 response = await session.get(
                     f'https://api.binance.com/api/v3/ticker/price?symbol={first_token}{second_token}')
-                if response.status_code != 200:
-                    return None
-                result_dict = response.json()
-                if 'price' in result_dict:
-                    return float(result_dict['price'])
-            except Exception as e:
-                await asyncio.sleep(2)
-        raise ValueError(
-            f'Can not get {first_token}{second_token} price from Binance')
+                if response.status_code == 200:
+                    result_dict = response.json()
+                    if 'price' in result_dict:
+                        return float(result_dict['price'])
+                return None
+            except Exception:
+                await asyncio.sleep(1)
+    
+    @staticmethod
+    async def _get_price_from_cryptocompare(
+        session: AsyncSession,
+        first_token: str,
+        second_token: str
+    ) -> float | None:
+        first_token, second_token = first_token.upper(), second_token.upper()
+        for _ in range(5):
+            try:
+                response = await session.get(
+                    f'https://min-api.cryptocompare.com/data/price?fsym={first_token}&tsyms={second_token}'
+                )
+                if response.status_code == 200:
+                    result_dict = response.json()
+                    return float(result_dict[second_token])
+                return None
+            except Exception:
+                await asyncio.sleep(1)
 # endregion To get prices
 
 
@@ -136,13 +168,13 @@ class StandardSettings:
         min_percent = 'min_percent'
         max_percent = 'max_percent'
 
+        self.action_name = action_name
         self.eth_amount = self.init_from_to(
             action_settings, 'eth_amount', from_, to_
         )
         self.eth_amount_percent = self.init_from_to(
             action_settings, 'eth_amount', min_percent, max_percent
         )
-
         self.token_amount = self.init_from_to(
             action_settings, 'token_amount', from_, to_)
         self.token_amount_percent = self.init_from_to(
@@ -177,7 +209,6 @@ class RandomChoiceHelper:
     '''To get random token from available options for operation'''
     @staticmethod
     async def get_partial_operation_info_and_dst_data(
-        op_name: str,
         op_data: dict[Network, dict[str, list[Any]]],
         op_settings: StandardSettings,
         client: EvmClient,
@@ -201,7 +232,7 @@ class RandomChoiceHelper:
                     status=LogStatus.INFO,
                     message=(
                         f'Found {partial_op.amount} '
-                        f'{partial_op.from_token_name} for {op_name}()'
+                        f'{partial_op.from_token_name} for {op_settings.action_name}()'
                     ),
                     call_depth_or_custom_call_place=2
                 )
@@ -220,13 +251,23 @@ class RandomChoiceHelper:
         )
 
         if token_contract.is_native_token:
-            balance = await client.contract.get_balance()
+            balance_wei = await client.contract.get_balance()
+            decimals = await client.contract.get_decimals()
+            
             amount_setting = op_settings.eth_amount
             amount_percent_setting = op_settings.eth_amount_percent
         else:
-            balance = await client.contract.get_balance(token_contract)
+            balance_wei = await client.contract.get_balance(token_contract.address)
+            decimals = await client.contract.get_decimals(token_contract)
+            
             amount_setting = op_settings.token_amount
             amount_percent_setting = op_settings.token_amount_percent
+
+        balance = TokenAmount(
+            amount=balance_wei,
+            decimals=decimals,
+            wei=True
+        )
 
         if amount_setting and float(balance.Ether) > amount_setting.from_:
             amount_setting.to_ = min(float(balance.Ether), amount_setting.to_)
