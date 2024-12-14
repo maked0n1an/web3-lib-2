@@ -133,7 +133,6 @@ class StakeEntity(BaseSqlModel):
     id: Mapped[int_pk_an]
     token: Mapped[str_10_an]
     amount: Mapped[float]
-    reward_rate: Mapped[float]
     unfreeze_date: Mapped[datetime | None]
     platform: Mapped[str_30_an]
     tx_hash: Mapped[str]

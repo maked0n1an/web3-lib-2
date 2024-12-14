@@ -119,6 +119,15 @@ class MintDTO(GeneralDTO):
     account_id: int = Field(None)
 
 
+class StakeDTO(GeneralDTO):
+    token: str = Field(None)
+    amount: float = Field(None)
+    unfreeze_date: datetime | None = Field(None)
+    platform: str = Field(None)
+    tx_hash: str = Field(None)
+    account_id: int = Field(None)
+
+
 class SwapDTO(GeneralDTO):
     network: str = Field(None)
     src_amount: float = Field(None)
@@ -131,14 +140,6 @@ class SwapDTO(GeneralDTO):
     platform: str = Field(None)
     tx_hash: str = Field(None)
     account_id: int = Field(None)
-
-
-class StakeDTO(GeneralDTO):
-    amount: float = Field(None)
-    platform: str = Field(None)
-    tx_hash: str = Field(None)
-    account_id: int = Field(None)
-
 
 # region Common filters
 class GetByAccountId(GeneralDTO):
