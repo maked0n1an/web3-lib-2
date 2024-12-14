@@ -327,8 +327,8 @@ class Contract:
             - `Wei`: The balance of the Ethereum address.
 
         Note:
-            If `token_address` is provided, it retrieves the token balance.
-            If `token_address` is None, it retrieves the native token balance.
+            - If `token_address` is provided, it retrieves the token balance.
+            - If `token_address` is None, it retrieves the native token balance.
         """
         if not account_address:
             account_address = self.transaction.account.address

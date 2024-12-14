@@ -21,16 +21,15 @@ class Network:
         explorer: str,
         chain_id: int | None = None,
         coin_symbol: str | None = None,
-        decimals: int = 18,
         tx_type: int = 0,
         api: EvmApiClient | ZkApiClient | None = None
     ):
         self.name = name
-        self.explorer = explorer
         self.rpc = rpc
+        self.explorer = explorer
         self.chain_id = chain_id
         self.coin_symbol = coin_symbol
-        self.decimals = decimals
+        self.decimals = 18
         self.tx_type = tx_type
         self.api = api
         
