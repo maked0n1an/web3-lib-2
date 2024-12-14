@@ -7,7 +7,7 @@ from libs.async_starknet_lib.architecture.client import StarknetClient
 from tasks._common.utils import PriceUtils
 
 
-class StarknetTask(PriceUtils):
+class StarknetTask:
     def __init__(self, client: StarknetClient):
         self.client = client
 
@@ -17,10 +17,10 @@ class StarknetTask(PriceUtils):
     ) -> OperationProposal:
         swap_proposal = await self.compute_source_token_amount(swap_info)
 
-        from_token_price = await self.get_binance_price(
+        from_token_price = await PriceUtils.get_cex_price(
             first_token=swap_info.from_token_name
         )
-        to_token_price = await self.get_binance_price(
+        to_token_price = await PriceUtils.get_cex_price(
             first_token=swap_info.to_token_name
         )
 
@@ -52,29 +52,28 @@ class StarknetTask(PriceUtils):
         )
 
         if from_token.is_native_token:
-            balance = await self.client.contract.get_balance()
-            decimals = balance.decimals
-
+            balance_wei = await self.client.account.get_balance()
+            decimals = self.client.network_decimals
         else:
-            balance = await self.client.contract.get_balance(from_token)
-            decimals = balance.decimals
+            balance_wei = await self.client.account.get_balance(from_token.address)
+            decimals = await self.client.contract.get_decimals(from_token)
 
         if swap_info.amount:
             amount_from = TokenAmount(
                 amount=swap_info.amount,
                 decimals=decimals
             )
-            if amount_from.Wei > balance.Wei:
-                amount_from = balance
+            if amount_from.Wei > balance_wei:
+                amount_from = balance_wei
 
         elif swap_info.amount_by_percent:
             amount_from = TokenAmount(
-                amount=balance.Wei * swap_info.amount_by_percent,
+                amount=balance_wei * swap_info.amount_by_percent,
                 decimals=decimals,
                 wei=True
             )
         else:
-            amount_from = balance
+            amount_from = balance_wei
 
         return OperationProposal(
             from_token=from_token,

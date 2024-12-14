@@ -1,15 +1,14 @@
-from libs.async_eth_lib.architecture.client import EvmClient
-from libs.async_eth_lib.data.token_contracts import ContractsFactory
-from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
-from libs.async_eth_lib.models.others import ParamsTypes, TokenAmount
-from tasks._common.utils import PriceUtils
-
-
 from web3.types import TxParams
 
+from libs.async_eth_lib.architecture.client import EvmClient
+from libs.async_eth_lib.data.token_contracts import ContractsFactory
+from libs.async_eth_lib.models.contract import NativeTokenContract, TokenContract
+from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
+from libs.async_eth_lib.models.others import TokenAmount
+from libs.async_eth_lib.models.params_types import AddressType
 
-class EvmTask(PriceUtils):
+
+class EvmTask:
     def __init__(self, client: EvmClient):
         self.client = client
         
@@ -39,14 +38,18 @@ class EvmTask(PriceUtils):
             print(f'{memory_address}: {params[:64]}')
             count += 1
             params = params[64:]
-            
-    async def get_token_info(client: EvmClient, token_address):
+    
+    @staticmethod
+    async def get_token_info(
+        client: EvmClient, 
+        token_address: AddressType
+    ):
         """
         Fetches and prints information about a token from the blockchain.
 
         Args:
             client (Client): The blockchain client used to interact with the network.
-            token_address (str): The address of the token contract on the blockchain.
+            token_address (str | Address | ChecksumAddress): The address of the token contract on the blockchain.
 
         Returns:
             None
@@ -115,16 +118,16 @@ class EvmTask(PriceUtils):
     async def approve_interface(
         self,
         operation_info: OperationInfo,
-        token_contract: RawContract,
+        token_address: AddressType,
         tx_params: TxParams | dict,
-        amount: ParamsTypes.Amount | None = None,
+        amount: TokenAmount | None = None,
         is_approve_infinity: bool = False
-    ) -> str | bool:
+    ) -> bool:
         """
         Approve spending of a specific amount by a spender on behalf of the owner.
 
         Args:
-            token_contract (ParamsTypes.TokenContract): The token contract instance.
+            token_address (str | Address | ChecksumAddress): The token address.
             amount (TokenAmount | None): The amount to approve (default is None).
             gas_price (float | None): Gas price for the transaction (default is None).
             gas_limit (int | None): Gas limit for the transaction (default is None).
@@ -133,22 +136,21 @@ class EvmTask(PriceUtils):
         Returns:
             bool: True if the approval is successful, False otherwise.
         """
-        balance = await self.client.contract.get_balance(
-            token=token_contract
+        balance_wei = await self.client.contract.get_balance(
+            token_address=token_address
         )
-        if balance.Wei <= 0:
+        if balance_wei <= 0:
             return True
 
-        if not amount or amount.Wei > balance.Wei:
-            amount = balance
+        if not amount or amount.Wei > balance_wei:
+            amount.Wei = balance_wei
 
-        approved = await self.client.contract.get_approved_amount(
-            token_contract=token_contract,
+        approved_wei = await self.client.contract.get_approved_amount(
+            token_address=token_address,
             spender_address=tx_params['to'],
-            owner=self.client.account.address
         )
 
-        if amount.Wei <= approved.Wei:
+        if amount.Wei <= approved_wei:
             return True
 
         tx_params = self.set_all_gas_params(
@@ -157,13 +159,13 @@ class EvmTask(PriceUtils):
         )
 
         receipt = await self.client.contract.approve(
-            token_contract=token_contract,
+            token_address=token_address,
             tx_params=tx_params,
             amount=amount,
             is_approve_infinity=is_approve_infinity
         )
 
-        return receipt['transactionHash'] if receipt['status'] else False
+        return receipt['status']
 
     async def compute_source_token_amount(
         self,
@@ -173,10 +175,10 @@ class EvmTask(PriceUtils):
         Compute the source token amount for a given swap.
 
         Args:
-            operation_info (OperationInfo): Information about the swap.
+            - `operation_info` (OperationInfo): Information about the operation.
 
         Returns:
-            TokenSwapProposal: The prepared proposal for the swap.
+            - `OperationProposal`: The inited proposal for operation.
         """
         from_token = ContractsFactory.get_contract(
             network_name=self.client.network.name,
@@ -184,29 +186,28 @@ class EvmTask(PriceUtils):
         )
 
         if from_token.is_native_token:
-            balance = await self.client.contract.get_balance()
-            decimals = balance.decimals
-
+            balance_wei = await self.client.contract.get_balance()
+            decimals = self.client.network.decimals
         else:
-            balance = await self.client.contract.get_balance(from_token)
-            decimals = balance.decimals
+            balance_wei = await self.client.contract.get_balance(from_token.address)
+            decimals = await self.client.contract.get_decimals(from_token)
 
         if operation_info.amount:
             amount_from = TokenAmount(
                 amount=operation_info.amount,
                 decimals=decimals
             )
-            if amount_from.Wei > balance.Wei:
-                amount_from = balance
+            if amount_from.Wei > balance_wei:
+                amount_from = balance_wei
 
         elif operation_info.amount_by_percent:
             amount_from = TokenAmount(
-                amount=balance.Wei * operation_info.amount_by_percent,
+                amount=balance_wei * operation_info.amount_by_percent,
                 decimals=decimals,
                 wei=True
             )
         else:
-            amount_from = balance
+            amount_from = balance_wei
 
         return OperationProposal(
             from_token=from_token,
@@ -228,7 +229,7 @@ class EvmTask(PriceUtils):
             min_to_amount (int): The minimum amount of the destination token.
             operation_info (OperationInfo): Information about the operation.
             is_to_token_price_wei (bool, optional): Whether the price of the destination token is in wei. Defaults to False.
-
+            ###BIggest error here, works only in same network (ex - for swaps, not for bridge!)
         Returns:
             SwapProposal: The updated swap proposal with the minimum destination amount.
         """
