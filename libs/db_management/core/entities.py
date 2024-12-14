@@ -27,20 +27,10 @@ from .custom_types import (
 
 class BaseSqlModel(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
-    
-    id: Mapped[int] = mapped_column(
-        Integer,
-        primary_key=True, 
-        autoincrement=True
-    )
+
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(truncate_microseconds=True),
         server_default=func.now()
-    )
-    updated_at: Mapped[datetime] = mapped_column(
-        DATETIME(truncate_microseconds=True),
-        server_default=func.now(),
-        onupdate=func.now()
     )
 
     @declared_attr.directive
@@ -77,6 +67,11 @@ class AccountEntity(BaseSqlModel):
     planned_bridges_count: Mapped[int]
     planned_stakes_count: Mapped[int]
     completed: Mapped[bool] = mapped_column(default=False, server_default='0')
+    updated_at: Mapped[datetime] = mapped_column(
+        DATETIME(truncate_microseconds=True),
+        server_default=func.now(),
+        onupdate=func.now()
+    )
 
     __table_args__ = (
         Index("evm_pk", "evm_private_key"),
