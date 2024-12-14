@@ -10,6 +10,7 @@ from aiohttp import (
 
 from ..models import exceptions as exceptions
 
+
 def center_output(message: str):
     print(f"| {message:^59}|")
 
@@ -19,6 +20,11 @@ def format_input(message: str) -> str:
     value = input()
 
     return value
+
+
+def count_lines(file_path: str) -> int:
+    with open(file_path, 'r', encoding='utf-8') as file:
+        return sum(1 for _ in file)
 
 
 def join_path(path: str | tuple | list) -> str:
@@ -66,7 +72,7 @@ def to_cut_hex_prefix_and_zfill(hex_data: str, length: int = 64):
         hex_data = hex_data[2:]
     else:
         raise ValueError("Hex address must start with '0x'")
-    
+
     return hex_data.zfill(length)
 
 

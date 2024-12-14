@@ -4,10 +4,10 @@ from pathlib import Path
 def get_node_urls():
     return [
         'https://starknet-mainnet.blastapi.io/e777424a-05c0-4a6f-bbeb-ac35ecc9cb98/rpc/v0_7',
-        'https://starknet-mainnet.g.alchemy.com/starknet/version/rpc/v0_7/-eSCyIZu6Y2l3SfU8DdylblmwyyWR8Ow'
+        'https://starknet-mainnet.g.alchemy.com/starknet/version/rpc/v0_7/eSCyIZu6Y2l1231SfU8DdylblmwyyWR8Ow'
     ]
 
-DEFAULT_TOKEN_ABI_PATH = str(Path(__file__).resolve().parent / 'default_token_abi.json')
+DEFAULT_TOKEN_ABI_PATH = str(Path(__file__).resolve().parent / 'abis/default_token_abi.json')
 
 def get_base_path():
     return "m/44'/9004'/0'/0/0"

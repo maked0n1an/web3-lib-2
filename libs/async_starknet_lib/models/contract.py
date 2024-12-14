@@ -1,6 +1,8 @@
-from starknet_py.net.models import Address
+from abc import ABC
+from starknet_py.net.models import AddressRepresentation
 
 from .common import AutoRepr
+from ..data.config import DEFAULT_TOKEN_ABI_PATH
 
 
 # region RawContract
@@ -8,7 +10,7 @@ class RawContract(AutoRepr):
     def __init__(
         self,
         title: str,
-        address: Address,
+        address: AddressRepresentation,
         abi_path: list[str] | tuple[str] | str | None
     ) -> None:
         """
@@ -26,55 +28,62 @@ class RawContract(AutoRepr):
 # endregion RawContract
 
 
-# region TokenContract
-class TokenContract(RawContract):
+# region TokenContractBase
+class TokenContractBase(ABC, AutoRepr):
+    """
+    An abstract class of a token contract.
+    """
     def __init__(
         self,
         title: str,
-        address: Address,
-        abi_path: list[str] | tuple[str] | str = None,
+        address: AddressRepresentation,
+        is_native_token: bool,
+    ):
+        self.title = title
+        self.address = address
+        self.is_native_token = is_native_token
+# endregion TokenContractBase
+
+
+# region TokenContract
+class TokenContract(TokenContractBase):
+    def __init__(
+        self,
+        title: str,
+        address: AddressRepresentation,
+        abi_or_path: list[str] | tuple[str] | str = DEFAULT_TOKEN_ABI_PATH,
         decimals: int | None = None,
-        is_native_token: bool = False
     ) -> None:
         super().__init__(
             title=title,
             address=address,
-            abi_path=abi_path
+            is_native_token=False
         )
+        self.abi_path = abi_or_path
         self.decimals = decimals
-        self.is_native_token = is_native_token
 # endregion TokenContract
 
 
 # region NativeTokenContract
-class NativeTokenContract(TokenContract):
+class NativeTokenContract(TokenContractBase):
     """
     An instance of a native token contract.
-
-    Attributes:
-        title (str): The title or name of the native token.
-
     """
-
     def __init__(
         self,
-        title: str,
-        address: Address = 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7,
-        abi_path: list[str] | tuple[str] | str = None,
-        decimals: int = 18
+        title: str = 'ETH',
+        address: AddressRepresentation = 0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7,
     ) -> None:
         """
         Initialize the NativeTokenContract.
 
         Args:
             title (str): The title or name of the native token.
-
+            address (str): The address of the native token..
         """
         super().__init__(
             title=title,
             address=address,
-            abi_path=abi_path,
-            decimals=decimals,
             is_native_token=True
         )
 # endregion NativeTokenContract

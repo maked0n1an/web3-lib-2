@@ -1,13 +1,13 @@
 from ..models.contract import (
     NativeTokenContract, 
-    TokenContract
+    TokenContract,
+    TokenContractBase
 )
 from ..models.others import TokenSymbol
 from ..models.exceptions import ContractNotExists
-from ..models.common import Singleton
 
 
-class TokenContractData(metaclass=Singleton):
+class TokenContractData:
     ZERO_ADDRESS = ''
 
     @classmethod
@@ -15,7 +15,7 @@ class TokenContractData(metaclass=Singleton):
         cls,
         token_symbol: str, 
         project_prefix: str | None = None,
-    ) -> TokenContract:
+    ) -> TokenContractBase:
         contract_name = (
             f'{token_symbol.upper()}_{project_prefix.upper()}'
             if project_prefix
@@ -33,7 +33,7 @@ class TokenContractData(metaclass=Singleton):
     
 # region All token contracts
 class StarknetTokenContracts(TokenContractData):
-    ETH = NativeTokenContract(title=TokenSymbol.ETH)
+    ETH = NativeTokenContract()
     
     USDT = TokenContract(
         title=TokenSymbol.USDT,
