@@ -1,0 +1,321 @@
+[
+    {
+        "type": "struct",
+        "name": "Uint256",
+        "size": 2,
+        "members": [
+            {
+                "name": "low",
+                "type": "felt",
+                "offset": 0
+            },
+            {
+                "name": "high",
+                "type": "felt",
+                "offset": 1
+            }
+        ]
+    },
+    {
+        "type": "struct",
+        "name": "Pool",
+        "size": 10,
+        "members": [
+            {
+                "name": "name",
+                "type": "felt",
+                "offset": 0
+            },
+            {
+                "name": "token_a_address",
+                "type": "felt",
+                "offset": 1
+            },
+            {
+                "name": "token_a_reserves",
+                "type": "Uint256",
+                "offset": 2
+            },
+            {
+                "name": "token_b_address",
+                "type": "felt",
+                "offset": 4
+            },
+            {
+                "name": "token_b_reserves",
+                "type": "Uint256",
+                "offset": 5
+            },
+            {
+                "name": "fee_percentage",
+                "type": "felt",
+                "offset": 7
+            },
+            {
+                "name": "cfmm_type",
+                "type": "felt",
+                "offset": 8
+            },
+            {
+                "name": "liq_token",
+                "type": "felt",
+                "offset": 9
+            }
+        ]
+    },
+    {
+        "type": "event",
+        "name": "Upgraded",
+        "keys": [],
+        "data": [
+            {
+                "name": "implementation",
+                "type": "felt"
+            }
+        ]
+    },
+    {
+        "type": "event",
+        "name": "AdminChanged",
+        "keys": [],
+        "data": [
+            {
+                "name": "previousAdmin",
+                "type": "felt"
+            },
+            {
+                "name": "newAdmin",
+                "type": "felt"
+            }
+        ]
+    },
+    {
+        "name": "swap",
+        "inputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            },
+            {
+                "name": "token_from_addr",
+                "type": "felt"
+            },
+            {
+                "name": "amount_from",
+                "type": "Uint256"
+            },
+            {
+                "name": "amount_to_min",
+                "type": "Uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "amount_to",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "withdraw_liquidity",
+        "inputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            },
+            {
+                "name": "shares_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "amount_min_a",
+                "type": "Uint256"
+            },
+            {
+                "name": "amount_min_b",
+                "type": "Uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "actual1",
+                "type": "Uint256"
+            },
+            {
+                "name": "actual2",
+                "type": "Uint256"
+            },
+            {
+                "name": "res1",
+                "type": "Uint256"
+            },
+            {
+                "name": "res2",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "add_liquidity",
+        "inputs": [
+            {
+                "name": "a_address",
+                "type": "felt"
+            },
+            {
+                "name": "a_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "a_min_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "b_address",
+                "type": "felt"
+            },
+            {
+                "name": "b_amount",
+                "type": "Uint256"
+            },
+            {
+                "name": "b_min_amount",
+                "type": "Uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "actual1",
+                "type": "Uint256"
+            },
+            {
+                "name": "actual2",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "create_new_pool",
+        "inputs": [
+            {
+                "name": "pool_name",
+                "type": "felt"
+            },
+            {
+                "name": "a_address",
+                "type": "felt"
+            },
+            {
+                "name": "a_initial_liquidity",
+                "type": "Uint256"
+            },
+            {
+                "name": "b_address",
+                "type": "felt"
+            },
+            {
+                "name": "b_initial_liquidity",
+                "type": "Uint256"
+            },
+            {
+                "name": "a_times_b_sqrt_value",
+                "type": "Uint256"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "get_version",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "ver",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "get_total_number_of_pools",
+        "inputs": [],
+        "outputs": [
+            {
+                "name": "num",
+                "type": "felt"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "get_pool",
+        "inputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "pool",
+                "type": "Pool"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "get_lp_balance",
+        "inputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            },
+            {
+                "name": "lp_address",
+                "type": "felt"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "shares",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "get_total_shares",
+        "inputs": [
+            {
+                "name": "pool_id",
+                "type": "felt"
+            }
+        ],
+        "outputs": [
+            {
+                "name": "total_shares",
+                "type": "Uint256"
+            }
+        ],
+        "type": "function"
+    },
+    {
+        "name": "upgrade",
+        "inputs": [
+            {
+                "name": "new_implementation",
+                "type": "felt"
+            }
+        ],
+        "outputs": [],
+        "type": "function"
+    }
+]
