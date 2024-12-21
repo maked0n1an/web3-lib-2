@@ -15,40 +15,41 @@ class StarknetTask:
         self,
         swap_info: OperationInfo
     ) -> OperationProposal:
-        swap_proposal = await self.compute_source_token_amount(swap_info)
+        swap_proposal = await self.init_operation_proposal(swap_info)
 
-        from_token_price = await PriceUtils.get_cex_price(
-            first_token=swap_info.from_token_name
-        )
-        to_token_price = await PriceUtils.get_cex_price(
-            first_token=swap_info.to_token_name
-        )
+        first_price = await PriceUtils.get_cex_price(swap_info.from_token_name)
+        second_price = await PriceUtils.get_cex_price(swap_info.to_token_name)
 
-        min_amount_out = float(swap_proposal.amount_from.Ether) \
-            * from_token_price \
-            / to_token_price
+        min_amount_to_wei = swap_proposal.amount_from.Wei \
+            * first_price / second_price
 
-        return await self.compute_min_destination_amount(
-            swap_proposal=swap_proposal,
-            min_to_amount=min_amount_out,
+        return await self.complete_operation_proposal(
+            operation_proposal=swap_proposal,
+            min_to_amount=min_amount_to_wei,
             swap_info=swap_info
         )
 
-    async def compute_source_token_amount(
+    async def init_operation_proposal(
         self,
-        swap_info: OperationInfo
+        op_info: OperationInfo
     ) -> OperationProposal:
         """
         Compute the source token amount for a given swap.
 
         Args:
-            swap_info (SwapInfo): Information about the swap.
+            - `operation_info` (OperationInfo): Information about the operation.
 
         Returns:
-            TokenSwapProposal: The prepared proposal for the swap.
+            - `OperationProposal`: The inited proposal for operation with from_token, to_token and amount_from.
         """
-        from_token = StarknetTokenContracts.get_token(
-            token_symbol=swap_info.from_token_name
+        from_token, to_token = (
+            StarknetTokenContracts.get_token(
+                token_symbol=token_name
+            )
+            for token_name in (
+                op_info.from_token_name,
+                op_info.to_token_name
+            )
         )
 
         if from_token.is_native_token:
@@ -58,66 +59,57 @@ class StarknetTask:
             balance_wei = await self.client.account.get_balance(from_token.address)
             decimals = await self.client.contract.get_decimals(from_token)
 
-        if swap_info.amount:
-            amount_from = TokenAmount(
-                amount=swap_info.amount,
-                decimals=decimals
-            )
-            if amount_from.Wei > balance_wei:
-                amount_from = balance_wei
-
-        elif swap_info.amount_by_percent:
-            amount_from = TokenAmount(
-                amount=balance_wei * swap_info.amount_by_percent,
-                decimals=decimals,
-                wei=True
-            )
+        if op_info.amount:
+            amount_from_wei = int(op_info.amount * 10 ** decimals)
+        elif op_info.amount_by_percent:
+            amount_from_wei = int(balance_wei * op_info.amount_by_percent)
         else:
-            amount_from = balance_wei
+            amount_from_wei = balance_wei
+
+        amount_from = TokenAmount(
+            amount=min(amount_from_wei, balance_wei),
+            decimals=decimals,
+            wei=True
+        )
 
         return OperationProposal(
             from_token=from_token,
-            amount_from=amount_from
+            amount_from=amount_from,
+            to_token=to_token
         )
 
-    async def compute_min_destination_amount(
+    async def complete_operation_proposal(
         self,
-        swap_proposal: OperationProposal,
-        min_to_amount: float,
-        swap_info: OperationInfo,
-        is_to_token_price_wei: bool = False
+        operation_proposal: OperationProposal,
+        slippage: float,
+        min_amount_to_wei: int | float | None = None,
     ) -> OperationProposal:
         """
-        Compute the minimum destination amount for a swap proposal.
+        Compute the minimum destination amount for a operation proposal.
 
         Args:
-            swap_proposal (SwapProposal): The initial swap proposal.
-            min_to_amount (float): The minimum amount of the destination token.
-            swap_info (SwapInfo): Information about the swap.
-            is_to_token_price_wei (bool, optional): Whether the price of the destination token is in wei. Defaults to False.
+            - `operation_proposal` (OperationProposal): The initial operation proposal.
+            - `to_token_name` (str): The name of the destination token.
+            - `slippage` (float): The slippage percentage.
+            - `min_amount_to_wei` (int, optional): The minimum amount of the destination token in wei. Defaults to None.
+            ###BIggest error here, works only in same network (ex - for swaps, not for bridge!)
 
         Returns:
-            SwapProposal: The updated swap proposal with the minimum destination amount.
+            - `OperationProposal`: The updated operation proposal with the minimum destination amount.
         """
-
-        if not swap_proposal.to_token:
-            swap_proposal.to_token = StarknetTokenContracts.get_token(
-                token_symbol=swap_info.to_token_name
-            )
-
-        decimals = await self.client.contract.get_decimals(
-            token=swap_proposal.to_token
-        )
-
-        min_amount_out = TokenAmount(
-            amount=min_to_amount * (1 - swap_info.slippage / 100),
-            decimals=decimals,
-            wei=is_to_token_price_wei
+        min_amount_to = TokenAmount(
+            amount=(
+                min_amount_to_wei 
+                or 
+                operation_proposal.amount_from.Wei * (1 - slippage / 100)
+            ),
+            decimals=await self.client.contract.get_decimals(operation_proposal.to_token),
+            wei=True
         )
 
         return OperationProposal(
-            from_token=swap_proposal.from_token,
-            amount_from=swap_proposal.amount_from,
-            to_token=swap_proposal.to_token,
-            min_amount_to=min_amount_out
+            from_token=operation_proposal.from_token,
+            amount_from=operation_proposal.amount_from,
+            to_token=operation_proposal.to_token,
+            min_amount_to=min_amount_to
         )

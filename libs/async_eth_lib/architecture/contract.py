@@ -12,7 +12,7 @@ from web3.contract import (
 )
 
 from .transaction import Transaction
-from ..models.contract import RawContract, TokenContract
+from ..models.contract import RawContract, TokenContract, TokenContractBase
 from ..models.dataclasses import (
     CommonValues, DefaultAbis
 )
@@ -342,7 +342,7 @@ class Contract:
 
     async def get_decimals(
         self,
-        token: AddressType | TokenContract | Web3ContractType
+        token: AddressType | TokenContractBase | Web3ContractType
     ) -> int:
         """
         Retrieve the decimals of a token contract or token address.

@@ -2,10 +2,11 @@ from web3.types import TxParams
 
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
-from libs.async_eth_lib.models.contract import NativeTokenContract, TokenContract
+from libs.async_eth_lib.models.contract import TokenContractBase
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from libs.async_eth_lib.models.others import TokenAmount
 from libs.async_eth_lib.models.params_types import AddressType
+from tasks._common.utils import PriceUtils
 
 
 class EvmTask:
@@ -166,8 +167,26 @@ class EvmTask:
         )
 
         return receipt['status']
+    
+    async def create_operation_proposal(
+        self,
+        op_info: OperationInfo
+    ) -> OperationProposal:
+        swap_proposal = await self.init_operation_proposal(op_info)
 
-    async def compute_source_token_amount(
+        first_price = await PriceUtils.get_cex_price(op_info.from_token_name)
+        second_price = await PriceUtils.get_cex_price(op_info.to_token_name)
+
+        min_amount_to_wei = swap_proposal.amount_from.Wei \
+            * first_price / second_price
+
+        return await self.complete_operation_proposal(
+            operation_proposal=swap_proposal,
+            min_to_amount=min_amount_to_wei,
+            swap_info=op_info
+        )
+
+    async def init_operation_proposal(
         self,
         operation_info: OperationInfo
     ) -> OperationProposal:
@@ -178,11 +197,21 @@ class EvmTask:
             - `operation_info` (OperationInfo): Information about the operation.
 
         Returns:
-            - `OperationProposal`: The inited proposal for operation.
+            - `OperationProposal`: The inited proposal for operation with from_token, to_token and amount_from.
         """
         from_token = ContractsFactory.get_contract(
             network_name=self.client.network.name,
             token_symbol=operation_info.from_token_name
+        )
+
+        if operation_info.to_network:
+            network_name = operation_info.to_network.name
+        else:
+            network_name = self.client.network.name
+
+        to_token = ContractsFactory.get_contract(
+            network_name=network_name,
+            token_symbol=operation_info.to_token_name
         )
 
         if from_token.is_native_token:
@@ -193,66 +222,56 @@ class EvmTask:
             decimals = await self.client.contract.get_decimals(from_token)
 
         if operation_info.amount:
-            amount_from = TokenAmount(
-                amount=operation_info.amount,
-                decimals=decimals
-            )
-            if amount_from.Wei > balance_wei:
-                amount_from = balance_wei
-
+            amount_from_wei = int(operation_info.amount * 10 ** decimals)
         elif operation_info.amount_by_percent:
-            amount_from = TokenAmount(
-                amount=balance_wei * operation_info.amount_by_percent,
-                decimals=decimals,
-                wei=True
-            )
+            amount_from_wei = int(balance_wei * operation_info.amount_by_percent)
         else:
-            amount_from = balance_wei
+            amount_from_wei = balance_wei
+
+        amount_from = TokenAmount(
+            amount=min(amount_from_wei, balance_wei),
+            decimals=decimals,
+            wei=True
+        )
 
         return OperationProposal(
             from_token=from_token,
-            amount_from=amount_from
+            amount_from=amount_from,
+            to_token=to_token
         )
 
-    async def compute_min_destination_amount(
+    async def complete_operation_proposal(
         self,
         operation_proposal: OperationProposal,
-        min_to_amount: int,
-        operation_info: OperationInfo,
-        is_to_token_price_wei: bool = False
+        slippage: float,
+        min_amount_to_wei: int | float | None = None,
     ) -> OperationProposal:
         """
-        Compute the minimum destination amount for a swap proposal.
+        Compute the minimum destination amount for a operation proposal.
 
         Args:
-            operation_proposal (OperationProposal): The initial operation proposal.
-            min_to_amount (int): The minimum amount of the destination token.
-            operation_info (OperationInfo): Information about the operation.
-            is_to_token_price_wei (bool, optional): Whether the price of the destination token is in wei. Defaults to False.
+            - `operation_proposal` (OperationProposal): The initial operation proposal.
+            - `to_token_name` (str): The name of the destination token.
+            - `slippage` (float): The slippage percentage.
+            - `min_amount_to_wei` (int, optional): The minimum amount of the destination token in wei. Defaults to None.
             ###BIggest error here, works only in same network (ex - for swaps, not for bridge!)
+
         Returns:
-            SwapProposal: The updated swap proposal with the minimum destination amount.
+            - `OperationProposal`: The updated operation proposal with the minimum destination amount.
         """
-
-        if not operation_proposal.to_token:
-            operation_proposal.to_token = ContractsFactory.get_contract(
-                network_name=self.client.network.name,
-                token_symbol=operation_info.to_token_name
-            )
-
-        decimals = await self.client.contract.get_decimals(
-            operation_proposal.to_token
-        )
-
-        min_amount_out = TokenAmount(
-            amount=float(min_to_amount) * (1 - operation_info.slippage / 100),
-            decimals=decimals,
-            wei=is_to_token_price_wei
+        min_amount_to = TokenAmount(
+            amount=(
+                min_amount_to_wei 
+                or 
+                operation_proposal.amount_from.Wei * (1 - slippage / 100)
+            ),
+            decimals=await self.client.contract.get_decimals(operation_proposal.to_token),
+            wei=True
         )
 
         return OperationProposal(
             from_token=operation_proposal.from_token,
             amount_from=operation_proposal.amount_from,
             to_token=operation_proposal.to_token,
-            min_amount_to=min_amount_out
+            min_amount_to=min_amount_to
         )
