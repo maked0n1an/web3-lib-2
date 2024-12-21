@@ -89,9 +89,9 @@ class OperationProposal:
         self,
         from_token: TokenContractBase,
         amount_from: TokenAmount,
-        to_token: TokenContractBase | None = None,
-        min_amount_to: TokenAmount | None = None
-    ) -> None:
+        to_token: TokenContractBase,
+        min_amount_to: TokenAmount
+    ):
         """
         Initialize the OperationProposal class.
 

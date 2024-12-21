@@ -15,6 +15,15 @@ class StarknetTask:
         self,
         swap_info: OperationInfo
     ) -> OperationProposal:
+        """
+        Create an operation proposal for a given operation information using prices from CEX.
+        
+        Args:
+            - `op_info` (OperationInfo): The operation information.
+
+        Returns:
+            - `OperationProposal`: The operation proposal.
+        """
         swap_proposal = await self.init_operation_proposal(swap_info)
 
         first_price = await PriceUtils.get_cex_price(swap_info.from_token_name)
@@ -44,11 +53,10 @@ class StarknetTask:
         """
         from_token, to_token = (
             StarknetTokenContracts.get_token(
-                token_symbol=token_name
-            )
-            for token_name in (
-                op_info.from_token_name,
-                op_info.to_token_name
+                token_symbol=op_info.from_token_name
+            ),
+            StarknetTokenContracts.get_token(
+                token_symbol=op_info.to_token_name
             )
         )
 
@@ -75,7 +83,8 @@ class StarknetTask:
         return OperationProposal(
             from_token=from_token,
             amount_from=amount_from,
-            to_token=to_token
+            to_token=to_token,
+            min_amount_to=None
         )
 
     async def complete_operation_proposal(

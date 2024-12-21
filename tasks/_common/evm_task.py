@@ -60,29 +60,6 @@ class EvmTask:
         print('symbol:', await contract.functions.symbol().call())
         print('decimals:', await contract.functions.decimals().call())
 
-
-    def validate_inputs(
-        self,
-        first_arg: str,
-        second_arg: str,
-        param_type: str = 'args',
-        function: str = 'swap'
-    ) -> str:
-        """
-        Validate inputs for a swap operation.
-
-        Args:
-            first_arg (str): The first argument.
-            second_arg (str): The second argument.
-            param_type (str): The type of arguments (default is 'args').
-            message (str): The message (default is 'swap')
-
-        Returns:
-            str: A message indicating the result of the validation.
-        """
-        if first_arg.upper() == second_arg.upper():
-            return f'The {param_type} for {function}() are equal: {first_arg} == {second_arg}'
-
     def set_all_gas_params(
         self,
         operation_info: OperationInfo,
@@ -172,18 +149,27 @@ class EvmTask:
         self,
         op_info: OperationInfo
     ) -> OperationProposal:
-        swap_proposal = await self.init_operation_proposal(op_info)
+        """
+        Create an operation proposal for a given operation information using prices from CEX.
+        
+        Args:
+            - `op_info` (OperationInfo): The operation information.
+
+        Returns:
+            - `OperationProposal`: The operation proposal.
+        """
+        op_proposal = await self.init_operation_proposal(op_info)
 
         first_price = await PriceUtils.get_cex_price(op_info.from_token_name)
         second_price = await PriceUtils.get_cex_price(op_info.to_token_name)
 
-        min_amount_to_wei = swap_proposal.amount_from.Wei \
+        min_amount_to_wei = op_proposal.amount_from.Wei \
             * first_price / second_price
 
         return await self.complete_operation_proposal(
-            operation_proposal=swap_proposal,
+            operation_proposal=op_proposal,
+            slippage=op_info.slippage,
             min_to_amount=min_amount_to_wei,
-            swap_info=op_info
         )
 
     async def init_operation_proposal(
@@ -191,7 +177,7 @@ class EvmTask:
         operation_info: OperationInfo
     ) -> OperationProposal:
         """
-        Compute the source token amount for a given swap.
+        Initialize an operation proposal for a given operation information.
 
         Args:
             - `operation_info` (OperationInfo): Information about the operation.
@@ -237,7 +223,8 @@ class EvmTask:
         return OperationProposal(
             from_token=from_token,
             amount_from=amount_from,
-            to_token=to_token
+            to_token=to_token,
+            min_amount_to=None
         )
 
     async def complete_operation_proposal(
