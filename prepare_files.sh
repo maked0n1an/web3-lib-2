@@ -23,3 +23,9 @@ if [ ! -s user_data/_inputs/json/settings.json ]
     echo "Creating settings.json file in 'user_data/_inputs/json/'"
     cp user_data/_inputs/json/settings.example.json user_data/_inputs/json/settings.json
 fi
+
+if [ ! -s user_data/_inputs/settings/_global.py ]
+  then :
+    echo "Creating _global.py file in 'user_data/_inputs/settings/'"
+    cp user_data/_inputs/settings/_global.example.py user_data/_inputs/settings/_global.py
+fi
