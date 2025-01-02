@@ -1,0 +1,3 @@
+account_id,account_address,private_key,transfer_address,proxy
+,,private_key,,
+1 ID,your_wallet_address(optional),private_key,transfer_address(optional),proxy(optional)
