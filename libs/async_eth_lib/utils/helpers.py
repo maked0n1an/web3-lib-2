@@ -6,7 +6,7 @@ from typing import Any, List
 
 from curl_cffi.requests import AsyncSession
 
-from .models import RequestType
+from .models import HttpMethod
 from ..models import exceptions as exceptions
 
 
@@ -87,7 +87,7 @@ async def sleep(sleep_from: int, sleep_to: int):
 
 
 async def make_async_request(
-    method: RequestType = RequestType.GET,
+    method: HttpMethod = HttpMethod.GET,
     url: str = '',
     headers: dict | None = None,
     **kwargs
