@@ -1,0 +1,19 @@
+#!/bin/bash
+# ==================== Create directories ====================
+if [ ! -d user_data/_outputs/ ]
+  then
+    mkdir user_data/_outputs/
+fi
+
+# ==================== Main files - accounts.csv and settings.json ====================
+if [ ! -s user_data/_inputs/csv/accounts.csv ]
+  then :
+    echo "Creating accounts.csv file in 'user_data/_inputs/csv/'"
+    touch user_data/_inputs/csv/accounts.csv && echo "account_id,account_address,private_key,transfer_address,proxy" >> user_data/_inputs/csv/accounts.csv
+fi
+
+if [ ! -s user_data/_inputs/json/settings.json ]
+  then :
+    echo "Creating settings.json file in 'user_data/_inputs/json/'"
+    cp user_data/_inputs/json/settings.example.json user_data/_inputs/json/settings.json
+fi
