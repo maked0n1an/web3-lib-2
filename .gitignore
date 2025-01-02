@@ -2,8 +2,18 @@
 # Virtualenv
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 .vscode
-user_data/_inputs/csv/accounts.csv
-user_data/_inputs/json/settings.json
+.idea
+.DS_Store
+.cache
+**/results/
+
+user_data/_inputs/csv/**/*[!.example].csv
+user_data/_inputs/json/**/*[!.example].json
+
+user_data/_outputs/csv/**/*[!.example].csv
+user_data/_outputs/json/**/*[!.example].json
+
+user_data/_outputs/db/**/*[!.example].db
 
 .Python
 [Bb]in

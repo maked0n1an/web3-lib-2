@@ -12,6 +12,12 @@ if [ ! -s user_data/_inputs/csv/accounts.csv ]
     touch user_data/_inputs/csv/accounts.csv && echo "account_id,account_address,private_key,transfer_address,proxy" >> user_data/_inputs/csv/accounts.csv
 fi
 
+if [ ! -s user_data/_inputs/envs/.env ]
+  then :
+    echo "Creating .env file in 'user_data/_inputs/envs/'"
+    cp user_data/_inputs/envs/example.env user_data/_inputs/envs/.env
+fi
+
 if [ ! -s user_data/_inputs/json/settings.json ]
   then :
     echo "Creating settings.json file in 'user_data/_inputs/json/'"
