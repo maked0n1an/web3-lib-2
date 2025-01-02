@@ -6,6 +6,7 @@ from typing import Any, List
 
 from curl_cffi.requests import AsyncSession
 
+from .models import RequestType
 from ..models import exceptions as exceptions
 
 
@@ -86,14 +87,13 @@ async def sleep(sleep_from: int, sleep_to: int):
 
 
 async def make_async_request(
-    method: str = 'GET',
+    method: RequestType = RequestType.GET,
     url: str = '',
     headers: dict | None = None,
     **kwargs
 ) -> dict | None:
     async with AsyncSession(headers=headers) as session:
-        response = await session.request(method, url=url, **kwargs)
-
+        response = await session.request(method.value, url=url, **kwargs)
         status_code = response.status_code
         json_response = response.json()
 

@@ -79,7 +79,6 @@ class Module:
         params: dict[str, Any]
     ):
         return await make_async_request(
-            method='GET',
             url=self.api_url,
             params=params,
             headers=self.headers,

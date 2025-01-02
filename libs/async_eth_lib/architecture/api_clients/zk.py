@@ -82,7 +82,6 @@ class Module:
         **kwargs
     ):
         return await make_async_request(
-            method='GET',
             url=self.api_url,
             params=params,
             headers=self.headers,
