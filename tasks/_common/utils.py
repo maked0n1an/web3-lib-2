@@ -1,6 +1,7 @@
 import asyncio
 import random
-from typing import Any
+from dataclasses import dataclass
+from typing import Union, Any
 
 from curl_cffi.requests import AsyncSession
 
@@ -9,7 +10,12 @@ from libs.async_eth_lib.architecture.network import Network
 from libs.async_eth_lib.data.token_contracts import ContractsFactory
 from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo
-from libs.pretty_utils.type_functions.dataclasses import FromTo
+
+
+@dataclass
+class FromTo:
+    from_: Union[int, float]
+    to_: Union[int, float]
 
 
 # region To construct tx
@@ -54,13 +60,13 @@ class PriceUtils:
         second_token: str = TokenSymbol.USDT
     ) -> float | None:
         first_token = (
-            first_token.lstrip('W') 
-            if len(first_token) > 2 
+            first_token.lstrip('W')
+            if len(first_token) > 2
             else first_token
         )
         second_token = (
-            second_token.lstrip('W') 
-            if len(second_token) > 2 
+            second_token.lstrip('W')
+            if len(second_token) > 2
             else second_token
         )
 
@@ -69,18 +75,20 @@ class PriceUtils:
 
         async with AsyncSession() as session:
             tasks = [
-                PriceUtils._get_price_from_binance(session, first_token, second_token),
-                PriceUtils._get_price_from_cryptocompare(session, first_token, second_token)
+                PriceUtils._get_price_from_binance(
+                    session, first_token, second_token),
+                PriceUtils._get_price_from_cryptocompare(
+                    session, first_token, second_token)
             ]
-            
+
             for price in await asyncio.gather(*tasks, return_exceptions=True):
                 if isinstance(price, float):
                     return price
-                    
+
             raise ValueError(
                 f'Could not get {first_token}{second_token} price from Binance or Cryptocompare'
             )
-    
+
     @staticmethod
     async def _get_price_from_binance(
         session: AsyncSession,
@@ -99,7 +107,7 @@ class PriceUtils:
                 return None
             except Exception:
                 await asyncio.sleep(1)
-    
+
     @staticmethod
     async def _get_price_from_cryptocompare(
         session: AsyncSession,
@@ -253,13 +261,13 @@ class RandomChoiceHelper:
         if token_contract.is_native_token:
             balance_wei = await client.contract.get_balance()
             decimals = await client.contract.get_decimals()
-            
+
             amount_setting = op_settings.eth_amount
             amount_percent_setting = op_settings.eth_amount_percent
         else:
             balance_wei = await client.contract.get_balance(token_contract.address)
             decimals = await client.contract.get_decimals(token_contract)
-            
+
             amount_setting = op_settings.token_amount
             amount_percent_setting = op_settings.token_amount_percent
 
