@@ -162,21 +162,18 @@ class Account(Module):
     async def get_all_tx_list(
         self,
         address: str,
-        chain: str | None = 'zksync'
     ) -> list[dict]:
         page = 1
         limit = 50
         txs_list = []
 
-        txs = await self.get_tx_list(
-            address, page, limit, chain
-        )
+        txs = await self.get_tx_list(address, page, limit)
+        page += 1
         txs_list += txs
+
         while len(txs) == limit:
+            txs = await self.get_tx_list(address, page, limit)
             page += 1
-            txs = await self.get_tx_list(
-                address, page, limit, chain
-            )
             txs_list += txs
         
         return txs_list
