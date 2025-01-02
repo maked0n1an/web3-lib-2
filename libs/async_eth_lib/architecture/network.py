@@ -1,6 +1,5 @@
-import requests
+from curl_cffi import requests
 
-from typing import List
 from web3 import Web3
 
 from .api_clients.evm import EvmApiClient

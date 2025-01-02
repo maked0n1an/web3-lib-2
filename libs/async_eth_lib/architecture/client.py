@@ -1,7 +1,7 @@
 import os
 import random
-import requests
 
+from curl_cffi import requests
 from fake_useragent import UserAgent
 from web3 import Web3, AsyncWeb3
 from web3.eth import AsyncEth
