@@ -3,14 +3,15 @@ import random
 import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
-from data.config import MODULES_SETTINGS_FILE_PATH
+from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import TokenContractData
 from libs.async_eth_lib.models.bridge import BridgeContractDataFetcher, NetworkData
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
+from libs.async_eth_lib.models.params_types import Web3ContractType
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.evm_task import EvmTask
@@ -32,40 +33,43 @@ class TestnetBridgeSettings():
 
 # region Contracts
 class TestnetBridgeContracts:
-    ABI = ('data', 'abis', 'testnet_bridge', 'abi.json')
-    GET_FEE_ABI_PATH = (
-        'data', 'abis', 'testnet_bridge', 'get_fee_abi.json'
-    )
-    
-    ARBITRUM_GET_FEE = RawContract(
-        title='LayerZero: GETH Token (Arbitrum GETH_LZ)',
-        address='0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
-        abi_path=GET_FEE_ABI_PATH
-    )
-    
     ARBITRUM_ETH = RawContract(
         title='SwapAndBridgeUniswapV3 (Arbitrum ETH)',
         address='0xfca99f4b5186d4bfbdbd2c542dca2eca4906ba45',
-        abi_path=ABI
-    )
-    
-    OPTIMISM_GET_FEE = RawContract(
-        title='LayerZero: GETH Token (Optimism GETH_LZ)',
-        address='0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
-        abi_path=GET_FEE_ABI_PATH
+        abi_path=('data', 'abis', 'testnet_bridge', 'abi.json')
     )
     
     OPTIMISM_ETH = RawContract(
         title='SwapAndBridgeUniswapV3 (Arbitrum ETH)',
         address='0x8352C746839699B1fc631fddc0C3a00d4AC71A17',
-        abi_path=ABI
+        abi_path=('data', 'abis', 'testnet_bridge', 'abi.json')
     )
-    
-    @classmethod
-    def get_contract(cls, contract_name: str):
-        return getattr(cls, contract_name)
-        
 # endregion Contracts
+
+
+# region Available networks
+class TestnetBridgeData(BridgeContractDataFetcher):
+    NETWORKS_DATA = {
+        Networks.Arbitrum.name: NetworkData(
+            chain_id=110,
+            bridge_dict={
+                TokenSymbol.ETH: TestnetBridgeContracts.ARBITRUM_ETH,
+            }
+        ),
+        Networks.Optimism.name: NetworkData(
+            chain_id=111,
+            bridge_dict={
+                TokenSymbol.ETH: TestnetBridgeContracts.OPTIMISM_ETH,
+            }
+        ),
+        Networks.Sepolia.name: NetworkData(
+            chain_id=161,
+            bridge_dict={
+                #
+            }
+        )
+    }
+# endregion Available networks
 
 
 # region Implementation
@@ -75,18 +79,6 @@ class TestnetBridgeImplementation(EvmTask):
         bridge_info: OperationInfo
     ) -> str:
         is_result = False
-        check_message = self.validate_inputs(
-            first_arg=self.client.network.name,
-            second_arg=bridge_info.to_network.name,
-            param_type='networks'
-        )
-        if check_message:
-            self.client.custom_logger.log_message(
-                status=LogStatus.ERROR, message=check_message
-            )
-
-            return is_result
-        
         from_network_name = self.client.network.name
         to_network_name = bridge_info.to_network.name
         
@@ -100,12 +92,10 @@ class TestnetBridgeImplementation(EvmTask):
             bridge_raw_contract
         )
 
-        bridge_proposal = await self.compute_source_token_amount(bridge_info)
-        bridge_proposal = await self.compute_min_destination_amount(
+        bridge_proposal = await self.init_operation_proposal(bridge_info)
+        bridge_proposal = await self.complete_operation_proposal(
             operation_proposal=bridge_proposal,
-            min_to_amount=bridge_proposal.amount_from.Wei,
-            operation_info=bridge_info,
-            is_to_token_price_wei=True
+            slippage=bridge_info.slippage,
         )
 
         args = TxArgs(
@@ -133,7 +123,7 @@ class TestnetBridgeImplementation(EvmTask):
         if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=bridge_info,
-                token_contract=bridge_proposal.from_token,
+                token_address=bridge_proposal.from_token,
                 tx_params=tx_params,
                 amount=bridge_proposal.amount_from,
             )
@@ -182,14 +172,16 @@ class TestnetBridgeImplementation(EvmTask):
     async def _get_estimateSendFee(
         self,
         dst_chain_id: int,
-        contract: ParamsTypes.Web3Contract,
+        contract: Web3ContractType,
         bridge_proposal: OperationProposal,
     ) -> TokenAmount:
         contract_to_get_fee = await contract.functions.oft().call()
 
         estimate_fee_contract = self.client.contract.get_evm_contract(
             address=contract_to_get_fee,
-            abi_or_path=TestnetBridgeContracts.GET_FEE_ABI_PATH
+            abi_or_path=(
+                'data', 'abis', 'testnet_bridge', 'get_fee_abi.json'
+            )
         )
         
         result = await estimate_fee_contract.functions.estimateSendFee(
@@ -204,33 +196,11 @@ class TestnetBridgeImplementation(EvmTask):
 # endregion Implementation
 
 
-# region Available networks
-class TestnetBridgeData(BridgeContractDataFetcher):
-    networks_data = {
-        Networks.Arbitrum.name: NetworkData(
-            chain_id=110,
-            bridge_dict={
-                TokenSymbol.ETH: TestnetBridgeContracts.ARBITRUM_ETH,
-            }
-        ),
-        Networks.Optimism.name: NetworkData(
-            chain_id=111,
-            bridge_dict={
-                TokenSymbol.ETH: TestnetBridgeContracts.OPTIMISM_ETH,
-            }
-        ),
-        Networks.Sepolia.name: NetworkData(
-            chain_id=161,
-            bridge_dict={
-                #
-            }
-        )
-    }
-# endregion Available networks
-
-
 # region Random function
-class TestnetBridge(EvmTask):
+class TestnetBridge:
+    def __init__(self, client: EvmClient):
+        self.client = client
+
     async def bridge(self) -> bool:
         settings = TestnetBridgeSettings()
         bridge_routes = get_testnet_bridge_routes()
@@ -251,8 +221,7 @@ class TestnetBridge(EvmTask):
             )
 
             (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
-                op_name='bridge',
-                op_data=get_testnet_bridge_routes(),
+                op_data=bridge_routes,
                 op_settings=settings.bridge,
                 client=client
             )

@@ -147,7 +147,7 @@ class Okx(Cex, CustomLogger):
         )
 
         while True:
-            new_sub_balances = await self._get_cex_balances(ccy, True)
+            new_sub_balances = await self._get_cex_balances(ccy)
             for sub_name, sub_balance in new_sub_balances.items():
 
                 if sub_balance > old_sub_balances[sub_name]:

@@ -13,81 +13,68 @@ from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import sleep
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import Utils
+from tasks._common.utils import HashUtils, PriceUtils
 
 
-SYNCSWAP_SWAP_TOKENS = {
-    TokenSymbol.ETH,
-    TokenSymbol.USDT,
-    TokenSymbol.USDC,
-    TokenSymbol.BUSD,
-    TokenSymbol.WBTC
-}
-
-class SyncSwap(EvmTask, Utils):
-    LIQUIDITY_POOLS = {
-        (TokenSymbol.ETH, TokenSymbol.USDC):
-            "0x80115c708e12edd42e504c1cd52aea96c547c05c",
-        (TokenSymbol.ETH, TokenSymbol.USDT):
-            "0xd3D91634Cf4C04aD1B76cE2c06F7385A897F54D3",
-        (TokenSymbol.ETH, TokenSymbol.BUSD):
-            "0xad86486f1d225d624443e5df4b2301d03bbe70f6",
-        (TokenSymbol.ETH, TokenSymbol.WBTC):
-            "0xb3479139e07568ba954c8a14d5a8b3466e35533d",
+class SyncSwapSettings:
+    SYNCSWAP_SWAP_TOKENS = {
+        TokenSymbol.ETH,
+        TokenSymbol.USDT,
+        TokenSymbol.USDC,
+        TokenSymbol.BUSD,
+        TokenSymbol.WBTC
     }
-    
-    @property
-    def raw_router_contract(self):
-        return self.__router_contract
-    
+
+
+class SyncSwap(EvmTask):
     def __init__(self, client: EvmClient):
-        EvmTask.__init__(client)
-        Utils.__init__()
-        self.__router_contract = RawContract(
+        super().__init__(client)
+        self.__raw_router_contract = RawContract(
             title="SyncSwap Router",
             address="0x2da10A1e27bF85cEdD8FFb1AbBe97e53391C0295",
             abi_path=("data", "abis", "zksync", "sync_swap", "abi.json")
         )
-    
-    @validate_swap_tokens(SYNCSWAP_SWAP_TOKENS)
+        self.__liquidity_pools = {
+            (TokenSymbol.ETH, TokenSymbol.USDC):
+                "0x80115c708e12edd42e504c1cd52aea96c547c05c",
+            (TokenSymbol.ETH, TokenSymbol.USDT):
+                "0xd3D91634Cf4C04aD1B76cE2c06F7385A897F54D3",
+            (TokenSymbol.ETH, TokenSymbol.BUSD):
+                "0xad86486f1d225d624443e5df4b2301d03bbe70f6",
+            (TokenSymbol.ETH, TokenSymbol.WBTC):
+                "0xb3479139e07568ba954c8a14d5a8b3466e35533d",
+        }
+
     async def swap(self, swap_info: OperationInfo) -> bool:
         is_result = False
-        swap_proposal = await self.compute_source_token_amount(operation_info=swap_info)
+        swap_proposal = await self.init_operation_proposal(swap_info)
         contract = self.client.contract.get_evm_contract_from_raw(
-            self.raw_router_contract
+            self.__raw_router_contract
         )
 
-        is_from_token_eth = swap_info.from_token_name == TokenSymbol.ETH
-
-        if is_from_token_eth:
+        if swap_info.from_token_name == TokenSymbol.ETH:
             swap_proposal.from_token = ZkSyncEraTokenContracts.WETH
 
         if swap_info.to_token_name == TokenSymbol.ETH:
             swap_proposal.to_token = ZkSyncEraTokenContracts.WETH
-            
-        else:
-            swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
-                token_symbol=swap_info.to_token_name
-            )
 
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
+        from_token_price = await PriceUtils.get_cex_price(swap_info.from_token_name)
+        second_token_price = await PriceUtils.get_cex_price(swap_info.to_token_name)
 
-        min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
+        min_to_amount_wei = swap_proposal.amount_from.Wei * from_token_price \
             / second_token_price
 
-        swap_proposal = await self.compute_min_destination_amount(
+        swap_proposal = await self.complete_operation_proposal(
             operation_proposal=swap_proposal,
-            min_to_amount=min_to_amount,
-            operation_info=swap_info
+            slippage=swap_info.slippage,
+            min_amount_to_wei=min_to_amount_wei,
         )
 
-        pool = self.LIQUIDITY_POOLS.get(
+        pool = self.__liquidity_pools.get(
             (swap_info.to_token_name.upper(), swap_info.from_token_name.upper())
-        ) or self.LIQUIDITY_POOLS.get(
+        ) or self.__liquidity_pools.get(
             (swap_info.from_token_name.upper(), swap_info.to_token_name.upper())
         )
         if not pool:
@@ -97,15 +84,15 @@ class SyncSwap(EvmTask, Utils):
             )
             return is_result
 
-        zfilled_from_token = self.to_cut_hex_prefix_and_zfill(
+        zfilled_from_token = HashUtils.to_cut_hex_prefix_and_zfill(
             swap_proposal.from_token.address
         )
-        zfilled_address = self.to_cut_hex_prefix_and_zfill(
+        zfilled_address = HashUtils.to_cut_hex_prefix_and_zfill(
             self.client.account.address
         )
         tokenIn = (
             TokenContractData.ZERO_ADDRESS
-            if is_from_token_eth
+            if swap_info.from_token_name == TokenSymbol.ETH
             else swap_proposal.from_token.address
         )
 
@@ -121,7 +108,7 @@ class SyncSwap(EvmTask, Utils):
                                 zfilled_address +
                                 (
                                     "2"
-                                    if is_from_token_eth
+                                    if swap_info.from_token_name == TokenSymbol.ETH
                                     else "1"
                                 ).zfill(64)
                             ),
@@ -146,7 +133,7 @@ class SyncSwap(EvmTask, Utils):
         if swap_info.from_token_name != TokenSymbol.ETH:
             approved = await self.approve_interface(
                 operation_info=swap_info,
-                token_contract=swap_proposal.from_token,
+                token_address=swap_proposal.from_token.address,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
@@ -167,7 +154,7 @@ class SyncSwap(EvmTask, Utils):
 
         try:
             tx_params = self.set_all_gas_params(swap_info, tx_params)
-            
+
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
 
@@ -175,7 +162,7 @@ class SyncSwap(EvmTask, Utils):
             full_path = account_network.explorer + account_network.TX_PATH
             rounded_amount = round(swap_proposal.amount_from.Ether, 5)
             is_result = receipt['status']
-            
+
             if is_result:
                 log_status = LogStatus.SWAPPED
                 message = f''
@@ -183,7 +170,7 @@ class SyncSwap(EvmTask, Utils):
             else:
                 log_status = LogStatus.FAILED
                 message = f'Swap '
-            
+
             message += (
                 f'{rounded_amount} {swap_info.from_token_name}'
                 f' -> {swap_proposal.min_amount_to} {swap_info.to_token_name}: '

@@ -4,12 +4,11 @@ import time
 import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
-from data.config import MODULES_SETTINGS_FILE_PATH
+from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
     LogStatus, TokenSymbol
@@ -18,7 +17,7 @@ from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
 )
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
+from tasks._common.utils import PriceUtils, RandomChoiceHelper, StandardSettings, HashUtils
 from tasks.config import get_space_fi_paths
 
 
@@ -116,15 +115,16 @@ class SpaceFiRoutes(TxPayloadDetailsFetcher):
 # endregion Available routes
 
 
-# region Implementation    
-class SpaceFiImplementation(EvmTask, Utils):
-    SPACE_FI_ROUTER = RawContract(
-        title='SpaceFiRouter',
-        address='0xbE7D1FD1f6748bbDefC4fbaCafBb11C6Fc506d1d',
-        abi_path=('data', 'abis', 'zksync', 'space_fi', 'abi.json')
-    )
+# region Implementation
+class SpaceFiImplementation(EvmTask):
+    def __init__(self, client: EvmClient):
+        super().__init__(client)
+        self.__raw_router_contract = RawContract(
+            title='SpaceFiRouter',
+            address='0xbE7D1FD1f6748bbDefC4fbaCafBb11C6Fc506d1d',
+            abi_path=('data', 'abis', 'zksync', 'space_fi', 'abi.json')
+        )
 
-    @validate_swap_tokens(SpaceFiRoutes.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo
@@ -132,10 +132,10 @@ class SpaceFiImplementation(EvmTask, Utils):
         is_result = False
         account_address = self.client.account.address
         contract = self.client.contract.get_evm_contract_from_raw(
-            self.SPACE_FI_ROUTER
+            self.__raw_router_contract
         )
 
-        swap_proposal = await self._create_swap_proposal(swap_info=swap_info)
+        swap_proposal = await self.create_operation_proposal(swap_info)
         tx_payload_details = SpaceFiRoutes.get_tx_payload_details(
             first_token=swap_info.from_token_name,
             second_token=swap_info.to_token_name
@@ -147,24 +147,26 @@ class SpaceFiImplementation(EvmTask, Utils):
             memory_address = 128
 
         data = [
-            f'{tx_payload_details.function_signature}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(swap_proposal.min_amount_to.Wei))}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(memory_address))}',
-            f'{self.to_cut_hex_prefix_and_zfill(account_address).lower()}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(int(time.time() + 20 * 60)))}',
-            f'{self.to_cut_hex_prefix_and_zfill(hex(len(tx_payload_details.swap_path)))}'
+            hex(swap_proposal.min_amount_to.Wei),
+            hex(memory_address),
+            str(account_address).lower(),
+            hex(int(time.time() + 20 * 60)),
+            hex(len(tx_payload_details.swap_path)),
         ]
 
-        for contract_address in tx_payload_details.swap_path:
-            data.append(
-                self.to_cut_hex_prefix_and_zfill(contract_address.lower())
-            )
-
         if swap_info.from_token_name != TokenSymbol.ETH:
-            data.insert(1, self.to_cut_hex_prefix_and_zfill(
-                hex(swap_proposal.amount_from.Wei)))
+            data.insert(0, hex(swap_proposal.amount_from.Wei))
 
-        data = ''.join(data)
+        data_hex = [
+            HashUtils.to_cut_hex_prefix_and_zfill(item) 
+            for item in data
+        ]
+        data_hex += [
+            HashUtils.to_cut_hex_prefix_and_zfill(contract_address.lower())
+            for contract_address in tx_payload_details.swap_path
+        ]
+
+        data = tx_payload_details.function_signature + ''.join(data_hex)
 
         tx_params = TxParams(
             to=contract.address,
@@ -175,7 +177,7 @@ class SpaceFiImplementation(EvmTask, Utils):
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=swap_info,
-                token_contract=swap_proposal.from_token,
+                token_address=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
@@ -188,7 +190,7 @@ class SpaceFiImplementation(EvmTask, Utils):
                 await sleep(8, 16)
         else:
             tx_params['value'] = swap_proposal.amount_from.Wei
-            
+
         try:
             tx_params = self.set_all_gas_params(
                 operation_info=swap_info,
@@ -197,7 +199,7 @@ class SpaceFiImplementation(EvmTask, Utils):
 
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
-            
+
             full_path = (
                 self.client.network.explorer
                 + self.client.network.TX_PATH
@@ -205,7 +207,7 @@ class SpaceFiImplementation(EvmTask, Utils):
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
             is_result = receipt['status']
-            
+
             if receipt['status']:
                 log_status = LogStatus.SWAPPED
                 message = ''
@@ -225,39 +227,15 @@ class SpaceFiImplementation(EvmTask, Utils):
         except Exception as e:
             if 'insufficient funds for gas + value' in str(e):
                 message = 'Insufficient funds for gas + value'
-                
+
             else:
                 message = str(e)
-                
+
             log_status = LogStatus.ERROR
-        
+
         self.client.custom_logger.log_message(log_status, message)
 
         return is_result
-    
-    async def _create_swap_proposal(
-        self,
-        swap_info: OperationInfo
-    ) -> OperationProposal:
-        swap_proposal = await self.compute_source_token_amount(
-            operation_info=swap_info
-        )
-
-        swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
-            swap_info.to_token_name
-        )
-
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
-
-        min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
-            / second_token_price
-
-        return await self.compute_min_destination_amount(
-            operation_proposal=swap_proposal,
-            min_to_amount=min_to_amount,
-            operation_info=swap_info
-        )
 # endregion Implementation
 
 
@@ -265,24 +243,33 @@ class SpaceFiImplementation(EvmTask, Utils):
 class SpaceFi(EvmTask):
     async def swap(self) -> bool:
         settings = SpaceFiSettings()
-        client = EvmClient(
-            account_id=self.client.account_id,
-            private_key=self.client.account._private_key,
-            network=Networks.zkSync_Era,
-            proxy=self.client.proxy
-        )
-        client.custom_logger.log_message(
+        swap_routes = get_space_fi_paths()
+
+        random_networks = list(swap_routes)
+        random.shuffle(random_networks)
+
+        self.client.custom_logger.log_message(
             status=LogStatus.INFO,
             message='Started to search enough balance for swap'
         )
-        
-        (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
-            op_name='swap',
-            op_data=get_space_fi_paths(),
-            op_settings=settings.swap,
-            client=client
-        )
-             
+
+        for network in random_networks:
+            client = EvmClient(
+                account_id=self.client.account_id,
+                private_key=self.client.account._private_key,
+                network=network,
+                proxy=self.client.proxy
+            )
+
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
+                op_data=swap_routes,
+                op_settings=settings.swap,
+                client=client
+            )
+
+            if operation_info:
+                break
+
         if not dst_data:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
@@ -291,9 +278,9 @@ class SpaceFi(EvmTask):
                 )
             )
             return False
-            
+
         operation_info.to_token_name = random.choice(dst_data)
         space_fi = SpaceFiImplementation(client=client)
-        
+
         return await space_fi.swap(operation_info)
 # endregion Random function

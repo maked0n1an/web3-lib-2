@@ -1,3 +1,4 @@
+import random
 import time
 from eth_typing import HexStr
 
@@ -5,15 +6,29 @@ from web3 import Web3
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
+from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.token_contracts import TokenContractData, ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
-from libs.async_eth_lib.models.others import LogStatus, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
 from libs.async_eth_lib.models.operation import OperationInfo, TxPayloadDetails, TxPayloadDetailsFetcher
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.decorators import validate_swap_tokens
-from libs.async_eth_lib.utils.helpers import sleep
+from libs.async_eth_lib.utils.helpers import read_json, sleep
 from tasks._common.evm_task import EvmTask
+from tasks._common.utils import (
+    PriceUtils, RandomChoiceHelper, StandardSettings
+)
+
+# region Settings
+class MaverickSettings():
+    def __init__(self):
+        settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
+        self.swap = StandardSettings(
+            settings=settings,
+            module_name='maverick',
+            action_name='swap'
+        )
+# endregion Settings
 
 
 # region Pools and paths
@@ -75,41 +90,29 @@ class MaverickData(TxPayloadDetailsFetcher):
 
 
 # region Implementation
-class Maverick(EvmTask):
-    @property
-    def router_contract(self):
-        return self.__router_contract
-    
+class MaverickImplementation(EvmTask):
     def __init__(self, client: EvmClient):
         super().__init__(client)
-        self.__router_contract = RawContract(
+        self.__raw_router_contract = RawContract(
             title="Maverick Router",
             address="0x39E098A153Ad69834a9Dac32f0FCa92066aD03f4",
             abi_path=("data", "abis", "zksync", "maverick", "router_abi.json")
         )
 
-    @validate_swap_tokens(MaverickData.PATHS.keys())
-    async def swap(
-        self,
-        swap_info: OperationInfo
-    ) -> bool:
+    async def swap(self, swap_info: OperationInfo) -> bool:
         is_result = False
-        is_src_token_eth = swap_info.from_token_name == TokenSymbol.ETH
-        
-        swap_proposal = await self.compute_source_token_amount(
-            operation_info=swap_info
-        )
+        swap_proposal = await self.create_operation_proposal(swap_info)
 
-        from_token_price = await self.get_binance_price(swap_info.from_token_name)
-        second_token_price = await self.get_binance_price(swap_info.to_token_name)
+        from_token_price = await PriceUtils.get_cex_price(swap_info.from_token_name)
+        to_token_price = await PriceUtils.get_cex_price(swap_info.to_token_name)
 
         min_to_amount = float(swap_proposal.amount_from.Ether) * from_token_price \
-            / second_token_price
-
-        swap_proposal = await self.compute_min_destination_amount(
-            operation_proposal=swap_proposal,
-            min_to_amount=min_to_amount,
-            operation_info=swap_info
+            / to_token_price
+        
+        swap_proposal.min_amount_to = TokenAmount(
+            amount=min_to_amount,
+            decimals=self.client.network.decimals,
+            wei=True
         )
 
         tx_payload_details = MaverickData.get_tx_payload_details(
@@ -122,10 +125,10 @@ class Maverick(EvmTask):
 
         account_address = self.client.account.address
         contract = self.client.contract.get_evm_contract_from_raw(
-            self.router_contract
+            self.__raw_router_contract
         )       
          
-        if not is_src_token_eth:
+        if swap_info.from_token_name != TokenSymbol.ETH:
             recipient_address = TokenContractData.ZERO_ADDRESS
             second_data = contract.encodeABI('unwrapWETH9', args=[
                 swap_proposal.min_amount_to.Wei,
@@ -165,7 +168,7 @@ class Maverick(EvmTask):
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=swap_info,
-                token_contract=swap_proposal.from_token,
+                token_address=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from,
             )
@@ -210,13 +213,66 @@ class Maverick(EvmTask):
                 f'{full_path + tx.hash.hex()}'
             )
         except web3_exceptions.ContractCustomError as e:
-            message = 'Try to make slippage more'
-            status = LogStatus.ERROR
+            self.client.custom_logger.log_message(
+                status=LogStatus.ERROR,
+                message='Failed to swap, trying to make slippage more...'
+            )
+            swap_info.slippage *= 1.3
+            return await self.swap(swap_info)
         except Exception as e:
             message = str(e)
             status = LogStatus.ERROR
 
         self.client.custom_logger.log_message(status, message)
-
         return is_result
 # endregion Implementation
+
+
+# region Random function
+class Maverick:
+    def __init__(self, client: EvmClient):
+        self.client = client
+
+    async def bridge(self) -> bool:
+        settings = MaverickSettings()
+        swap_routes = get_maverick_swap_routes()
+        
+        random_networks = list(swap_routes)
+        random.shuffle(random_networks)
+
+        self.client.custom_logger.log_message(
+            status=LogStatus.INFO,
+            message='Started to search enough balance for swap'
+        )
+        
+        for network in random_networks:
+            client = EvmClient(
+                account_id=self.client.account_id,
+                private_key=self.client.account._private_key,
+                network=network,
+                proxy=self.client.proxy
+            )
+        
+            (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
+                op_data=swap_routes,
+                op_settings=settings.swap,
+                client=client
+            )
+            
+            if operation_info:
+                break
+
+        if not dst_data:
+            self.client.custom_logger.log_message(
+                status=LogStatus.WARNING,
+                message=(
+                    'Failed to bridge: not found enough balance in native or tokens in any network'
+                )
+            )
+            return False
+
+        operation_info.to_token_name = random.choice(dst_data)
+        maverick = MaverickImplementation(client)
+
+        return await maverick.swap(operation_info)
+# endregion Random function

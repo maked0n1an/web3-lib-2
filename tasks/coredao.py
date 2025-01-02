@@ -4,7 +4,7 @@ import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 from eth_abi import abi
 
-from data.config import MODULES_SETTINGS_FILE_PATH
+from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import TokenContractData
@@ -74,6 +74,7 @@ class CoreDaoBridgeContracts:
     )
 # endregion Contracts
 
+
 # region Supported networks
 class CoreDaoData(BridgeContractDataFetcher):
     NETWORKS_DATA = {
@@ -120,25 +121,14 @@ class CoreDaoData(BridgeContractDataFetcher):
             }
         ),
     }
+
+    AVAILABLE_COINS_FOR_BRIDGE = [TokenSymbol.USDT, TokenSymbol.USDC]
 # endregion Supported networks
 
-# region Coredao
+
+# region Implementation
 class CoreDaoBridgeImplementation(EvmTask):
     async def bridge(self, bridge_info: OperationInfo) -> str:
-        is_result = False
-        check_message = self.validate_inputs(
-            first_arg=self.client.network.name,
-            second_arg=bridge_info.to_network.name,
-            param_type='networks'
-        )
-        
-        if check_message:
-            self.client.custom_logger.log_message(
-                status=LogStatus.ERROR, message=check_message
-            )
-
-            return is_result
-
         from_network_name = self.client.network.name
         to_network_name = bridge_info.to_network.name
 
@@ -147,20 +137,28 @@ class CoreDaoBridgeImplementation(EvmTask):
             token_symbol=bridge_info.from_token_name
         )
 
-        init_bridge_proposal = await self.compute_source_token_amount(bridge_info)
-
+        bridge_proposal = await self.init_operation_proposal(bridge_info)
+        bridge_proposal = await self.complete_operation_proposal(
+            operation_proposal=bridge_proposal,
+            slippage=bridge_info.slippage,
+        )
         tx_params = await self._prepare_params(
-            bridge_raw_contract, init_bridge_proposal, bridge_info
+            bridge_raw_contract, bridge_proposal, bridge_info
         )
 
         if not tx_params['value']:
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
-                message=f'Can not get fee to bridge in {from_network_name}'
+                message=f'Can not get fee to bridge in {from_network_name}',
+                call_depth_or_custom_call_place='CoreDaoBridge'
             )
             return is_result
 
-        native_balance = await self.client.contract.get_balance()
+        native_balance = TokenAmount(
+            amount=await self.client.contract.get_balance(),
+            decimals=self.client.network.decimals,
+            wei=True
+        )
         value = TokenAmount(
             amount=tx_params['value'],
             decimals=self.client.network.decimals,
@@ -180,25 +178,25 @@ class CoreDaoBridgeImplementation(EvmTask):
             )
             return is_result
 
-        if not init_bridge_proposal.from_token.is_native_token:
+        if not bridge_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=bridge_info,
-                token_contract=init_bridge_proposal.from_token,
+                token_address=bridge_proposal.from_token.address,
                 tx_params=tx_params,
-                amount=init_bridge_proposal.amount_from,
+                amount=bridge_proposal.amount_from,
             )
 
             if is_approved:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
                     message=(
-                        f'{init_bridge_proposal.amount_from.Ether} '
-                        f'{init_bridge_proposal.from_token.title}'
+                        f'{bridge_proposal.amount_from.Ether} '
+                        f'{bridge_proposal.from_token.title}'
                     )
                 )
                 await sleep(20, 50)
         else:
-            tx_params['value'] += init_bridge_proposal.amount_from.Wei
+            tx_params['value'] += bridge_proposal.amount_from.Wei
 
         try:
             tx_params = self.set_all_gas_params(
@@ -217,6 +215,8 @@ class CoreDaoBridgeImplementation(EvmTask):
             else:
                 status = LogStatus.FAILED
                 message = f'Bridge'
+
+            rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
@@ -225,14 +225,17 @@ class CoreDaoBridgeImplementation(EvmTask):
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
         except web3_exceptions.ContractCustomError as e:
-            message = 'Try to make slippage more'
-            status = LogStatus.ERROR
+            self.client.custom_logger.log_message(
+                status=LogStatus.ERROR,
+                message='Failed to bridge, trying to make slippage more...'
+            )
+            bridge_info.slippage *= 1.3
+            return await self.bridge(bridge_info)
         except Exception as e:
-            message = str(e)
-            status = LogStatus.ERROR
-        
-        self.client.custom_logger.log_message(status, message)
+            status=LogStatus.ERROR
+            message=str(e)
 
+        self.client.custom_logger.log_message(status, message)
         return is_result
 
     async def _prepare_params(
@@ -308,11 +311,14 @@ class CoreDaoBridgeImplementation(EvmTask):
         )
 
         return tx_params
-# endregion Coredao
+# endregion Implementation
 
 
 # region Random function
-class CoreDaoBridge(EvmTask):
+class CoreDaoBridge:
+    def __init__(self, client: EvmClient):
+        self.client = client
+
     async def bridge(self) -> bool:
         settings = CoreDaoBridgeSettings()
         bridge_routes = get_coredao_bridge_routes()
@@ -334,7 +340,6 @@ class CoreDaoBridge(EvmTask):
             )
         
             (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
-                op_name='bridge',
                 op_data=bridge_routes,
                 op_settings=settings.bridge,
                 client=client

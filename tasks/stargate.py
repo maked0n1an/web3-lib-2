@@ -6,18 +6,22 @@ from eth_typing import HexStr
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
-from data.config import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
 from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ContractsFactory, TokenContractData
 from libs.async_eth_lib.models.bridge import NetworkData, NetworkDataFetcher, TokenBridgeInfo
 from libs.async_eth_lib.models.contract import RawContract
 from libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
-from libs.async_eth_lib.models.others import LogStatus, ParamsTypes, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
+from libs.async_eth_lib.models.params_types import Web3ContractType
 from libs.async_eth_lib.models.transaction import TxArgs
 from libs.async_eth_lib.utils.helpers import read_json, sleep
+from libs.db_management.business_logic.uow import ServiceUnitOfWork
+from libs.db_management.core.dtos import BridgeDTO
 from tasks._common.evm_task import EvmTask
-from tasks._common.utils import RandomChoiceHelper, StandardSettings, Utils
+from tasks._common.utils import (
+    HashUtils, PriceUtils, RandomChoiceHelper, StandardSettings
+)
 from tasks.config import get_stargate_routes_v1
 
 
@@ -25,14 +29,14 @@ from tasks.config import get_stargate_routes_v1
 class StargateSettings():
     def __init__(self):
         settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
-        
+
         self.bridge_type: dict[str, bool] = settings['stargate']['bridge_type']
         self.bridge = StandardSettings(
             settings=settings,
             module_name='stargate',
             action_name='bridge'
         )
-        
+
         self.slippage_and_gas: float = settings['stargate']['slippage_and_gas']
 # endregion Settings
 
@@ -40,9 +44,11 @@ class StargateSettings():
 # region Contracts
 class StargateContractsV1:
     STARGATE_ROUTER_ABI = ('data', 'abis', 'stargate', 'router_abi.json')
-    STARGATE_ROUTER_ETH_ABI = ('data', 'abis', 'stargate', 'router_eth_abi.json')
+    STARGATE_ROUTER_ETH_ABI = (
+        'data', 'abis', 'stargate', 'router_eth_abi.json')
     STARGATE_STG_ABI = ('data', 'abis', 'stargate', 'stg_abi.json')
-    STARGATE_BRIDGE_RECOLOR = ('data', 'abis', 'stargate', 'bridge_recolor.json')
+    STARGATE_BRIDGE_RECOLOR = (
+        'data', 'abis', 'stargate', 'bridge_recolor.json')
     STARGATE_MESSAGING_V1_ABI = ('data', 'abis', 'stargate', 'msg_abi.json')
 
     ARBITRUM_UNIVERSAL = RawContract(
@@ -197,7 +203,7 @@ class StargateContractsV2:
         address='0xce8cca271ebc0533920c83d39f417ed6a0abb7d0',
         abi_path=STARGATE_V2_ABI
     )
-    
+
     BSC_USDT = RawContract(
         title='StargatePoolNative_USDT (BSC)',
         address='0x138eb30f73bc423c6455c53df6d89cb01d9ebc63',
@@ -215,7 +221,7 @@ class StargateContractsV2:
         address='0x19cfce47ed54a88614648dc3f19a5980097007dd',
         abi_path=STARGATE_V2_ABI
     )
-    
+
     POLYGON_USDT = RawContract(
         title='StargatePoolMigratable_USDT (POL)',
         address='0xd47b03ee6d86Cf251ee7860FB2ACf9f91B9fD4d7',
@@ -235,29 +241,29 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=110,
             bridge_dict={
                 TokenSymbol.USDC_E: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
+                    contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
                     pool_id=1
                 ),
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
+                    contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
                     pool_id=2
                 ),
                 TokenSymbol.DAI: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
+                    contract=StargateContractsV1.ARBITRUM_UNIVERSAL,
                     pool_id=3
                 ),
                 TokenSymbol.ETH: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.ARBITRUM_ETH,
+                    contract=StargateContractsV1.ARBITRUM_ETH,
                     pool_id=13
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_STG
+                    contract=StargateContractsV1.BSC_STG
                 ),
                 # TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
                 #     bridge_contract=StargateContracts.ARBITRUM_USDV_BRIDGE_RECOLOR_NOT_WORKING,
                 # ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.ARBITRUM_USDV
+                    contract=StargateContractsV1.ARBITRUM_USDV
                 )
             }
         ),
@@ -265,15 +271,15 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=106,
             bridge_dict={
                 TokenSymbol.USDC: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.AVALANCHE_UNIVERSAL,
+                    contract=StargateContractsV1.AVALANCHE_UNIVERSAL,
                     pool_id=1
                 ),
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.AVALANCHE_UNIVERSAL,
+                    contract=StargateContractsV1.AVALANCHE_UNIVERSAL,
                     pool_id=2
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.AVALANCHE_STG
+                    contract=StargateContractsV1.AVALANCHE_STG
                 ),
                 # TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
                 #     bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR_NOT_WORKING,
@@ -282,7 +288,7 @@ class StargateDataV1(NetworkDataFetcher):
                 #     bridge_contract=StargateContracts.AVALANCHE_USDV_BRIDGE_RECOLOR_NOT_WORKING,
                 # ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.AVALANCHE_USDV
+                    contract=StargateContractsV1.AVALANCHE_USDV
                 )
             }
         ),
@@ -290,21 +296,21 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=102,
             bridge_dict={
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_USDT,
+                    contract=StargateContractsV1.BSC_USDT,
                     pool_id=2
                 ),
                 TokenSymbol.BUSD: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_BUSD,
+                    contract=StargateContractsV1.BSC_BUSD,
                     pool_id=5
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_STG
+                    contract=StargateContractsV1.BSC_STG
                 ),
                 TokenSymbol.USDT + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_USDV_BRIDGE_RECOLOR
+                    contract=StargateContractsV1.BSC_USDV_BRIDGE_RECOLOR
                 ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.BSC_USDV
+                    contract=StargateContractsV1.BSC_USDV
                 ),
             }
         ),
@@ -312,7 +318,7 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=112,
             bridge_dict={
                 TokenSymbol.USDC: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.FANTOM_USDC,
+                    contract=StargateContractsV1.FANTOM_USDC,
                     pool_id=21
                 )
             }
@@ -321,22 +327,22 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=111,
             bridge_dict={
                 TokenSymbol.USDC_E: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.OPTIMISM_UNIVERSAL,
+                    contract=StargateContractsV1.OPTIMISM_UNIVERSAL,
                     pool_id=1
                 ),
                 TokenSymbol.DAI: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.OPTIMISM_UNIVERSAL,
+                    contract=StargateContractsV1.OPTIMISM_UNIVERSAL,
                     pool_id=3
                 ),
                 TokenSymbol.ETH: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.OPTIMISM_ETH,
+                    contract=StargateContractsV1.OPTIMISM_ETH,
                     pool_id=13
                 ),
                 TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.OPTIMISM_USDV_BRIDGE_RECOLOR,
+                    contract=StargateContractsV1.OPTIMISM_USDV_BRIDGE_RECOLOR,
                 ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.OPTIMISM_USDV
+                    contract=StargateContractsV1.OPTIMISM_USDV
                 )
             }
         ),
@@ -344,19 +350,19 @@ class StargateDataV1(NetworkDataFetcher):
             chain_id=109,
             bridge_dict={
                 TokenSymbol.USDC_E: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.POLYGON_UNIVERSAL,
+                    contract=StargateContractsV1.POLYGON_UNIVERSAL,
                     pool_id=1
                 ),
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.POLYGON_UNIVERSAL,
+                    contract=StargateContractsV1.POLYGON_UNIVERSAL,
                     pool_id=2
                 ),
                 TokenSymbol.DAI: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.POLYGON_UNIVERSAL,
+                    contract=StargateContractsV1.POLYGON_UNIVERSAL,
                     pool_id=3
                 ),
                 TokenSymbol.STG: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.POLYGON_STG
+                    contract=StargateContractsV1.POLYGON_STG
                 ),
                 # TokenSymbol.USDC_E + TokenSymbol.USDV: TokenBridgeInfo(
                 #     bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR_NOT_WORKING,
@@ -365,7 +371,7 @@ class StargateDataV1(NetworkDataFetcher):
                 #     bridge_contract=StargateContracts.POLYGON_USDV_BRIDGE_RECOLOR_NOT_WORKING,
                 # ),
                 TokenSymbol.USDV + TokenSymbol.USDV: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV1.POLYGON_USDV
+                    contract=StargateContractsV1.POLYGON_USDV
                 )
             }
         )
@@ -378,10 +384,10 @@ class StargateDataV2(NetworkDataFetcher):
             chain_id=30110,
             bridge_dict={
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.ARBITRUM_USDT
+                    contract=StargateContractsV2.ARBITRUM_USDT
                 ),
                 TokenSymbol.ETH: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.ARBITRUM_ETH
+                    contract=StargateContractsV2.ARBITRUM_ETH
                 )
             }
         ),
@@ -389,10 +395,10 @@ class StargateDataV2(NetworkDataFetcher):
             chain_id=30111,
             bridge_dict={
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.OPTIMISM_USDT
+                    contract=StargateContractsV2.OPTIMISM_USDT
                 ),
                 TokenSymbol.ETH: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.OPTIMISM_ETH
+                    contract=StargateContractsV2.OPTIMISM_ETH
                 )
             }
         ),
@@ -400,7 +406,7 @@ class StargateDataV2(NetworkDataFetcher):
             chain_id=30102,
             bridge_dict={
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.BSC_USDT
+                    contract=StargateContractsV2.BSC_USDT
                 )
             }
         ),
@@ -408,7 +414,7 @@ class StargateDataV2(NetworkDataFetcher):
             chain_id=30109,
             bridge_dict={
                 TokenSymbol.USDT: TokenBridgeInfo(
-                    bridge_contract=StargateContractsV2.POLYGON_USDT
+                    contract=StargateContractsV2.POLYGON_USDT
                 )
             }
         )
@@ -427,21 +433,7 @@ class StargateDataV2(NetworkDataFetcher):
 
 
 # region Implementation
-class StargateImplementation(EvmTask, Utils):
-    @property
-    def token_path(self) -> str:
-        return self.__token_path
-
-    @token_path.setter
-    def token_path(self, crosschain_swap_info: OperationInfo):
-        self.__token_path = crosschain_swap_info.from_token_name
-        if crosschain_swap_info.to_token_name in StargateDataV1.SPECIAL_COINS:
-            self.__token_path += crosschain_swap_info.to_token_name
-            
-    def __init__(self, client: EvmClient):
-        super().__init__(client)
-        self.__token_path = None
-
+class StargateImplementation(EvmTask):
     async def bridge_v1(
         self,
         bridge_info: OperationInfo,
@@ -449,50 +441,33 @@ class StargateImplementation(EvmTask, Utils):
         dst_fee: float | TokenAmount | None = None
     ) -> bool:
         is_result = False
-        check_message = self.validate_inputs(
-            first_arg=self.client.network.name,
-            second_arg=bridge_info.to_network.name,
-            param_type='networks',
-            function='bridge'
-        )
-        if check_message:
-            self.client.custom_logger.log_message(
-                status=LogStatus.ERROR, message=check_message
-            )
+        token_path = bridge_info.from_token_name
 
-            return is_result
-        
-        self.token_path = bridge_info
-        dst_network_name_upper = bridge_info.to_network.name
+        if bridge_info.to_token_name in StargateDataV1.SPECIAL_COINS:
+            token_path += bridge_info.to_token_name
 
         src_bridge_info = StargateDataV1.get_token_bridge_info(
             network_name=self.client.network.name,
-            token_symbol=self.token_path
+            token_symbol=token_path
         )
         bridge_info = self._config_slippage_and_gas_price(
             bridge_info
         )
-        bridge_proposal = await self.compute_source_token_amount(bridge_info)
-        bridge_proposal.to_token = ContractsFactory.get_contract(
-            network_name=bridge_info.to_network.name,
-            token_symbol=bridge_info.to_token_name
-        )
-        bridge_proposal = await self.compute_min_destination_amount(
+        bridge_proposal = await self.init_operation_proposal(bridge_info)
+        bridge_proposal = await self.complete_operation_proposal(
             operation_proposal=bridge_proposal,
-            min_to_amount=bridge_proposal.amount_from.Wei,
-            operation_info=bridge_info,
-            is_to_token_price_wei=True
+            slippage=bridge_info.slippage,
         )
 
         if dst_fee and isinstance(dst_fee, float):
             dst_network = Networks.get_network(
-                network_name=dst_network_name_upper
+                network_name=bridge_info.to_network.name
             )
             dst_fee = TokenAmount(
                 amount=dst_fee,
                 decimals=dst_network.decimals
             )
-            
+
         tx_params, bridge_info, bridge_proposal = await self._get_data_for_crosschain_swap(
             bridge_info=bridge_info,
             bridge_proposal=bridge_proposal,
@@ -507,7 +482,7 @@ class StargateImplementation(EvmTask, Utils):
                 )
             )
             return is_result
-        
+
         value = TokenAmount(
             amount=tx_params['value'],
             decimals=self.client.network.decimals,
@@ -517,14 +492,14 @@ class StargateImplementation(EvmTask, Utils):
         if not await self._check_for_enough_balance(value):
             return is_result
 
-        token_price = await self.get_binance_price(
+        token_price = await PriceUtils.get_cex_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(value.Ether) * token_price
 
         dst_native_amount_price = 0
         if dst_fee:
-            dst_native_token_price = await self.get_binance_price(
+            dst_native_token_price = await PriceUtils.get_cex_price(
                 dst_network.coin_symbol
             )
             dst_native_amount_price = (
@@ -545,7 +520,7 @@ class StargateImplementation(EvmTask, Utils):
         if not bridge_proposal.from_token.is_native_token:
             optional_tx_hash = await self.approve_interface(
                 operation_info=bridge_info,
-                token_contract=bridge_proposal.from_token,
+                token_address=bridge_proposal.from_token,
                 tx_params=tx_params,
                 amount=bridge_proposal.amount_from,
             )
@@ -567,25 +542,25 @@ class StargateImplementation(EvmTask, Utils):
                 operation_info=bridge_info,
                 tx_params=tx_params
             )
-            
+
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3, timeout=240)
-            
+
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
             is_result = receipt['status']
-            
+
             if is_result:
                 log_status = LogStatus.BRIDGED
                 message = 'V1 '
             else:
                 log_status = LogStatus.FAILED
                 message = f'Bridge V1 '
-            
+
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.client.network.name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {dst_network_name_upper}: '
+                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
         except web3_exceptions.ContractCustomError as e:
@@ -594,7 +569,7 @@ class StargateImplementation(EvmTask, Utils):
         except Exception as e:
             message = str(e)
             log_status = LogStatus.ERROR
-        
+
         self.client.custom_logger.log_message(log_status, message)
 
         return is_result
@@ -606,19 +581,15 @@ class StargateImplementation(EvmTask, Utils):
         max_fee: float = 0.7,
     ) -> bool:
         is_result = False
-        self.token_path = bridge_info
-        
         bridge_info = self._config_slippage_and_gas_price(
             bridge_info
         )
-        bridge_proposal = await self.compute_source_token_amount(bridge_info)
-        bridge_proposal = await self.compute_min_destination_amount(
+        bridge_proposal = await self.init_operation_proposal(bridge_info)
+        bridge_proposal = await self.complete_operation_proposal(
             operation_proposal=bridge_proposal,
-            min_to_amount=bridge_proposal.amount_from.Wei,
-            operation_info=bridge_info,
-            is_to_token_price_wei=True
+            slippage=bridge_info.slippage,
         )
-        
+
         dst_chain_id = StargateDataV2.get_chain_id(
             network_name=bridge_info.to_network.name
         )
@@ -626,26 +597,26 @@ class StargateImplementation(EvmTask, Utils):
             network_name=self.client.network.name,
             token_symbol=bridge_info.from_token_name
         )
-        
+
         contract = self.client.contract.get_evm_contract_from_raw(
-            bridge_details.bridge_contract
+            bridge_details.contract
         )
-        
+
         _sendParams = TxArgs(
             dstEid=dst_chain_id,
-            to=self.zfill_hex_value(self.client.account.address),
+            to=HashUtils.zfill_hex_value(self.client.account.address),
             amountLd=bridge_proposal.amount_from.Wei,
             minAmountLd=bridge_proposal.min_amount_to.Wei,
             extraOptions='0x',
             composeMsg='0x',
             oftCmd=bridge_type
         )
-        
+
         bridge_fee = await self._quote_send_v2(
             web3_contract=contract,
             send_params=_sendParams
         )
-        
+
         tx_args = TxArgs(
             _sendParam=_sendParams.get_tuple(),
             _fee=TxArgs(
@@ -654,7 +625,7 @@ class StargateImplementation(EvmTask, Utils):
             ).get_tuple(),
             _refundAddress=self.client.account.address
         )
-        
+
         tx_params = TxParams(
             to=contract.address,
             data=contract.encodeABI(
@@ -662,15 +633,15 @@ class StargateImplementation(EvmTask, Utils):
             ),
             value=bridge_fee.Wei
         )
-        
+
         if not await self._check_for_enough_balance(bridge_fee):
             return is_result
-        
-        token_price = await self.get_binance_price(
+
+        token_price = await PriceUtils.get_cex_price(
             first_token=self.client.network.coin_symbol
         )
         network_fee = float(bridge_fee.Ether) * token_price
-        
+
         if network_fee > max_fee:
             self.client.custom_logger.log_message(
                 status=LogStatus.ERROR,
@@ -680,16 +651,16 @@ class StargateImplementation(EvmTask, Utils):
                 )
             )
 
-            return is_result    
-        
+            return is_result
+
         if not bridge_proposal.from_token.is_native_token:
             optional_tx_hash = await self.approve_interface(
                 operation_info=bridge_info,
-                token_contract=bridge_proposal.from_token,
+                token_address=bridge_proposal.from_token,
                 tx_params=tx_params,
                 amount=bridge_proposal.amount_from
-            )    
-            
+            )
+
             if optional_tx_hash:
                 self.client.custom_logger.log_message(
                     status=LogStatus.APPROVED,
@@ -698,24 +669,33 @@ class StargateImplementation(EvmTask, Utils):
                         f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
-                await sleep(8, 30)
+                await sleep(1, 5)
         else:
             tx_params['value'] += bridge_proposal.amount_from.Wei
-        
+
         try:
-            tx_params = self.set_all_gas_params(bridge_info, tx_params) 
-            
+            tx_params = self.set_all_gas_params(bridge_info, tx_params)
+
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
-            
+
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
             bridge_type = StargateDataV2.get_bridge_type_name(bridge_type)
             is_result = receipt['status']
-            
+
             if is_result:
                 status = LogStatus.BRIDGED
                 message = f'V2 \'{bridge_type}\' '
+
+                await self._add_bridge_to_db(
+                    bridge_info=bridge_info,
+                    bridge_proposal=bridge_proposal,
+                    bridge_fee=bridge_fee,
+                    token_price=token_price,
+                    tx_hash=tx.hash.hex(),
+                    platform='Stargate'
+                )
             else:
                 status = LogStatus.FAILED
                 message = f'Bridge V2 \'{bridge_type}\' '
@@ -723,8 +703,7 @@ class StargateImplementation(EvmTask, Utils):
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.client.network.name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}: '
-                f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
+                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}'
             )
         except web3_exceptions.ContractCustomError as e:
             message = 'V2: Try to make slippage more'
@@ -735,9 +714,9 @@ class StargateImplementation(EvmTask, Utils):
 
             else:
                 message = str(e)
-                
+
             status = LogStatus.ERROR
-                
+
         self.client.custom_logger.log_message(status, message)
 
         return is_result
@@ -747,11 +726,15 @@ class StargateImplementation(EvmTask, Utils):
         bridge_info: OperationInfo
     ) -> OperationInfo:
         settings = StargateSettings()
+        token_path = bridge_info.from_token_name
 
-        if self.token_path not in settings.slippage_and_gas:
+        if bridge_info.to_token_name in StargateDataV1.SPECIAL_COINS:
+            token_path += bridge_info.to_token_name
+
+        if token_path not in settings.slippage_and_gas:
             slip_and_gas_dict = settings.slippage_and_gas['default']
         else:
-            slip_and_gas_dict = settings.slippage_and_gas[self.token_path]
+            slip_and_gas_dict = settings.slippage_and_gas[token_path]
 
         slippage = settings.bridge.init_from_to(
             section=slip_and_gas_dict,
@@ -760,12 +743,13 @@ class StargateImplementation(EvmTask, Utils):
             upper_bound='to'
         )
 
-        bridge_info.slippage = round(random.uniform(slippage.from_, slippage.to_), 1)
+        bridge_info.slippage = round(
+            random.uniform(slippage.from_, slippage.to_), 1)
         gas_prices = slip_and_gas_dict.pop('gas_prices', None)
 
         if gas_prices and self.client.network.name in gas_prices:
             bridge_info.gas_price = (
-               gas_prices[self.client.network.name]
+                gas_prices[self.client.network.name]
             )
 
         return bridge_info
@@ -790,16 +774,15 @@ class StargateImplementation(EvmTask, Utils):
         l0_multiplier_fee = 1.06
         address = self.client.account.address
         router_contract = self.client.contract.get_evm_contract_from_raw(
-            token_bridge_info.bridge_contract
+            token_bridge_info.contract
         )
         tx_params = TxParams(to=router_contract.address)
-        
 
         if bridge_info.from_token_name == TokenSymbol.ETH:
             call_address = (
                 await router_contract.functions.stargateRouter().call()
             )
-            call_contract = self.client.contract.get_evm_contract_from_raw(
+            call_contract = self.client.contract.get_evm_contract(
                 address=call_address,
                 abi_or_path=StargateContractsV1.STARGATE_ROUTER_ABI
             )
@@ -993,7 +976,7 @@ class StargateImplementation(EvmTask, Utils):
         tx_params['value'] = int(fee.Wei * l0_multiplier_fee)
 
         return tx_params, bridge_info, bridge_proposal
-    
+
     async def _check_for_enough_balance(
         self,
         fee_amount: TokenAmount
@@ -1001,24 +984,23 @@ class StargateImplementation(EvmTask, Utils):
         native_balance = await self.client.contract.get_balance()
         if native_balance.Wei > fee_amount.Wei:
             return True
-        
+
         coin_symbol = self.client.network.coin_symbol
-        
+
         self.client.custom_logger.log_message(
             status=LogStatus.ERROR,
             message=(
                 f'Too low balance: balance - '
-                f'{round(native_balance.Ether, 5)} {coin_symbol}; ' 
+                f'{round(native_balance.Ether, 5)} {coin_symbol}; '
                 f'bridge fee - {round(fee_amount.Ether, 5)} {coin_symbol};'
             )
         )
 
         return False
 
-
     async def _estimate_send_tokens_fee(
         self,
-        stg_contract: ParamsTypes.Web3Contract,
+        stg_contract: Web3ContractType,
         dst_chain_id: int,
         adapter_params: str | HexStr,
     ) -> TokenAmount:
@@ -1032,7 +1014,7 @@ class StargateImplementation(EvmTask, Utils):
 
     async def _quote_layer_zero_fee(
         self,
-        router_contract: ParamsTypes.Web3Contract,
+        router_contract: Web3ContractType,
         dst_chain_id: int,
         lz_tx_params: TxArgs,
     ) -> TokenAmount:
@@ -1048,7 +1030,7 @@ class StargateImplementation(EvmTask, Utils):
 
     async def _quote_send_fee(
         self,
-        router_contract: ParamsTypes.Web3Contract,
+        router_contract: Web3ContractType,
         bridge_proposal: OperationProposal,
         dst_chain_id: int,
         adapter_params: str,
@@ -1075,22 +1057,52 @@ class StargateImplementation(EvmTask, Utils):
             decimals=self.client.network.decimals,
             wei=True
         )
-        
+
     async def _quote_send_v2(
         self,
-        web3_contract: ParamsTypes.Web3Contract,
+        web3_contract: Web3ContractType,
         send_params: TxArgs,
     ) -> TokenAmount:
         bridge_fee = await web3_contract.functions.quoteSend(
             send_params.get_tuple(), False
         ).call()
-        
+
         fee_amount = TokenAmount(
             amount=bridge_fee[0],
             wei=True
         )
-        
+
         return fee_amount
+
+    async def _add_bridge_to_db(
+        self,
+        bridge_info: OperationInfo,
+        bridge_proposal: OperationProposal,
+        bridge_fee: TokenAmount,
+        token_price: float,
+        tx_hash: str,
+        platform: str
+    ):
+        async with ServiceUnitOfWork() as uow:
+            if (result := await uow.bridges.add(
+                BridgeDTO(
+                    from_network=self.client.network.name,
+                    to_network=bridge_info.to_network.name,
+                    src_amount=bridge_proposal.amount_from.Ether,
+                    src_token=bridge_info.from_token_name,
+                    dst_amount=bridge_proposal.min_amount_to.Ether,
+                    dst_token=bridge_info.to_token_name,
+                    volume_usd=bridge_proposal.amount_from.Ether * token_price,
+                    fee=bridge_fee.Ether,
+                    fee_in_usd=bridge_fee.Ether * token_price,
+                    platform=platform,
+                    tx_hash=tx_hash,
+                    account_id=self.client.account_id
+                )
+            )).is_success:
+                return result.value
+
+
 # endregion
 
 
@@ -1107,7 +1119,7 @@ class Stargate(EvmTask):
             status=LogStatus.INFO,
             message='Started to search enough balance for bridge'
         )
-        
+
         for network in random_networks:
             client = EvmClient(
                 account_id=self.client.account_id,
@@ -1117,15 +1129,14 @@ class Stargate(EvmTask):
             )
 
             (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
-                op_name='bridge',
                 op_data=bridge_data,
                 op_settings=settings.bridge,
                 client=client
             )
-            
+
             if operation_info:
                 break
-            
+
         if not dst_data:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
@@ -1139,14 +1150,15 @@ class Stargate(EvmTask):
         operation_info.to_network = random_dst_data[0]
         operation_info.to_token_name = random_dst_data[1]
         stargate = StargateImplementation(client)
-        
+
         if settings.bridge_type['v1']:
-            action = stargate.bridge_v1(operation_info, settings.bridge.max_fee_in_usd)
+            action = stargate.bridge_v1(
+                operation_info, settings.bridge.max_fee_in_usd)
         else:
             v2_options = settings.bridge_type['v2']
             bus_option = StargateDataV2.BUS
-            taxi_option = StargateDataV2.TAXI    
-                
+            taxi_option = StargateDataV2.TAXI
+
             if v2_options['bus'] and v2_options['taxi']:
                 bridge_type = random.choice([bus_option, taxi_option])
             elif v2_options['bus']:
@@ -1155,8 +1167,9 @@ class Stargate(EvmTask):
                 bridge_type = taxi_option
             else:
                 raise ValueError("Invalid Stargate bridge type configuration")
-            
-            action = stargate.bridge_v2(operation_info, bridge_type=bridge_type)
-        
+
+            action = stargate.bridge_v2(
+                operation_info, bridge_type=bridge_type)
+
         return await action
 # endregion Random function

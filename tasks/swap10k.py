@@ -4,7 +4,7 @@ from starknet_py.net.client_models import TransactionExecutionStatus
 
 from libs.async_starknet_lib.architecture.client import StarknetClient
 from libs.async_starknet_lib.models.contract import RawContract
-from libs.async_starknet_lib.utils.decorators import validate_swap_tokens
+from libs.async_starknet_lib.utils.decorators import validate_operation_tokens
 from libs.async_starknet_lib.models.operation import OperationInfo
 from libs.async_starknet_lib.models.others import (
     LogStatus,
@@ -13,21 +13,18 @@ from libs.async_starknet_lib.models.others import (
 from tasks._common.starknet_task import StarknetTask
 
 
-AVAILABLE_FOR_SWAP = [
-    TokenSymbol.USDC,
-    TokenSymbol.DAI,
-    TokenSymbol.USDT,
-    TokenSymbol.WBTC,
-    TokenSymbol.ETH
-]
+class Swap10kSettings:
+    AVAILABLE_FOR_SWAP = [
+        TokenSymbol.USDC,
+        TokenSymbol.DAI,
+        TokenSymbol.USDT,
+        TokenSymbol.WBTC,
+        TokenSymbol.ETH
+    ]
 
 
 # region Implementation
 class Swap10k(StarknetTask):
-    @property
-    def raw_router_contract(self):
-        return self.__router_contract
-    
     def __init__(self, client: StarknetClient):
         super().__init__(client)
         self.__router_contract = RawContract(
@@ -36,7 +33,11 @@ class Swap10k(StarknetTask):
             abi_path=('data', 'abis', '10kswap', 'router_abi.json')
         )
     
-    @validate_swap_tokens(AVAILABLE_FOR_SWAP, '10kSwap')
+    @validate_operation_tokens(
+        available_tokens=Swap10kSettings.AVAILABLE_FOR_SWAP,
+        operation_name='swap',
+        class_name='10kSwap'
+    )
     async def swap(self, swap_info: OperationInfo) -> bool:
         is_result = False
         swap_proposal = await self.create_operation_proposal(swap_info)
@@ -44,7 +45,7 @@ class Swap10k(StarknetTask):
             contract=swap_proposal.from_token
         )
         router_contract = self.client.contract.get_starknet_contract_from_raw(
-            contract=self.raw_router_contract
+            contract=self.__router_contract
         )
         
         if swap_proposal.from_token.is_native_token:

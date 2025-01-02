@@ -9,24 +9,21 @@ from libs.async_starknet_lib.models.others import (
     TokenSymbol
 )
 from libs.async_starknet_lib.models.operation import OperationInfo
-from libs.async_starknet_lib.utils.decorators import validate_swap_tokens
+from libs.async_starknet_lib.utils.decorators import validate_operation_tokens
 from tasks._common.starknet_task import StarknetTask
     
 
-AVAILABLE_COINS_FOR_SWAP = [
-    TokenSymbol.USDC, 
-    TokenSymbol.DAI,
-    TokenSymbol.USDT,
-    TokenSymbol.WBTC,
-    TokenSymbol.ETH
-]
+class JediSwapSettings: 
+    AVAILABLE_COINS_FOR_SWAP = [
+        TokenSymbol.USDC, 
+        TokenSymbol.DAI,
+        TokenSymbol.USDT,
+        TokenSymbol.WBTC,
+        TokenSymbol.ETH
+    ]
 
 
 class JediSwap(StarknetTask):
-    @property
-    def raw_router_contract(self):
-        return self.__router_contract
-    
     def __init__(self, client: StarknetClient):
         super().__init__(client)
         self.__router_contract = RawContract(
@@ -35,19 +32,23 @@ class JediSwap(StarknetTask):
             abi_path=('data', 'abis', 'jediswap', 'router_abi.json')
         )
     
-    @validate_swap_tokens(AVAILABLE_COINS_FOR_SWAP,'JediSwap')
+    @validate_operation_tokens(
+        available_tokens=JediSwapSettings.AVAILABLE_COINS_FOR_SWAP,
+        op_name='swap',
+        class_name='JediSwap'
+    )
     async def swap(self, swap_info: OperationInfo):
         is_result = False
         swap_proposal = await self.create_operation_proposal(swap_info)
-        from_token_contract = self.client.contract.get_starknet_contract_from_raw(
+        from_token_c = self.client.contract.get_starknet_contract_from_raw(
             contract=swap_proposal.from_token
         )
-        router_contract = self.client.contract.get_starknet_contract_from_raw(
-            contract=self.raw_router_contract
+        router_c = self.client.contract.get_starknet_contract_from_raw(
+            contract=self.__router_contract
         )
         
-        approve_call = from_token_contract.functions['approve'].prepare_call(
-            spender=self.raw_router_contract,
+        approve_call = from_token_c.functions['approve'].prepare_call(
+            spender=self.__router_contract.address,
             amount=swap_proposal.amount_from.Wei
         )
         
@@ -76,7 +77,7 @@ class JediSwap(StarknetTask):
             }
         )
         
-        swap_call = router_contract.functions[function_name].prepare_call(
+        swap_call = router_c.functions[function_name].prepare_call(
             **swap_args
         )
         try:

@@ -4,16 +4,15 @@ import time
 import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
-from data.config import MODULES_SETTINGS_FILE_PATH
+from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from libs.async_eth_lib.architecture.client import EvmClient
-from libs.async_eth_lib.data.networks import Networks
 from libs.async_eth_lib.data.token_contracts import ZkSyncEraTokenContracts
 from libs.async_eth_lib.models.contract import RawContract
+from libs.async_eth_lib.models.params_types import Web3ContractType
 from libs.async_eth_lib.models.transaction import TxArgs
-from libs.async_eth_lib.utils.decorators import validate_swap_tokens
 from libs.async_eth_lib.utils.helpers import read_json, sleep
 from libs.async_eth_lib.models.others import (
-    LogStatus, ParamsTypes, TokenSymbol
+    LogStatus, TokenSymbol
 )
 from libs.async_eth_lib.models.operation import (
     OperationInfo, OperationProposal, TxPayloadDetails, TxPayloadDetailsFetcher
@@ -21,6 +20,7 @@ from libs.async_eth_lib.models.operation import (
 from tasks._common.evm_task import EvmTask
 from tasks._common.utils import RandomChoiceHelper, StandardSettings
 from tasks.config import get_mute_paths
+
 
 # region Settings
 class MuteSettings():
@@ -158,26 +158,21 @@ class MuteRoutes(TxPayloadDetailsFetcher):
 
 # region Implementation
 class MuteImplementation(EvmTask):
-    @property
-    def raw_router_contract(self):
-        return self.__router_contract
-    
     def __init__(self, client: EvmClient):
         super.__init__(client)
-        self.__router_contract = RawContract(
+        self.__raw_router_contract = RawContract(
             title='Mute',
             address='0x8b791913eb07c32779a16750e3868aa8495f5964',
             abi_path=('data', 'abis', 'zksync', 'mute', 'abi.json')
         )
 
-    @validate_swap_tokens(MuteRoutes.PATHS.keys())
     async def swap(
         self,
         swap_info: OperationInfo
     ) -> bool:
         is_result = False
         contract = self.client.contract.get_evm_contract_from_raw(
-            self.raw_router_contract
+            self.__raw_router_contract
         )
         swap_proposal = await self._create_swap_proposal(
             contract=contract,
@@ -216,7 +211,7 @@ class MuteImplementation(EvmTask):
         if not swap_proposal.from_token.is_native_token:
             is_approved = await self.approve_interface(
                 operation_info=swap_info,
-                token_contract=swap_proposal.from_token,
+                token_address=swap_proposal.from_token,
                 tx_params=tx_params,
                 amount=swap_proposal.amount_from
             )
@@ -238,7 +233,7 @@ class MuteImplementation(EvmTask):
 
             tx = await self.client.transaction.sign_and_send(tx_params)
             receipt = await tx.wait_for_tx_receipt(self.client.w3)
-            
+
             full_path = (
                 self.client.network.explorer
                 + self.client.network.TX_PATH
@@ -246,7 +241,7 @@ class MuteImplementation(EvmTask):
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)
             is_result = receipt['status']
-            
+
             if is_result:
                 status = LogStatus.SWAPPED
                 message = ''
@@ -273,47 +268,48 @@ class MuteImplementation(EvmTask):
 
     async def _create_swap_proposal(
         self,
-        contract: ParamsTypes.Web3Contract,
+        contract: Web3ContractType,
         swap_info: OperationInfo
     ) -> OperationProposal:
-        swap_proposal = await self.compute_source_token_amount(swap_info)
+        swap_proposal = await self.init_operation_proposal(swap_info)
 
         if swap_info.from_token_name == TokenSymbol.ETH:
-            from_token = ZkSyncEraTokenContracts.WETH
-        else:
-            from_token = swap_proposal.from_token
-        
+            swap_proposal.from_token = ZkSyncEraTokenContracts.WETH
+
         if swap_info.to_token_name == TokenSymbol.ETH:
             swap_proposal.to_token = ZkSyncEraTokenContracts.WETH
-        else:
-            swap_proposal.to_token = ZkSyncEraTokenContracts.get_token(
-                swap_info.to_token_name
-            )
 
         min_amount_out = await contract.functions.getAmountOut(
             swap_proposal.amount_from.Wei,
-            from_token.address,
+            swap_proposal.from_token.address,
             swap_proposal.to_token.address
         ).call()
 
-        return await self.compute_min_destination_amount(
+        return await self.complete_operation_proposal(
             operation_proposal=swap_proposal,
-            min_to_amount=min_amount_out[0],
-            operation_info=swap_info,
-            is_to_token_price_wei=True
+            slippage=swap_info.slippage,
+            min_amount_to_wei=min_amount_out[0],
         )
 # endregion Implementation
 
 
 # region Random function
-class Mute(EvmTask):
+class Mute:
+    def __init__(self, client: EvmClient):
+        self.client = client
+
     async def swap(self) -> bool:
         settings = MuteSettings()
         swap_routes = get_mute_paths()
-        
+
         random_networks = list(swap_routes)
         random.shuffle(random_networks)
-        
+
+        self.client.custom_logger.log_message(
+            status=LogStatus.INFO,
+            message='Started to search enough balance for swap'
+        )
+
         for network in random_networks:
             client = EvmClient(
                 account_id=self.client.account_id,
@@ -321,21 +317,16 @@ class Mute(EvmTask):
                 network=network,
                 proxy=self.client.proxy
             )
-            self.client.custom_logger.log_message(
-                status=LogStatus.INFO,
-                message='Started to search enough balance for swap'
-            )
-            
+
             (operation_info, dst_data) = await RandomChoiceHelper.get_partial_operation_info_and_dst_data(
-                op_name='swap',
                 op_data=swap_routes,
                 op_settings=settings.swap,
                 client=client
             )
-            
+
             if operation_info:
                 break
-            
+
         if not dst_data:
             self.client.custom_logger.log_message(
                 status=LogStatus.WARNING,
@@ -344,9 +335,9 @@ class Mute(EvmTask):
                 )
             )
             return False
-            
+
         operation_info.to_token_name = random.choice(dst_data)
         mute = MuteImplementation(client=client)
-        
+
         return await mute.swap(operation_info)
 # endregion Random function
