@@ -104,10 +104,6 @@ class CustomLogData(logging.Formatter):
         LogStatus.WITHDRAWN: SUCCESS_FORMAT
     }
 
-    def __init__(self, *args, **kwargs):
-        self.root_folder = os.getcwd()
-        super().__init__(*args, **kwargs)
-
 
 class SettingsLogFormatter(CustomLogData):
     def __init__(

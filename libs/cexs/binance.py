@@ -21,8 +21,6 @@ def get_binance_network_names():
         # 'Fantom': 'Fantom',
         # 'Injective': 'INJ',
         'Kava': 'KAVAEVM',
-        # 'Klay': 'Klaytn',
-        # 'Linea': 'Linea',
         'Manta': 'MANTA',
         'Moonbeam': 'MOONBEAM',
         'Optimism': 'OPTIMISM',
@@ -149,7 +147,6 @@ class Binance(Cex, CustomLogger):
         receiver_account_id: str = '',
         is_fee_included_in_request: bool = False
     ) -> bool:
-        url = BinanceEndpoints.WITHDRAW_V1
         is_successfull = False
 
         wd_raw_data = await self._get_currencies(ccy)
