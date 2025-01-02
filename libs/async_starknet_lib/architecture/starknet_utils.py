@@ -16,9 +16,9 @@ from starknet_py.constants import EC_ORDER
 from starknet_py.serialization import TupleDataclass
 from starknet_py.cairo.felt import decode_shortstring
 
+from shared.get_rpcs import get_all_rpcs
 from .logger import console_logger
 from ..data.config import (
-    get_node_urls, 
     get_base_path, 
     get_class_hashes
 )
@@ -90,7 +90,7 @@ class StarknetNodeClient:
             self.session = None
 
         client = FullNodeClient(
-            node_url=random.choice(get_node_urls()),
+            node_url=random.choice(get_all_rpcs('Starknet')),
             session=self.session
         )
 

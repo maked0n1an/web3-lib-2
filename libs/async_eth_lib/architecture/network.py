@@ -2,6 +2,7 @@ from curl_cffi import requests
 
 from web3 import Web3
 
+from shared.get_rpcs import get_all_rpcs
 from .api_clients.evm import EvmApiClient
 from .api_clients.zk import ZkApiClient
 from ..models import exceptions as exceptions
@@ -16,7 +17,6 @@ class Network:
     def __init__(
         self,
         name: str,
-        rpc: str | List[str],
         explorer: str,
         chain_id: int | None = None,
         coin_symbol: str | None = None,
@@ -24,7 +24,7 @@ class Network:
         api: EvmApiClient | ZkApiClient | None = None
     ):
         self.name = name
-        self.rpc = rpc
+        self.rpcs = get_all_rpcs(name)
         self.explorer = explorer
         self.chain_id = chain_id
         self.coin_symbol = coin_symbol
@@ -40,7 +40,7 @@ class Network:
         if self.chain_id:
             return
         try:
-            self.chain_id = Web3(Web3.AsyncHTTPProvider(self.rpc)).eth.chain_id
+            self.chain_id = Web3(Web3.AsyncHTTPProvider(self.rpcs[0])).eth.chain_id
         except Exception as e:
             raise exceptions.WrongChainId(f'Can not get chainID: {e}')
         

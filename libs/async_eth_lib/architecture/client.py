@@ -70,9 +70,9 @@ class EvmClient:
         self.w3 = AsyncWeb3(
             AsyncWeb3.AsyncHTTPProvider(
                 endpoint_uri=(
-                    random.choice(self.network.rpc)
-                    if isinstance(self.network.rpc, list)
-                    else self.network.rpc
+                    random.choice(self.network.rpcs)
+                    if isinstance(self.network.rpcs, list)
+                    else self.network.rpcs
                 ),
                 request_kwargs={
                     'proxy': self.proxy,

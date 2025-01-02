@@ -11,7 +11,6 @@ class Networks(metaclass=Singleton):
     # region Mainnets
     Ethereum = Network(
         name='Ethereum',
-        rpc='https://rpc.ankr.com/eth',
         explorer='https://etherscan.io',
         chain_id=1,
         coin_symbol=TokenSymbol.ETH,
@@ -25,9 +24,6 @@ class Networks(metaclass=Singleton):
 
     Arbitrum = Network(
         name='Arbitrum',
-        rpc=[
-            'https://arbitrum.llamarpc.com'
-        ],
         explorer='https://arbiscan.io',
         chain_id=42161,
         coin_symbol=TokenSymbol.ETH,
@@ -41,7 +37,6 @@ class Networks(metaclass=Singleton):
 
     Arbitrum_Nova = Network(
         name='Arbitrum_Nova',
-        rpc='https://nova.arbitrum.io/rpc/',
         explorer='https://nova.arbiscan.io',
         chain_id=42170,
         coin_symbol=TokenSymbol.ETH,
@@ -55,7 +50,6 @@ class Networks(metaclass=Singleton):
 
     Avalanche = Network(
         name='Avalanche',
-        rpc='https://rpc.ankr.com/avalanche/',
         explorer='https://snowtrace.io',
         chain_id=43114,
         coin_symbol=TokenSymbol.AVAX,
@@ -69,7 +63,6 @@ class Networks(metaclass=Singleton):
 
     Base = Network(
         name='Base',
-        rpc='https://base.llamarpc.com',
         explorer='https://basescan.org/',
         chain_id=8453,
         coin_symbol=TokenSymbol.ETH,
@@ -78,7 +71,6 @@ class Networks(metaclass=Singleton):
 
     BSC = Network(
         name='BSC',
-        rpc='https://rpc.ankr.com/bsc/',
         explorer='https://bscscan.com',
         chain_id=56,
         coin_symbol=TokenSymbol.BNB,
@@ -92,7 +84,6 @@ class Networks(metaclass=Singleton):
 
     Celo = Network(
         name='Celo',
-        rpc='https://1rpc.io/celo',
         explorer='https://celoscan.io',
         chain_id=42220,
         coin_symbol=TokenSymbol.CELO,
@@ -106,7 +97,6 @@ class Networks(metaclass=Singleton):
 
     Core = Network(
         name='Core',
-        rpc='https://1rpc.io/core',
         explorer='https://scan.coredao.org',
         chain_id=1116,
         coin_symbol=TokenSymbol.CORE,
@@ -115,7 +105,6 @@ class Networks(metaclass=Singleton):
 
     Fantom = Network(
         name='Fantom',
-        rpc='https://fantom.publicnode.com',
         explorer='https://ftmscan.com',
         chain_id=250,
         coin_symbol=TokenSymbol.FTM,
@@ -129,7 +118,6 @@ class Networks(metaclass=Singleton):
 
     Gnosis = Network(
         name='Gnosis',
-        rpc='https://rpc.ankr.com/gnosis',
         explorer='https://gnosisscan.io',
         chain_id=100,
         coin_symbol=TokenSymbol.XDAI,
@@ -143,7 +131,6 @@ class Networks(metaclass=Singleton):
 
     Heco = Network(
         name='Heco',
-        rpc='https://http-mainnet.hecochain.com',
         explorer='https://www.hecoinfo.com/en-us',
         chain_id=128,
         coin_symbol=TokenSymbol.HECO,
@@ -157,7 +144,6 @@ class Networks(metaclass=Singleton):
 
     Kava = Network(
         name='Kava',
-        rpc="https://rpc.ankr.com/kava_evm",
         explorer="https://kavascan.com",
         chain_id=2222,
         coin_symbol=TokenSymbol.KAVA,
@@ -166,7 +152,6 @@ class Networks(metaclass=Singleton):
 
     Moonbeam = Network(
         name='Moonbeam',
-        rpc='https://rpc.api.moonbeam.network/',
         explorer='https://moonscan.io',
         chain_id=1284,
         coin_symbol=TokenSymbol.GLMR,
@@ -180,9 +165,6 @@ class Networks(metaclass=Singleton):
 
     opBNB = Network(
         name="opBNB",
-        rpc=[
-            "https://opbnb.publicnode.com"
-        ],
         explorer="https://mainnet.opbnbscan.com",
         chain_id=204,
         coin_symbol=TokenSymbol.BNB,
@@ -196,7 +178,6 @@ class Networks(metaclass=Singleton):
 
     Optimism = Network(
         name='Optimism',
-        rpc='https://rpc.ankr.com/optimism/',
         explorer='https://optimistic.etherscan.io',
         chain_id=10,
         coin_symbol=TokenSymbol.ETH,
@@ -210,7 +191,6 @@ class Networks(metaclass=Singleton):
 
     Polygon = Network(
         name='Polygon',
-        rpc='https://rpc.ankr.com/polygon/',
         explorer='https://polygonscan.com',
         chain_id=137,
         coin_symbol=TokenSymbol.POL,
@@ -224,7 +204,6 @@ class Networks(metaclass=Singleton):
 
     zkSync_Era = Network(
         name='zkSync_Era',
-        rpc='https://multi-convincing-dust.zksync-mainnet.quiknode.pro/c94ba40682080821bbc8b4dd7ba7360329948422/',
         explorer='https://explorer.zksync.io',
         chain_id=324,
         coin_symbol=TokenSymbol.ETH,
@@ -238,7 +217,6 @@ class Networks(metaclass=Singleton):
     # region Testnets
     Goerli = Network(
         name='Goerli',
-        rpc='https://rpc.ankr.com/eth_goerli/',
         explorer='https://goerli.etherscan.io',
         chain_id=5,
         coin_symbol=TokenSymbol.ETH,
@@ -252,7 +230,6 @@ class Networks(metaclass=Singleton):
 
     Sepolia = Network(
         name='Sepolia',
-        rpc='https://rpc.sepolia.org',
         explorer='https://sepolia.etherscan.io',
         chain_id=11155111,
         coin_symbol=TokenSymbol.ETH,
