@@ -81,7 +81,7 @@ class TestnetBridgeImplementation(EvmTask):
     ) -> str:
         is_result = False
         from_network_name = self.client.network.name
-        to_network_name = bridge_info.to_network.name
+        to_network_name = bridge_info.to_network_name
         
         bridge_raw_contract = TestnetBridgeData.get_only_contract_for_bridge(
             network_name=self.client.network.name,
@@ -134,7 +134,7 @@ class TestnetBridgeImplementation(EvmTask):
                     LogStatus.APPROVED,
                     message=f"{bridge_proposal.amount_from.Ether} {bridge_proposal.from_token.title}"
                 )
-                await sleep(8, 15)
+                await sleep([8, 15])
         else:
             tx_params['value'] += bridge_proposal.amount_from.Wei      
         
@@ -142,7 +142,7 @@ class TestnetBridgeImplementation(EvmTask):
             tx_params = self.set_all_gas_params(bridge_info, tx_params)
 
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(self.client.w3)
+            receipt = await tx.wait_for_tx_receipt()
             
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             is_result = receipt['status']
@@ -237,7 +237,7 @@ class TestnetBridge:
             return False
 
         random_dst_data = random.choice(dst_data)
-        operation_info.to_network = Networks.get_network(random_dst_data[0])
+        operation_info.to_network_name = random_dst_data[0]
         operation_info.to_token_name = random_dst_data[1]
         testnet_bridge = TestnetBridgeImplementation(client)
 

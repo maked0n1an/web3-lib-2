@@ -4,6 +4,7 @@ from web3 import Web3
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
+from _types.explorer import ExplorerEndpoints
 from src.libs.async_eth_lib.architecture.client import EvmClient
 from src.libs.async_eth_lib.data.token_contracts import (
     ZkSyncEraTokenContracts,
@@ -155,10 +156,10 @@ class SyncSwap(EvmTask):
             tx_params = self.set_all_gas_params(swap_info, tx_params)
 
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(self.client.w3)
+            receipt = await tx.wait_for_tx_receipt()
 
             account_network = self.client.network
-            full_path = account_network.explorer + account_network.TX_PATH
+            full_path = account_network.explorer + ExplorerEndpoints.TX
             rounded_amount = round(swap_proposal.amount_from.Ether, 5)
             is_result = receipt['status']
 

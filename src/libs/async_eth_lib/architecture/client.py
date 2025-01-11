@@ -8,10 +8,11 @@ from web3.eth import AsyncEth
 from web3.middleware import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
+from _types.networks import NetworkNames
+
 from .transaction import Transaction
 from .contract import Contract
 from .logger import CustomLogger
-from .network import Network
 from ..models import exceptions as exceptions
 from ..data.networks import Networks
 
@@ -21,13 +22,13 @@ class EvmClient:
         self,
         account_id: int | str = None,
         private_key: str | None = None,
-        network: Network = Networks.Goerli,
+        network_name: NetworkNames = NetworkNames.Goerli,
         proxy: str | None = None,
         check_proxy: bool = True,
         create_log_file_per_account: bool = False
     ):
         self.account_id = account_id
-        self.network = network
+        self.network = Networks.get_network(network_name)
         self.proxy = proxy
 
         self._init_proxy(check_proxy)

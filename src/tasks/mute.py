@@ -4,6 +4,7 @@ import time
 import web3.exceptions as web3_exceptions
 from web3.types import TxParams
 
+from _types.explorer import ExplorerEndpoints
 from src.helpers.time_functions import sleep
 from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
 from src.libs.async_eth_lib.architecture.client import EvmClient
@@ -222,7 +223,7 @@ class MuteImplementation(EvmTask):
                     LogStatus.APPROVED,
                     message=f"{swap_proposal.amount_from.Ether} {swap_proposal.from_token.title}"
                 )
-                await sleep(8, 15)
+                await sleep([8, 15])
         else:
             tx_params['value'] = swap_proposal.amount_from.Wei
 
@@ -233,11 +234,11 @@ class MuteImplementation(EvmTask):
             )
 
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(self.client.w3)
+            receipt = await tx.wait_for_tx_receipt()
 
             full_path = (
                 self.client.network.explorer
-                + self.client.network.TX_PATH
+                + ExplorerEndpoints.TX
             )
             rounded_amount_from = round(swap_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(swap_proposal.min_amount_to.Ether, 5)

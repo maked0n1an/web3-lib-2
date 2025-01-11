@@ -10,9 +10,9 @@ from ..models import exceptions as exceptions
 
 # region Definition class
 class Network:
-    TX_PATH: str = '/tx/'
-    CONTRACT_PATH: str = '/contract/'
-    ADDRESS_PATH: str = '/address/'
+    tx_endpoint: str = '/tx/'
+    contract_endpoint: str = '/contract/'
+    address_endpoint: str = '/address/'
     
     def __init__(
         self,

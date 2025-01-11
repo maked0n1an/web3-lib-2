@@ -1,6 +1,6 @@
 from web3.types import TxParams
 
-from src.libs.async_eth_lib.architecture.network import Network
+from _types.networks import NetworkNames
 from src.libs.async_eth_lib.architecture.client import EvmClient
 from src.libs.async_eth_lib.data.token_contracts import ContractsFactory
 from src.libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
@@ -190,11 +190,7 @@ class EvmTask:
             token_symbol=operation_info.from_token_name
         )
 
-        if operation_info.to_network:
-            network_name = operation_info.to_network.name
-        else:
-            network_name = self.client.network.name
-
+        network_name = operation_info.to_network_name or self.client.network.name
         to_token = ContractsFactory.get_contract(
             network_name=network_name,
             token_symbol=operation_info.to_token_name
@@ -231,7 +227,7 @@ class EvmTask:
         self,
         operation_proposal: OperationProposal,
         slippage: float,
-        dst_network: Network,
+        dst_network_name: NetworkNames,
     ) -> OperationProposal:
         """
         Compute the minimum destination amount for a operation proposal.
@@ -245,7 +241,7 @@ class EvmTask:
         Returns:
             - `OperationProposal`: The updated operation proposal with the minimum destination amount.
         """
-        dst_client = EvmClient(network=dst_network)
+        dst_client = EvmClient(network_name=dst_network_name)
         min_amount_to = TokenAmount(
             amount=(
                 operation_proposal.amount_from.Wei * (1 - slippage / 100)

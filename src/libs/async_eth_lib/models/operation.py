@@ -1,12 +1,11 @@
 import random
 from typing import List
 
-from src.libs.async_eth_lib.data.networks import Networks
+from _types.networks import NetworkNames
 
 from . import exceptions as exceptions
 from .contract import TokenContractBase
 from .others import TokenAmount
-from ..architecture.network import Network
 
 
 # region Class to get info about operations like swap, add liquidity, remove liquidity etc.
@@ -16,7 +15,7 @@ class OperationInfo:
         from_token_name: str = None,
         to_token_name: str = None,
         slippage: float = 0.5,
-        to_network: Network = Networks.Goerli,
+        to_network_name: NetworkNames = NetworkNames.Goerli,
         amount: float = 0,
         amount_from: float = 0,
         amount_to: float = None,
@@ -34,7 +33,7 @@ class OperationInfo:
             from_token_name (str): The token to swap from.
             to_token_name (str): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
-            to_network (Network | None): The destination network (default is None).
+            to_network_name (NetworkNames | None): The destination network name (default is Goerli).
             amount (float | None): The amount to swap (default is None).
             amount_from (float | None): The minimum amount for random amount generation.
             amount_to (float | None): The maximum amount for random amount generation.
@@ -49,7 +48,7 @@ class OperationInfo:
         #  from_network (Network | None): The source network for the swap (default is None).
         self.from_token_name = from_token_name
         self.to_token_name = to_token_name
-        self.to_network = to_network
+        self.to_network_name = to_network_name
         self.amount = abs(amount)
         self.slippage = slippage
         self.amount_by_percent = 0
