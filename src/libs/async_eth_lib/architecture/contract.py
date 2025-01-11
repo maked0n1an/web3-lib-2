@@ -230,10 +230,7 @@ class Contract:
         })
 
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
-        return await tx.wait_for_tx_receipt(
-            web3=self.transaction.w3,
-            timeout=240
-        )
+        return await tx.wait_for_tx_receipt(timeout=240)
 
     async def transfer(
         self,
@@ -277,10 +274,7 @@ class Contract:
         )
 
         tx = await self.transaction.sign_and_send(tx_params)
-        return await tx.wait_for_tx_receipt(
-            web3=self.transaction.w3,
-            timeout=240
-        )
+        return await tx.wait_for_tx_receipt(timeout=240)
 
     async def get_approved_amount(
         self,

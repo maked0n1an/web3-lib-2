@@ -255,7 +255,7 @@ class Transaction:
         signed_tx = await self.sign_transaction(tx_params)
         tx_hash = await self.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
-        return Tx(tx_hash=tx_hash, params=tx_params)
+        return Tx(w3=self.w3, tx_hash=tx_hash, params=tx_params)
 
     async def find_tx_by_function_name(
         self,

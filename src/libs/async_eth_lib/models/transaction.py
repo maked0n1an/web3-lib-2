@@ -10,7 +10,6 @@ from web3.types import (
 
 from . import exceptions as exceptions
 from .common import AutoRepr
-from ..architecture.network import Network
 
 
 # region TxArgs class
@@ -56,22 +55,11 @@ class Tx(AutoRepr):
     """
     An instance of transaction params for easy execution of actions on it.
 
-    Attributes:
-        hash (Optional[_Hash32]): a transaction hash.
-        params (Optional[dict]): the transaction parameters.
-        receipt (Optional[TxReceipt]): a transaction receipt.
-        function_identifier (Optional[str]): a function identifier.
-        input_data (Optional[Dict[str, Any]]): an input data.
-
     """
-    hash: _Hash32 | None
-    params: dict | None
-    receipt: TxReceipt | None
-    function_identifier: str | None
-    input_data: dict[str, Any] | None
 
     def __init__(
         self,
+        w3: Web3 | AsyncWeb3,
         tx_hash: str | _Hash32 | None = None,
         params: dict | None = None
     ) -> None:
@@ -90,13 +78,14 @@ class Tx(AutoRepr):
         if isinstance(tx_hash, str):
             tx_hash = HexBytes(tx_hash)
 
+        self.w3 = w3
         self.hash = tx_hash
         self.params = params
         self.receipt = None
         self.function_identifier = None
         self.input_data = None
 
-    async def parse_params(self, w3: Web3, network: Network) -> dict[str, Any]:
+    async def parse_params(self) -> dict[str, Any]:
         """
         Parse the parameters of a sent transaction.
 
@@ -107,9 +96,9 @@ class Tx(AutoRepr):
             Dict[str, Any]: the parameters of a sent transaction.
 
         """
-        tx_data: TxData = await w3.eth.get_transaction(transaction_hash=self.hash)
+        tx_data: TxData = await self.w3.eth.get_transaction(transaction_hash=self.hash)
         self.params = {
-            'chainId': network.chain_id,
+            'chainId': await self.w3.eth.chain_id,
             'nonce': int(tx_data.get('nonce')),
             'gasPrice': int(tx_data.get('gasPrice')),
             'gas': int(tx_data.get('gas')),
@@ -123,7 +112,6 @@ class Tx(AutoRepr):
 
     async def wait_for_tx_receipt(
         self,
-        web3: Web3 | AsyncWeb3,
         timeout: int | float = 120,
         poll_latency: float = 0.1
     ) -> TxReceipt:
@@ -131,7 +119,6 @@ class Tx(AutoRepr):
         Wait for the transaction receipt.
 
         Args:
-            web3 (Union[Web3, AsyncWeb3]): the Web3 instance.
             timeout (Union[int, float]): the receipt waiting timeout. (120 sec)
             poll_latency (float): the poll latency. (0.1 sec)
 
@@ -139,7 +126,7 @@ class Tx(AutoRepr):
             Dict[str, Any]: the transaction receipt.
 
         """
-        self.receipt = await web3.eth.wait_for_transaction_receipt(
+        self.receipt = await self.w3.eth.wait_for_transaction_receipt(
             transaction_hash=self.hash, timeout=timeout, poll_latency=poll_latency
         )
 
