@@ -4,7 +4,17 @@ from eth_abi import abi
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
+from libs.async_eth_lib.data.networks import Networks
 from src.helpers.time_functions import sleep
+from src._types.tokens import TokenSymbol
+from src.libs.async_eth_lib.architecture.client import EvmClient
+from src.libs.async_eth_lib.data.token_contracts import TokenContractData
+from src.libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
+from src.libs.async_eth_lib.models.others import LogStatus, TokenAmount
+from src.libs.async_eth_lib.models.params_types import Web3ContractType
+from src.libs.async_eth_lib.models.transaction import TxArgs
+from src.tasks._common.evm_task import EvmTask
+from src.tasks._common.utils import HexUtils, PriceUtils, RandomChoiceHelper
 
 from .constants import (
     L0_IDS,
@@ -15,16 +25,6 @@ from .constants import (
     StargateSettings,
     get_stargate_routes
 )
-from src._types.tokens import TokenSymbol
-from src.libs.async_eth_lib.data.networks import Networks
-from src.libs.async_eth_lib.architecture.client import EvmClient
-from src.libs.async_eth_lib.data.token_contracts import TokenContractData
-from src.libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
-from src.libs.async_eth_lib.models.others import LogStatus, TokenAmount
-from src.libs.async_eth_lib.models.params_types import Web3ContractType
-from src.libs.async_eth_lib.models.transaction import TxArgs
-from src.tasks._common.evm_task import EvmTask
-from src.tasks._common.utils import HexUtils, PriceUtils, RandomChoiceHelper
 
 
 class StargateImplementation(EvmTask):
@@ -43,7 +43,7 @@ class StargateImplementation(EvmTask):
         bridge_proposal = await self.complete_bridge_proposal(
             operation_proposal=bridge_proposal,
             slippage=bridge_info.slippage,
-            dst_network=bridge_info.to_network
+            dst_network_name=bridge_info.to_network_name
         )
 
         tx_params = await self._get_data_for_crosschain_swap_v1(
@@ -76,10 +76,12 @@ class StargateImplementation(EvmTask):
         network_fee = float(value.Ether) * token_price
 
         dst_native_amount_price = 0
+        dst_network = Networks.get_network(bridge_info.to_network_name)
+        dst_native_token_price = await PriceUtils.get_cex_price(
+            dst_network.coin_symbol
+        )
+
         if dst_fee:
-            dst_native_token_price = await PriceUtils.get_cex_price(
-                bridge_info.to_network.coin_symbol
-            )
             dst_native_amount_price = (
                 float(dst_fee.Ether) * dst_native_token_price
             )
@@ -111,7 +113,7 @@ class StargateImplementation(EvmTask):
                         f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
-                await sleep(10, 30)
+                await sleep([10, 30])
         else:
             tx_params['value'] += bridge_proposal.amount_from.Wei
 
@@ -122,7 +124,7 @@ class StargateImplementation(EvmTask):
             )
 
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(self.client.w3, timeout=240)
+            receipt = await tx.wait_for_tx_receipt(timeout=240)
 
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
@@ -138,18 +140,21 @@ class StargateImplementation(EvmTask):
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.client.network.name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}: '
+                f'{bridge_info.to_token_name} in {bridge_info.to_network_name}: '
                 f'https://layerzeroscan.com/tx/{tx.hash.hex()}'
             )
         except web3_exceptions.ContractCustomError as e:
-            message = 'V1: Try to make slippage more'
-            log_status = LogStatus.ERROR
+            self.client.custom_logger.log_message(
+                status=LogStatus.ERROR,
+                message='Failed to bridge, trying to make slippage more...'
+            )
+            bridge_info.slippage *= 1.2
+            return await self.bridge_v1(bridge_info, max_fee, dst_fee)
         except Exception as e:
             message = str(e)
             log_status = LogStatus.ERROR
 
         self.client.custom_logger.log_message(log_status, message)
-
         return is_result
 
     async def bridge_v2(
@@ -163,7 +168,7 @@ class StargateImplementation(EvmTask):
         bridge_proposal = await self.complete_bridge_proposal(
             operation_proposal=bridge_proposal,
             slippage=bridge_info.slippage,
-            dst_network=bridge_info.to_network
+            dst_network_name=bridge_info.to_network_name
         )
 
         tx_params = await self._get_data_for_crosschain_swap_v2(
@@ -213,7 +218,7 @@ class StargateImplementation(EvmTask):
                         f'{bridge_proposal.amount_from.Ether}'
                     )
                 )
-                await sleep(10, 30)
+                await sleep([10, 30])
         else:
             tx_params['value'] += bridge_proposal.amount_from.Wei
 
@@ -221,7 +226,7 @@ class StargateImplementation(EvmTask):
             tx_params = self.set_all_gas_params(bridge_info, tx_params)
 
             tx = await self.client.transaction.sign_and_send(tx_params)
-            receipt = await tx.wait_for_tx_receipt(self.client.w3)
+            receipt = await tx.wait_for_tx_receipt(timeout=300)
 
             rounded_amount_from = round(bridge_proposal.amount_from.Ether, 5)
             rounded_amount_to = round(bridge_proposal.min_amount_to.Ether, 5)
@@ -246,7 +251,7 @@ class StargateImplementation(EvmTask):
             message += (
                 f'{rounded_amount_from} {bridge_info.from_token_name} '
                 f'from {self.client.network.name} -> {rounded_amount_to} '
-                f'{bridge_info.to_token_name} in {bridge_info.to_network.name}'
+                f'{bridge_info.to_token_name} in {bridge_info.to_network_name}'
             )
         except web3_exceptions.ContractCustomError as e:
             message = 'V2: Try to make slippage more'
@@ -271,7 +276,7 @@ class StargateImplementation(EvmTask):
         bridge_proposal: OperationProposal,
         dst_fee: TokenAmount | None = None
     ) -> TxParams:
-        dst_chain_id = L0_IDS['v1'][bridge_info.to_network.name]
+        dst_chain_id = L0_IDS['v1'][bridge_info.to_network_name]
         contract_address = self.data.get_contract_address(
             network=self.client.network.name,
             from_token=bridge_info.from_token_name,
@@ -451,7 +456,7 @@ class StargateImplementation(EvmTask):
             src_pool_id = POOL_IDS[self.client.network.name].get(
                 [bridge_info.from_token_name]
             )
-            dst_pool_id = POOL_IDS[bridge_info.to_network.name].get(
+            dst_pool_id = POOL_IDS[bridge_info.to_network_name].get(
                 [bridge_info.to_token_name]
             )
 
@@ -485,7 +490,7 @@ class StargateImplementation(EvmTask):
         bridge_proposal: OperationProposal,
         bridge_type: BridgeType
     ) -> TxParams:
-        dst_chain_id = L0_IDS['v2'][bridge_info.to_network.name]
+        dst_chain_id = L0_IDS['v2'][bridge_info.to_network_name]
         self_address = self.client.account.address
         contract_address = self.data.get_contract_address(
             network=self.client.network.name,
@@ -626,7 +631,7 @@ class Stargate(EvmTask):
             client = EvmClient(
                 account_id=self.client.account_id,
                 private_key=self.client.account._private_key,
-                network=Networks.get_network(network_name),
+                network_name=network_name,
                 proxy=self.client.proxy
             )
 
@@ -649,7 +654,7 @@ class Stargate(EvmTask):
             return False
 
         random_dst_data = random.choice(dst_data)
-        operation_info.to_network = Networks.get_network(random_dst_data[0])
+        operation_info.to_network_name = random_dst_data[0]
         operation_info.to_token_name = random_dst_data[1]
         stargate = StargateImplementation(client)
 
