@@ -1,4 +1,4 @@
-from _types.settings import DefaultSettings, Route, Shuffle
+from src._types.settings import DefaultSettings, Shuffle
 
 
 class Settings(DefaultSettings):
