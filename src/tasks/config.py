@@ -3,65 +3,7 @@ from src.libs.async_eth_lib.data.networks import Networks
 from src.libs.async_eth_lib.models.others import TokenSymbol
 
 
-def get_coredao_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
-    return {
-        Networks.Arbitrum: {
-            TokenSymbol.USDT: [
-                (Networks.Core, TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Core, TokenSymbol.USDC)
-            ]
-        },
-        Networks.Avalanche: {
-            TokenSymbol.USDT: [
-                (Networks.Core, TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Core, TokenSymbol.USDC)
-            ]
-        },
-        Networks.BSC: {
-            TokenSymbol.USDT: [
-                (Networks.Core, TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Core, TokenSymbol.USDC)
-            ]
-        },
-        Networks.Optimism: {
-            TokenSymbol.USDT: [
-                (Networks.Core, TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Core, TokenSymbol.USDC)
-            ]
-        },
-        Networks.Polygon: {
-            TokenSymbol.USDT: [
-                (Networks.Core, TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Core, TokenSymbol.USDC)
-            ]
-        },
-        Networks.Core: {
-            TokenSymbol.USDT: [
-                (Networks.Arbitrum,     TokenSymbol.USDT),
-                (Networks.Avalanche,    TokenSymbol.USDT),
-                (Networks.BSC,          TokenSymbol.USDT),
-                (Networks.Optimism,     TokenSymbol.USDT),
-                (Networks.Polygon,      TokenSymbol.USDT),
-            ],
-            TokenSymbol.USDC: [
-                (Networks.Arbitrum,     TokenSymbol.USDC),
-                (Networks.Avalanche,    TokenSymbol.USDC),
-                (Networks.BSC,          TokenSymbol.USDC),
-                (Networks.Optimism,     TokenSymbol.USDC),
-                (Networks.Polygon,      TokenSymbol.USDC),
-            ],
-        }
-    }
+
 
 def get_testnet_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
     return {
