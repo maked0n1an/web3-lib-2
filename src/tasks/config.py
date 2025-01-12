@@ -2,30 +2,6 @@ from src.libs.async_eth_lib.architecture.network import Network
 from src.libs.async_eth_lib.data.networks import Networks
 from src.libs.async_eth_lib.models.others import TokenSymbol
 
-
-
-
-def get_testnet_bridge_routes() -> dict[Network, dict[str, list[tuple[Network, str]]]]:
-    return {
-        Networks.Arbitrum: {
-            TokenSymbol.ETH: [
-                (Networks.Sepolia, TokenSymbol.ETH),
-            ],
-        },
-        Networks.Optimism: {
-            TokenSymbol.ETH: [
-                (Networks.Sepolia, TokenSymbol.ETH),
-            ],
-        },
-        Networks.Sepolia: {
-            TokenSymbol.ETH: [
-                (Networks.Optimism, TokenSymbol.ETH),
-                (Networks.Arbitrum, TokenSymbol.ETH),
-            ],
-        }
-    }
-
-
 def get_mute_paths() -> dict[Network, dict[str, list[str]]]:
     return {
         Networks.zkSync_Era: {
