@@ -8,14 +8,14 @@ from .contract import TokenContractBase
 from .others import TokenAmount
 
 
-# region Class to get info about operations like swap, add liquidity, remove liquidity etc.
+# region Class to get info about operations like swap, bridge, add liquidity, remove liquidity etc.
 class OperationInfo:
     def __init__(
         self,
-        from_token_name: str = None,
-        to_token_name: str = None,
+        from_token_name: str,
+        to_token_name: str,
         slippage: float = 0.5,
-        to_network_name: NetworkNames = NetworkNames.Goerli,
+        to_network_name: NetworkNames = None,
         amount: float = 0,
         amount_from: float = 0,
         amount_to: float = None,
@@ -56,30 +56,11 @@ class OperationInfo:
         self.gas_limit = gas_limit
         self.multiplier_of_gas = multiplier_of_gas
         if amount_to:
-            self.amount = self._get_random_amount(
-                amount_from, amount_to, ndigits)
+            random_value = abs(random.uniform(amount_from, amount_to))
+            self.amount = round(random_value, ndigits)
         if max_percent:
-            self.amount_by_percent = self._get_random_amount_by_percent(
-                min_percent, max_percent, ndigits
-            )
-
-    def _get_random_amount(
-        self, 
-        amount_from: float, 
-        amount_to: float, 
-        ndigits: int
-    ) -> float:
-        random_value = abs(random.uniform(amount_from, amount_to))
-        return round(random_value, ndigits)
-
-    def _get_random_amount_by_percent(
-        self, 
-        min_percent: float, 
-        max_percent: float,
-        ndigits: int
-    ) -> float:
-        random_percent_amount = random.uniform(min_percent, max_percent) / 100
-        return round(random_percent_amount, ndigits)
+            random_percent = random.uniform(min_percent, max_percent) / 100
+            self.amount_by_percent = round(random_percent, ndigits)
 # endregion Class to get info about swap
 
 

@@ -8,8 +8,8 @@ from .others import TokenAmount
 class OperationInfo:
     def __init__(
         self,
-        from_token_name: str = None,
-        to_token_name: str = None,
+        from_token_name: str,
+        to_token_name: str,
         slippage: float = 0.5,
         amount: float = 0,
         amount_from: float = 0,
@@ -47,31 +47,12 @@ class OperationInfo:
         self.gas_price = gas_price
         self.gas_limit = gas_limit
         self.multiplier_of_gas = multiplier_of_gas
-        if amount_from and amount_to:
-            self.amount = self._get_random_amount(
-                amount_from, amount_to, ndigits)
-        if min_percent and max_percent:
-            self.amount_by_percent = self._get_random_amount_by_percent(
-                min_percent, max_percent, ndigits
-            )
-
-    def _get_random_amount(
-        self, 
-        amount_from: float, 
-        amount_to: float, 
-        ndigits: int
-    ) -> float:
-        random_value = abs(random.uniform(amount_from, amount_to))
-        return round(random_value, ndigits)
-
-    def _get_random_amount_by_percent(
-        self, 
-        min_percent: int, 
-        max_percent: int,
-        ndigits: int
-    ) -> float:
-        random_percent_amount = random.uniform(min_percent, max_percent) / 100
-        return round(random_percent_amount, ndigits)
+        if amount_to:
+            random_value = abs(random.uniform(amount_from, amount_to))
+            self.amount = round(random_value, ndigits)
+        if max_percent:
+            random_percent = random.uniform(min_percent, max_percent) / 100
+            self.amount_by_percent = round(random_percent, ndigits)
 # endregion Class to get info about swap
 
 
