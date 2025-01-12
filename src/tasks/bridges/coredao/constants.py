@@ -53,7 +53,8 @@ class CoreDaoBridgeData:
             }
         }
 
-def get_coredao_bridge_routes() -> dict[NetworkNames, dict[str, list[tuple[NetworkNames, str]]]]:
+def get_coredao_bridge_routes(
+) -> dict[NetworkNames, dict[TokenSymbol, list[tuple[NetworkNames, TokenSymbol]]]]:
     return {
         NetworkNames.Arbitrum: {
             TokenSymbol.USDT: [

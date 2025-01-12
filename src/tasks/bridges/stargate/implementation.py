@@ -4,10 +4,10 @@ from eth_abi import abi
 from web3.types import TxParams
 import web3.exceptions as web3_exceptions
 
-from libs.async_eth_lib.data.networks import Networks
 from src.helpers.time_functions import sleep
 from src._types.tokens import TokenSymbol
 from src.libs.async_eth_lib.architecture.client import EvmClient
+from src.libs.async_eth_lib.data.networks import Networks
 from src.libs.async_eth_lib.data.token_contracts import TokenContractData
 from src.libs.async_eth_lib.models.operation import OperationInfo, OperationProposal
 from src.libs.async_eth_lib.models.others import LogStatus, TokenAmount

@@ -140,7 +140,8 @@ class StargateData:
             return data[network][from_token]
 
 
-def get_stargate_routes() -> dict[NetworkNames, dict[str, list[tuple[NetworkNames, str, BridgeType]]]]:
+def get_stargate_routes(
+) -> dict[NetworkNames, dict[TokenSymbol, list[tuple[NetworkNames, TokenSymbol, BridgeType]]]]:
     return {
         NetworkNames.Avalanche: {
             TokenSymbol.USDT: [
