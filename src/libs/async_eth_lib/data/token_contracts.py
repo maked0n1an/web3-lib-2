@@ -1,10 +1,9 @@
-from .config import USDV_ABI_PATH
+from .config import USDV_ABI_PATH, WETH_ABI_PATH
 from .networks import Networks
 from ..models import exceptions as exceptions
 from ..models.contract import (
     NativeTokenContract, 
     TokenContract, 
-    TokenContractBase
 )
 from ..models.others import TokenSymbol
 
@@ -17,7 +16,7 @@ class TokenContractData:
         cls,
         token_symbol: str,  # GETH (GETH, LZ)
         project_prefix: str | None = None,  # LZ
-    ) -> TokenContractBase:
+    ) -> TokenContract | NativeTokenContract:
         contract_name = (
             f'{token_symbol.upper()}_{project_prefix.upper()}'
             if project_prefix
@@ -38,7 +37,7 @@ class ContractsFactory:
     def get_contract(
         network_name: str,
         token_symbol: str
-    ) -> TokenContractBase:
+    ) -> TokenContract | NativeTokenContract:
         supported_networks: dict[str, type[TokenContractData]] = {
             Networks.Ethereum.name: EthereumTokenContracts,
             Networks.Arbitrum.name: ArbitrumTokenContracts,
@@ -365,7 +364,7 @@ class ZkSyncEraTokenContracts(TokenContractData):
     WETH = TokenContract(
         title=TokenSymbol.WETH,
         address='0x5AEa5775959fBC2557Cc8789bC1bf90A239D9a91',
-        abi_or_path=('data', 'abis', 'zksync', 'weth_abi.json')
+        abi_or_path=WETH_ABI_PATH
     )
 
     WBTC = TokenContract(
