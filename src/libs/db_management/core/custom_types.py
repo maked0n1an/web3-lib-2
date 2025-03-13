@@ -25,15 +25,21 @@ str_66_unique_an = Annotated[str, mapped_column(String(66), unique=True)]
 class ArrayType(TypeDecorator):
     impl = TEXT
 
-    def process_bind_param(self, value: List[str] | None, dialect):
-        if value is not None:
-            value = ','.join(value)
-        return value
+    def process_bind_param(
+        self,
+        value: List[str],
+        dialect
+    ) -> str | None:
+        return ','.join(map(str, value))
 
-    def process_result_value(self, value: str | None, dialect):
+    def process_result_value(
+        self,
+        value: str | None,
+        dialect
+    ) -> List[str] | None:
         if value is not None:
-            value = value.split(',')
-        return value
+            return value.split(',')
+        return None
 
 
 array_or_none_an = Annotated[List[str] | None, mapped_column(ArrayType)]
@@ -49,14 +55,21 @@ class JSONEncodedDict(TypeDecorator):
         else:
             return self
 
-    def process_bind_param(self, value, dialect):
+    def process_bind_param(
+        self,
+        value: str | None,
+        dialect
+    ) -> str | None:
         if value is not None:
-            value = json.dumps(value)
+            return json.dumps(value)
+        return None
 
-        return value
-
-    def process_result_value(self, value, dialect):
+    def process_result_value(
+        self,
+        value: str | None,
+        dialect
+    ) -> dict | None:
         if value is not None:
-            value = json.loads(value)
-        return value
+            return json.loads(value)
+        return None
 # endregion Annotated types

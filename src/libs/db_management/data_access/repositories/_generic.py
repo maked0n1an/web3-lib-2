@@ -28,7 +28,7 @@ class GenericRepository(Generic[TEntity], ABC):
     entity_type: Type[TEntity]
 
     def __init_subclass__(cls):
-        cls.entity_type = cls.__orig_bases__[0].__args__[0]
+        cls.entity_type = cls.__orig_bases__[0].__args__[0] #type: ignore
 
     @abstractmethod
     async def add(self, entity: TEntity) -> TEntity:
@@ -181,7 +181,7 @@ class GenericSqlRepository(GenericRepository[TEntity]):
         try:
             result = await self.__session.execute(query)
             records = result.scalars().all()
-            return records
+            return list(records)
         except SQLAlchemyError as e:
             raise
 

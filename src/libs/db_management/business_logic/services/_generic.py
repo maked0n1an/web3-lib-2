@@ -29,7 +29,7 @@ class GenericService(Generic[DTO], ABC):
     dto_type: Type[DTO]
 
     def __init_subclass__(cls):
-        cls.dto_type = cls.__orig_bases__[0].__args__[0]
+        cls.dto_type = cls.__orig_bases__[0].__args__[0] #type: ignore
 
     @abstractmethod
     async def add(self, dto: DTO) -> ServiceResult[int]:
@@ -52,7 +52,7 @@ class GenericService(Generic[DTO], ABC):
         raise NotImplementedError()
 
     @abstractmethod
-    async def update(self, dto: DTO) -> ServiceResult[TEntity | None]:
+    async def update(self, dto: DTO) -> ServiceResult[DTO | None]:
         raise NotImplementedError()
     
     @abstractmethod
@@ -141,20 +141,24 @@ class Service(GenericService[DTO], ABC):
             else ServiceResult.create_failure('Failed to add entities to database')
         )
 
-    async def update(self, dto: DTO) -> ServiceResult[TEntity | None]:
+    async def update(self, dto: DTO) -> ServiceResult[DTO | None]:
         values_dict = dto.model_dump(exclude_unset=True)
         db_entity = await self.repository.update_one_by_id(dto.id, values_dict)
+        dto = self.dto_type.model_validate(db_entity)
 
         return (
-            ServiceResult.create_success(db_entity)
+            ServiceResult.create_success(dto)
             if db_entity is not None
             else ServiceResult.create_failure('Entity does not exist')
         )
     
-    async def update_all(self, filters: DTO, values_dict: DTO) -> ServiceResult[int]:
+    async def update_all(self, filters: DTO, values: list[DTO]) -> ServiceResult[int]:
         filters_dict = filters.model_dump(exclude_unset=True)
-        values_dict = values_dict.model_dump(exclude_unset=True)
-        row_count = await self.repository.update_all(filters_dict, values_dict)
+        values_dicts = [
+            value.model_dump(exclude_unset=True)
+            for value in values
+        ]
+        row_count = await self.repository.update_all(filters_dict, values_dicts)
 
         return (
             ServiceResult.create_success(row_count)

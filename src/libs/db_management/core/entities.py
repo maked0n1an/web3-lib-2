@@ -28,6 +28,8 @@ from .custom_types import (
 class BaseSqlModel(AsyncAttrs, DeclarativeBase):
     __abstract__ = True
 
+    id: Mapped[int_pk_an]
+
     created_at: Mapped[datetime] = mapped_column(
         DATETIME(truncate_microseconds=True),
         server_default=func.now()

@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
+from typing import Optional, TypedDict
 
 from pydantic import (
     BaseModel,
@@ -11,7 +11,7 @@ from pydantic import (
 
 
 class GeneralDTO(BaseModel):
-    id: int = Field(None)
+    id: int = Field(default=0)
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -38,11 +38,11 @@ class AccountDTO(GeneralDTO):
     evm_private_key: Optional[str] = Field(None)
     evm_address: Optional[str] = Field(None)
     next_action_time: Optional[datetime] = Field(None)
-    planned_swaps_count: Optional[int] = Field(None)
-    planned_mints_count: Optional[int] = Field(None)
-    planned_bridges_count: Optional[int] = Field(None)
-    planned_stakes_count: Optional[int] = Field(None)
-    completed: Optional[bool] = Field(None)
+    planned_swaps_count: int = Field(0)
+    planned_mints_count: int = Field(0)
+    planned_bridges_count: int = Field(0)
+    planned_stakes_count: int = Field(0)
+    completed: bool = Field(False)
 
     @field_validator('evm_private_key', mode='before')
     def check_evm_private_key(cls, v) -> str:
@@ -76,26 +76,20 @@ class AccountDTO(GeneralDTO):
             return v.strftime('%Y-%m-%d %H:%M:%S')
         return v  # Return as is if it's None or already a string
 
-    class GetByEvmPrivateKey(GeneralDTO):
-        evm_private_key: str
-
-    class GetByEvmAddress(GeneralDTO):
-        evm_address: str
-
 
 class BridgeDTO(GeneralDTO):
-    from_network: str = Field(None)
-    to_network: str = Field(None)
-    src_amount: Decimal | float | int = Field(None)
-    src_token: str = Field(None)
-    dst_amount: Decimal | float | int = Field(None)
-    dst_token: str = Field(None)
-    volume_usd: Decimal | float | int = Field(None)
-    fee: Decimal | float | int = Field(None)
-    fee_in_usd: float = Field(None)
-    platform: str = Field(None)
-    tx_hash: str = Field(None)
-    account_id: int = Field(None)
+    from_network: str = Field(default='')
+    to_network: str = Field(default='')
+    src_amount: Decimal | float | int = Field(default=0)
+    src_token: str = Field(default='')
+    dst_amount: Decimal | float | int = Field(default=0)
+    dst_token: str = Field(default='')
+    volume_usd: Decimal | float | int = Field(default=0)
+    fee: Decimal | float | int = Field(default=0)
+    fee_in_usd: float = Field(default=0)
+    platform: str = Field(default='')
+    tx_hash: str = Field(default='')
+    account_id: int = Field(default=0)
 
     @field_validator('src_amount', 'dst_amount', 'volume_usd', 'fee', 'fee_in_usd', mode='before')
     def validate_amounts(cls, value):
@@ -109,39 +103,49 @@ class BridgeDTO(GeneralDTO):
 
 
 class MintDTO(GeneralDTO):
-    nft: str = Field(None)
-    nft_quantity_by_mint: int = Field(None)
-    mint_price: Decimal | float | int = Field(None)
-    mint_price_in_usd: float = Field(None)
-    platform: str = Field(None)
-    date: datetime = Field(None)
-    tx_hash: str = Field(None)
-    account_id: int = Field(None)
+    nft: str = Field(default='')
+    nft_quantity_by_mint: int = Field(default=0)
+    mint_price: Decimal | float | int = Field(default=0)
+    mint_price_in_usd: float = Field(default=0)
+    platform: str = Field(default='')
+    date: datetime = Field(default=datetime.now())
+    tx_hash: str = Field(default='')
+    account_id: int = Field(default=0)
 
 
 class StakeDTO(GeneralDTO):
-    token: str = Field(None)
-    amount: float = Field(None)
-    unfreeze_date: datetime | None = Field(None)
-    platform: str = Field(None)
-    tx_hash: str = Field(None)
-    account_id: int = Field(None)
+    token: str = Field(default='')
+    amount: float = Field(default=0)
+    unfreeze_date: datetime = Field(default=datetime.now())
+    platform: str = Field(default='')
+    tx_hash: str = Field(default='')
+    account_id: int = Field(default=0)
 
 
 class SwapDTO(GeneralDTO):
-    network: str = Field(None)
-    src_amount: float = Field(None)
-    src_token: str = Field(None)
-    dst_amount: float = Field(None)
-    dst_token: str = Field(None)
-    volume_usd: float = Field(None)
-    fee: float = Field(None)
-    fee_in_usd: float = Field(None)
-    platform: str = Field(None)
-    tx_hash: str = Field(None)
-    account_id: int = Field(None)
+    network: str = Field(default='')
+    src_amount: float = Field(default=0)
+    src_token: str = Field(default='')
+    dst_amount: float = Field(default=0)
+    dst_token: str = Field(default='')
+    volume_usd: float = Field(default=0)
+    fee: float = Field(default=0)
+    fee_in_usd: float = Field(default=0)
+    platform: str = Field(default='')
+    tx_hash: str = Field(default='')
+    account_id: int = Field(default=0)
 
 # region Common filters
+
+
 class GetByAccountId(GeneralDTO):
     account_id: int
+
+
+class GetByEvmPrivateKey(GeneralDTO):
+    evm_private_key: str
+
+
+class GetByEvmAddress(GeneralDTO):
+    evm_address: str
 # endregion

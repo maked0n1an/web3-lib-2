@@ -5,7 +5,7 @@ TValue = TypeVar('TValue', bound=object)
 
 
 class ServiceResult(Generic[TValue]):
-    def __init__(self, is_success: bool, value: TValue, error: str):
+    def __init__(self, is_success: bool, value: TValue | None, error: str):
         self.is_success = is_success
         self.value = value
         self.error = error
