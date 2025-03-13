@@ -29,7 +29,7 @@ class CexCredentials:
 
 @dataclass
 class OkxCredentials(CexCredentials):
-    api_passphrase: str = None
+    api_passphrase: str
     is_okx_eu_type: bool = False
 
     def completely_filled(self) -> bool:

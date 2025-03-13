@@ -7,16 +7,7 @@ from ..common.models import LogStatus
 
 
 class CustomLogger:
-    FOLDER_NAME: str = 'user_data/logs'
     LOGGERS: dict[str, logging.Logger] = {}
-    
-    def __init__(self):
-        self._create_log_folder()
-            
-    @classmethod
-    def _create_log_folder(cls):
-        relative_path = Path(cls.FOLDER_NAME)
-        relative_path.mkdir(parents=True, exist_ok=True)
 
     def _initialize_main_log(self) -> logging.Logger:
         if 'main_logger' not in self.LOGGERS:
@@ -109,7 +100,7 @@ class SettingsLogFormatter(CustomLogData):
     def __init__(
         self,
         log_levelname_format: str | dict
-    ) -> logging.Formatter:
+    ):
         self.log_levelname_format = log_levelname_format
 
     def format(self, record):

@@ -1,38 +1,38 @@
 import base64
 import hmac
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlencode
 
-from _types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
+from src.helpers.time_functions import get_izoformat_timestamp
 
 from .common import exceptions as exc
 from .common.logger import CustomLogger
 from .common.models import Cex, OkxCredentials, LogStatus
 from .common.http import make_async_request
-from .common.time_and_date import get_izoformat_timestamp
 
 
 def get_okx_network_names():
     return {
-        NetworkNames.Ethereum: 'ERC20',
-        NetworkNames.Arbitrum: 'Arbitrum One',
-        NetworkNames.Avalanche: 'Avalanche C-Chain',
-        NetworkNames.Base: 'Base',
-        NetworkNames.BSC: 'BSC',
-        NetworkNames.Celo: 'CELO',
-        NetworkNames.Core: 'CORE',
-        NetworkNames.Fantom: 'Fantom',
+        NetworkNamesEnum.ETHEREUM: 'ERC20',
+        NetworkNamesEnum.ARBITRUM: 'Arbitrum One',
+        NetworkNamesEnum.AVALANCHE: 'Avalanche C-Chain',
+        NetworkNamesEnum.BASE: 'Base',
+        NetworkNamesEnum.BSC: 'BSC',
+        NetworkNamesEnum.CELO: 'CELO',
+        NetworkNamesEnum.CORE: 'CORE',
+        NetworkNamesEnum.FANTOM: 'Fantom',
         'Injective': 'INJ',
-        NetworkNames.Kava: 'KAVAEVM',
+        NetworkNamesEnum.KAVA: 'KAVAEVM',
         'Linea': 'Linea',
-        NetworkNames.Moonbeam: 'Moonbeam',
-        NetworkNames.Optimism: 'Optimism',
-        NetworkNames.opBNB: 'OPBNB',
-        NetworkNames.Polygon: 'Polygon',
+        NetworkNamesEnum.MOONBEAM: 'Moonbeam',
+        NetworkNamesEnum.OPTIMISM: 'Optimism',
+        NetworkNamesEnum.OP_BNB: 'OPBNB',
+        NetworkNamesEnum.POLYGON: 'Polygon',
         'Solana': 'Solana',
         'Celestia': 'Celestia',
-        NetworkNames.zkSync_Era: 'zkSync Era'
+        NetworkNamesEnum.ZKSYNC_ERA: 'zkSync Era'
     }
 
 
@@ -69,8 +69,7 @@ class OkxErrors(str, Enum):
 
 class Okx(Cex, CustomLogger):
     def __init__(self, credentials: OkxCredentials):
-        Cex.__init__(self, credentials)
-        CustomLogger.__init__(self)
+        self.credentials = credentials
 
         self.is_okx_eu_type = credentials.is_okx_eu_type
         self.special_tokens = {
@@ -82,8 +81,8 @@ class Okx(Cex, CustomLogger):
     async def get_min_dep_details(
         self,
         ccy: str = 'ETH'
-    ) -> Optional[dict]:
-        networks_data = {}
+    ) -> dict[str, Any]:
+        networks_data: dict[str, Any] = {}
 
         dp_raw_data = await self._get_currencies(ccy)
         if not dp_raw_data['data']:
@@ -285,7 +284,7 @@ class Okx(Cex, CustomLogger):
     async def _transfer_from_subaccounts(
         self,
         ccy: str,
-        amount: float = None,
+        amount: float | None = None,
         silent_mode: bool = False
     ) -> bool:
         result_1 = await self._transfer_from_subs(ccy, amount, silent_mode)
@@ -330,7 +329,7 @@ class Okx(Cex, CustomLogger):
         except Exception as error:
             raise exc.ApiException(f"Bad headers for OKX request: {error}")
 
-    async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
+    async def _get_currencies(self, ccy: str) -> dict:
         url = self.endpoints['AssCur_V5'] + f'?ccy={ccy}'
         headers = await self._get_headers(request_path=url)
 
@@ -351,7 +350,7 @@ class Okx(Cex, CustomLogger):
     async def _get_main_acc_balance(
         self,
         ccy: str,
-    ) -> float:
+    ) -> float | None:
         if self.is_okx_eu_type:
             url = self.endpoints['AccBal_EU_V5']
 
@@ -387,7 +386,7 @@ class Okx(Cex, CustomLogger):
         self,
         sub_name: str,
         ccy: str
-    ) -> float:
+    ) -> float | None:
         if self.is_okx_eu_type:
             url = self.endpoints['SAccBal_EU_V5']
             url += f'?subAcct={sub_name}'
@@ -443,8 +442,8 @@ class Okx(Cex, CustomLogger):
 
     async def _transfer_from_subs(
         self,
-        ccy: str = 'ETH',
-        amount: float = None,
+        ccy: str,
+        amount: float | None = None,
         silent_mode: bool = False
     ) -> bool:
         if not silent_mode:

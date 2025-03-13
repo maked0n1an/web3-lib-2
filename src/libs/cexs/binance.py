@@ -1,35 +1,35 @@
 import hmac
+from typing import Any
 from urllib.parse import urlencode
-from typing import Optional
 
-from _types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
+from src.helpers.time_functions import get_unix_timestamp
 
 from .common import exceptions as exc
 from .common.logger import CustomLogger
 from .common.models import Cex, CexCredentials, LogStatus
 from .common.http import make_async_request
-from .common.time_and_date import get_unix_timestamp
-
 
 def get_binance_network_names():
     return {
-        NetworkNames.Ethereum: 'ETH',
-        NetworkNames.Arbitrum: 'ARBITRUM',
-        NetworkNames.Avalanche: 'AVAXC',
-        NetworkNames.Base: 'BASE',
-        NetworkNames.BSC: 'BSC',
-        NetworkNames.Celo: 'CELO',
-        NetworkNames.Core: 'CORE',
+        NetworkNamesEnum.ETHEREUM: 'ETH',
+        NetworkNamesEnum.ARBITRUM: 'ARBITRUM',
+        NetworkNamesEnum.AVALANCHE: 'AVAXC',
+        NetworkNamesEnum.BASE: 'BASE',
+        NetworkNamesEnum.BSC: 'BSC',
+        NetworkNamesEnum.CELO: 'CELO',
+        NetworkNamesEnum.CORE: 'CORE',
         # 'Fantom': 'Fantom',
         # 'Injective': 'INJ',
-        NetworkNames.Kava: 'KAVAEVM',
+        NetworkNamesEnum.KAVA: 'KAVAEVM',
         'Manta': 'MANTA',
-        NetworkNames.Moonbeam: 'MOONBEAM',
-        NetworkNames.Optimism: 'OPTIMISM',
-        NetworkNames.opBNB: 'OPBNB',
-        NetworkNames.Polygon: 'MATIC',
+        NetworkNamesEnum.MOONBEAM: 'MOONBEAM',
+        NetworkNamesEnum.OPTIMISM: 'OPTIMISM',
+        NetworkNamesEnum.OP_BNB: 'OPBNB',
+        NetworkNamesEnum.POLYGON: 'MATIC',
         'Solana': 'SOL',
-        NetworkNames.zkSync_Era: 'ZKSYNCERA'
+        NetworkNamesEnum.ZKSYNC_ERA: 'ZKSYNCERA'
     }
 
 
@@ -56,9 +56,9 @@ class Binance(Cex, CustomLogger):
 
     async def get_min_dep_details(
         self,
-        ccy: str = 'ETH'
-    ) -> Optional[dict]:
-        networks_data = {}
+        ccy: TokenSymbol
+    ) -> dict[str, Any]:
+        networks_data: dict[str, Any] = {}
 
         dp_raw_data = await self._get_currencies(ccy)
         if not dp_raw_data:
@@ -81,8 +81,8 @@ class Binance(Cex, CustomLogger):
 
     async def get_min_dep_details_for_network(
         self,
-        ccy: str,
-        network_name: str,
+        ccy: TokenSymbol,
+        network_name: NetworkNamesEnum,
     ) -> dict:
         dep_network_info = {}
         binance_network_names = get_binance_network_names()
@@ -112,9 +112,9 @@ class Binance(Cex, CustomLogger):
 
     async def wait_deposit_confirmation(
         self,
-        ccy: str,
+        ccy: TokenSymbol,
         amount: float,
-        network_name: str,
+        network_name: NetworkNamesEnum,
         old_sub_balances: dict,
         check_time: int = 45
     ) -> bool:
@@ -142,7 +142,7 @@ class Binance(Cex, CustomLogger):
 
     async def withdraw(
         self,
-        ccy: str,
+        ccy: TokenSymbol,
         amount: float,
         network_name: str,
         receiver_address: str,
@@ -270,7 +270,7 @@ class Binance(Cex, CustomLogger):
             params_str = ''
         return params_str + "&timestamp=" + get_unix_timestamp()
 
-    def _get_full_url(self, endpoint: str, params: dict = None) -> str:
+    def _get_full_url(self, endpoint: str, params: dict | None = None) -> str:
         url_encoded_params = self._get_url_encoded_params_with_ts(params)
         signature = self._get_sign(url_encoded_params)
 
@@ -281,7 +281,10 @@ class Binance(Cex, CustomLogger):
 
         return url
 
-    async def _get_currencies(self, ccy: str = 'ETH') -> list[dict]:
+    async def _get_currencies(
+        self, 
+        ccy: TokenSymbol = TokenSymbol.ETH
+    ) -> dict[str, Any]:
         endpoint = BinanceEndpoints.GET_CURRENCIES_V1
         url = self._get_full_url(endpoint)
 
@@ -290,11 +293,10 @@ class Binance(Cex, CustomLogger):
             headers=self.headers
         )
 
-        token = {}
         for item in response:
             if item['coin'] == ccy:
-                token = item
-        return token
+                return item
+        return {}
 
     async def _get_sub_list(self) -> dict:
         endpoint = BinanceEndpoints.GET_USER_SUBACCOUNTS_V1
@@ -315,13 +317,14 @@ class Binance(Cex, CustomLogger):
             headers=self.headers
         )
 
-    async def _get_main_acc_balance(self, ccy: str) -> float:
+    async def _get_main_acc_balance(self, ccy: TokenSymbol) -> float:
         balances = await self._get_main_acc_balances()
 
         ccy_balance = [
             balance for balance in balances
-            if balance['asset'] == ccy.upper()
+            if balance['asset'] == ccy.value
         ]
+
 
         if ccy_balance:
             return float(ccy_balance[0]['free'])
@@ -342,10 +345,9 @@ class Binance(Cex, CustomLogger):
 
     async def _get_cex_balances(
         self,
-        ccy: str = 'ETH',
+        ccy: TokenSymbol = TokenSymbol.ETH,
     ) -> dict:
         balances = {}
-
         try:
             balances['Main CEX Account'] = await self._get_main_acc_balance(ccy)
         except Exception as e:
@@ -369,8 +371,8 @@ class Binance(Cex, CustomLogger):
 
     async def _transfer_from_subaccounts(
         self,
-        ccy: str = 'ETH',
-        amount: float = None,
+        ccy: TokenSymbol,
+        amount: float | None = None,
         silent_mode: bool = False
     ):
         if not silent_mode:

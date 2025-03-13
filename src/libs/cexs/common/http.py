@@ -1,14 +1,16 @@
 from curl_cffi.requests import AsyncSession
 
+from src._types.common import HttpMethod
+
 from ..common import exceptions as exc
 
 
 async def make_async_request(
-    method: str = 'GET',
+    method: HttpMethod = 'GET',
     url: str = '',
     headers: dict | None = None,
     **kwargs
-) -> dict | None:
+) -> dict:
     async with AsyncSession(headers=headers) as session:
         response = await session.request(method, url=url, **kwargs)
 
