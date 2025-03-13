@@ -1,64 +1,60 @@
+import asyncio
 from curl_cffi import requests
 
-from web3 import Web3
+from web3 import AsyncHTTPProvider, AsyncWeb3
 
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
 from src.helpers.get_rpcs import get_all_rpcs
 from .api_clients.evm import EvmApiClient
 from .api_clients.zk import ZkApiClient
 from ..models import exceptions as exceptions
 
 
-# region Definition class
+
 class Network:
-    tx_endpoint: str = '/tx/'
-    contract_endpoint: str = '/contract/'
-    address_endpoint: str = '/address/'
-    
     def __init__(
         self,
-        name: str,
+        name: NetworkNamesEnum,
         explorer: str,
         chain_id: int | None = None,
-        coin_symbol: str | None = None,
+        coin_symbol: str | TokenSymbol | None = None,
         tx_type: int = 0,
         api: EvmApiClient | ZkApiClient | None = None
     ):
         self.name = name
         self.rpcs = get_all_rpcs(name)
-        self.explorer = explorer
-        self.chain_id = chain_id
-        self.coin_symbol = coin_symbol
+        self.coin_symbol = self._initialize_coin_symbol(coin_symbol)
         self.decimals = 18
         self.tx_type = tx_type
+        self.chain_id = self._initialize_chain_id(chain_id)
+        self.explorer = explorer
         self.api = api
-        
-        self._initialize_chain_id()
-        self._initialize_coin_symbol()
-        self._coin_symbol_to_upper()
 
-    def _initialize_chain_id(self):
-        if self.chain_id:
-            return
+    def _initialize_chain_id(self, chain_id: int | None) -> int:
+        if chain_id is not None:
+            return chain_id
+        
         try:
-            self.chain_id = Web3(Web3.AsyncHTTPProvider(self.rpcs[0])).eth.chain_id
+            return asyncio.run(AsyncWeb3(AsyncHTTPProvider(self.rpcs[0])).eth.chain_id)
         except Exception as e:
             raise exceptions.WrongChainId(f'Can not get chainID: {e}')
-        
-    def _initialize_coin_symbol(self):
-        chain_id_url = 'https://chainid.network/chains.json'
-        
-        if self.coin_symbol:
-            return 
+
+    def _initialize_coin_symbol(self, coin_symbol: str | TokenSymbol | None) -> str:
+        if coin_symbol is not None:
+            if isinstance(coin_symbol, TokenSymbol):
+                return coin_symbol.value
+            else:
+                return coin_symbol.upper()
+
         try:
-            response = requests.get(chain_id_url).json()
-            for network in response:
-                if network['chainId'] == self.chain_id:
-                    self.coin_symbol = network['nativeCurrency']['symbol']
-                    break
+            response = requests.get('https://chainid.network/chains.json').json()
         except Exception as e:
             raise exceptions.WrongCoinSymbol(f'Can not get coin_symbol: {e}')
-            
-    def _coin_symbol_to_upper(self):
-        if self.coin_symbol:
-            self.coin_symbol = self.coin_symbol.upper()
-#endregion Definition class
+
+        for network in response:
+            if network['chainId'] == self.chain_id:
+                symbol: str = network['nativeCurrency']['symbol']
+                return symbol.upper()
+
+        raise exceptions.WrongCoinSymbol(f'Coin symbol not found for chain id [{self.chain_id}]')

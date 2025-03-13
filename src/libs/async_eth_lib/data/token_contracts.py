@@ -1,3 +1,6 @@
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
+
 from .config import USDV_ABI_PATH, WETH_ABI_PATH
 from .networks import Networks
 from ..models import exceptions as exceptions
@@ -5,7 +8,6 @@ from ..models.contract import (
     NativeTokenContract, 
     TokenContract, 
 )
-from ..models.others import TokenSymbol
 
 
 class TokenContractData:
@@ -14,13 +16,13 @@ class TokenContractData:
     @classmethod
     def get_token(
         cls,
-        token_symbol: str,  # GETH (GETH, LZ)
+        token_symbol: TokenSymbol,  # GETH (GETH, LZ)
         project_prefix: str | None = None,  # LZ
     ) -> TokenContract | NativeTokenContract:
         contract_name = (
-            f'{token_symbol.upper()}_{project_prefix.upper()}'
+            f'{token_symbol.value}_{project_prefix}'
             if project_prefix
-            else f'{token_symbol.upper()}'
+            else f'{token_symbol.value}'
         )
 
         if not hasattr(cls, contract_name):
@@ -35,21 +37,21 @@ class TokenContractData:
 class ContractsFactory:
     @staticmethod
     def get_contract(
-        network_name: str,
-        token_symbol: str
+        network_name: NetworkNamesEnum,
+        token_symbol: TokenSymbol
     ) -> TokenContract | NativeTokenContract:
-        supported_networks: dict[str, type[TokenContractData]] = {
-            Networks.Ethereum.name: EthereumTokenContracts,
-            Networks.Arbitrum.name: ArbitrumTokenContracts,
-            Networks.Avalanche.name: AvalancheTokenContracts,
-            Networks.Base.name: BaseTokenContracts,
-            Networks.BSC.name: BscTokenContracts,
-            Networks.Core.name: CoreTokenContracts,
-            Networks.Fantom.name: FantomTokenContracts,
-            Networks.Kava.name: KavaTokenContracts,
-            Networks.Optimism.name: OptimismTokenContracts,
-            Networks.Polygon.name: PolygonTokenContracts,
-            Networks.zkSync_Era.name: ZkSyncEraTokenContracts,
+        supported_networks: dict[NetworkNamesEnum, type[TokenContractData]] = {
+            NetworkNamesEnum.ETHEREUM: EthereumTokenContracts,
+            NetworkNamesEnum.ARBITRUM: ArbitrumTokenContracts,
+            NetworkNamesEnum.AVALANCHE: AvalancheTokenContracts,
+            NetworkNamesEnum.BASE: BaseTokenContracts,
+            NetworkNamesEnum.BSC: BscTokenContracts,
+            NetworkNamesEnum.CORE: CoreTokenContracts,
+            NetworkNamesEnum.FANTOM: FantomTokenContracts,
+            NetworkNamesEnum.KAVA: KavaTokenContracts,
+            NetworkNamesEnum.OPTIMISM: OptimismTokenContracts,
+            NetworkNamesEnum.POLYGON: PolygonTokenContracts,
+            NetworkNamesEnum.ZKSYNC_ERA: ZkSyncEraTokenContracts,
         }
 
         if network_name not in supported_networks:
@@ -79,7 +81,7 @@ class ArbitrumTokenContracts(TokenContractData):
     )
 
     GETH_LZ = TokenContract(
-        title="GETH_LZ",
+        title=TokenSymbol.GETH_LZ,
         address='0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
         decimals=18
     )
@@ -304,7 +306,7 @@ class OptimismTokenContracts(TokenContractData):
     )
 
     ZRO = TokenContract(
-        title='ZRO',
+        title=TokenSymbol.ZRO,
         address='0x6985884c4392d348587b19cb9eaaf157f13271cd'
     )
 
@@ -386,7 +388,7 @@ class ZkSyncEraTokenContracts(TokenContractData):
     )
 
     SPACE = TokenContract(
-        title='SPACE',
+        title=TokenSymbol.SPACE,
         address='0x47260090cE5e83454d5f05A0AbbB2C953835f777',
         decimals=18
     )

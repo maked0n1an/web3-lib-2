@@ -1,16 +1,18 @@
-from _types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
+
 from ..architecture.api_clients.zk import ZkApiClient
 from ..architecture.api_clients.evm import EvmApiClient
 from ..architecture.network import Network
 from ..models import exceptions as exceptions
 from ..models.common import Singleton
-from ..models.others import TokenSymbol
+
 
 
 class Networks(metaclass=Singleton):
     # region Mainnets
     Ethereum = Network(
-        name=NetworkNames.Ethereum,
+        name=NetworkNamesEnum.ETHEREUM,
         explorer='https://etherscan.io',
         chain_id=1,
         coin_symbol=TokenSymbol.ETH,
@@ -23,7 +25,7 @@ class Networks(metaclass=Singleton):
     )
 
     Arbitrum = Network(
-        name=NetworkNames.Arbitrum,
+        name=NetworkNamesEnum.ARBITRUM,
         explorer='https://arbiscan.io',
         chain_id=42161,
         coin_symbol=TokenSymbol.ETH,
@@ -36,7 +38,7 @@ class Networks(metaclass=Singleton):
     )
 
     Arbitrum_Nova = Network(
-        name=NetworkNames.Arbitrum_Nova,
+        name=NetworkNamesEnum.ARBITRUM_NOVA,
         explorer='https://nova.arbiscan.io',
         chain_id=42170,
         coin_symbol=TokenSymbol.ETH,
@@ -49,7 +51,7 @@ class Networks(metaclass=Singleton):
     )
 
     Avalanche = Network(
-        name=NetworkNames.Avalanche,
+        name=NetworkNamesEnum.AVALANCHE,
         explorer='https://snowtrace.io',
         chain_id=43114,
         coin_symbol=TokenSymbol.AVAX,
@@ -62,7 +64,7 @@ class Networks(metaclass=Singleton):
     )
 
     Base = Network(
-        name=NetworkNames.Base,
+        name=NetworkNamesEnum.BASE,
         explorer='https://basescan.org/',
         chain_id=8453,
         coin_symbol=TokenSymbol.ETH,
@@ -70,7 +72,7 @@ class Networks(metaclass=Singleton):
     )
 
     BSC = Network(
-        name=NetworkNames.BSC,
+        name=NetworkNamesEnum.BSC,
         explorer='https://bscscan.com',
         chain_id=56,
         coin_symbol=TokenSymbol.BNB,
@@ -83,7 +85,7 @@ class Networks(metaclass=Singleton):
     )
 
     Celo = Network(
-        name=NetworkNames.Celo,
+        name=NetworkNamesEnum.CELO,
         explorer='https://celoscan.io',
         chain_id=42220,
         coin_symbol=TokenSymbol.CELO,
@@ -96,7 +98,7 @@ class Networks(metaclass=Singleton):
     )
 
     Core = Network(
-        name=NetworkNames.Core,
+        name=NetworkNamesEnum.CORE,
         explorer='https://scan.coredao.org',
         chain_id=1116,
         coin_symbol=TokenSymbol.CORE,
@@ -104,7 +106,7 @@ class Networks(metaclass=Singleton):
     )
 
     Fantom = Network(
-        name=NetworkNames.Fantom,
+        name=NetworkNamesEnum.FANTOM,
         explorer='https://ftmscan.com',
         chain_id=250,
         coin_symbol=TokenSymbol.FTM,
@@ -117,7 +119,7 @@ class Networks(metaclass=Singleton):
     )
 
     Gnosis = Network(
-        name=NetworkNames.Gnosis,
+        name=NetworkNamesEnum.GNOSIS,
         explorer='https://gnosisscan.io',
         chain_id=100,
         coin_symbol=TokenSymbol.XDAI,
@@ -130,7 +132,7 @@ class Networks(metaclass=Singleton):
     )
 
     Heco = Network(
-        name=NetworkNames.Heco,
+        name=NetworkNamesEnum.HECO,
         explorer='https://www.hecoinfo.com/en-us',
         chain_id=128,
         coin_symbol=TokenSymbol.HECO,
@@ -143,7 +145,7 @@ class Networks(metaclass=Singleton):
     )
 
     Kava = Network(
-        name=NetworkNames.Kava,
+        name=NetworkNamesEnum.KAVA,
         explorer="https://kavascan.com",
         chain_id=2222,
         coin_symbol=TokenSymbol.KAVA,
@@ -151,7 +153,7 @@ class Networks(metaclass=Singleton):
     )
 
     Moonbeam = Network(
-        name=NetworkNames.Moonbeam,
+        name=NetworkNamesEnum.MOONBEAM,
         explorer='https://moonscan.io',
         chain_id=1284,
         coin_symbol=TokenSymbol.GLMR,
@@ -164,7 +166,7 @@ class Networks(metaclass=Singleton):
     )
 
     opBNB = Network(
-        name=NetworkNames.opBNB,
+        name=NetworkNamesEnum.OP_BNB,
         explorer="https://mainnet.opbnbscan.com",
         chain_id=204,
         coin_symbol=TokenSymbol.BNB,
@@ -177,7 +179,7 @@ class Networks(metaclass=Singleton):
     )
 
     Optimism = Network(
-        name=NetworkNames.Optimism,
+        name=NetworkNamesEnum.OPTIMISM,
         explorer='https://optimistic.etherscan.io',
         chain_id=10,
         coin_symbol=TokenSymbol.ETH,
@@ -190,7 +192,7 @@ class Networks(metaclass=Singleton):
     )
 
     Polygon = Network(
-        name=NetworkNames.Polygon,
+        name=NetworkNamesEnum.POLYGON,
         explorer='https://polygonscan.com',
         chain_id=137,
         coin_symbol=TokenSymbol.POL,
@@ -203,7 +205,7 @@ class Networks(metaclass=Singleton):
     )
 
     zkSync_Era = Network(
-        name=NetworkNames.zkSync_Era,
+        name=NetworkNamesEnum.ZKSYNC_ERA,
         explorer='https://explorer.zksync.io',
         chain_id=324,
         coin_symbol=TokenSymbol.ETH,
@@ -215,21 +217,22 @@ class Networks(metaclass=Singleton):
     )
 
     # region Testnets
-    Goerli = Network(
-        name=NetworkNames.Goerli,
+    Eth_Goerli = Network(
+        name=NetworkNamesEnum.ETH_GOERLI,
         explorer='https://goerli.etherscan.io',
         chain_id=5,
         coin_symbol=TokenSymbol.ETH,
         tx_type=2,
         # api=EvmApiClient(
         #     api_key=config.GOERLI_API_KEY,
+
         #     api_url='https://api-goerli.etherscan.io/api',
         #     docs='https://docs.etherscan.io/v/goerli-etherscan/'
         # )
     )
 
-    Sepolia = Network(
-        name=NetworkNames.Sepolia,
+    Eth_Sepolia = Network(
+        name=NetworkNamesEnum.ETH_SEPOLIA,
         explorer='https://sepolia.etherscan.io',
         chain_id=11155111,
         coin_symbol=TokenSymbol.ETH,
@@ -246,7 +249,7 @@ class Networks(metaclass=Singleton):
         cls,
         network_name: str
     ) -> Network:
-        if not hasattr(cls, network_name):
+        if not hasattr(cls, NetworkNamesEnum(network_name)):
             raise exceptions.NetworkNotAdded(
                 f"The network has not been added to \"{__class__.__name__}\" class"
             )

@@ -1,18 +1,14 @@
-from typing import Any
+from typing import cast
+
 from web3 import AsyncWeb3
-from web3.types import (
-    TxParams,
-    Wei
-)
-from eth_typing import ChecksumAddress
-from eth_account.datastructures import (
-    SignedTransaction
-)
+from web3.types import TxParams, Wei, Nonce
+from eth_typing import BlockIdentifier
+from eth_account.datastructures import SignedTransaction
 from eth_account.signers.local import LocalAccount
 
 from .network import Network
 from ..models.others import TokenAmount
-from ..models.params_types import Address
+from ..models.type_alias import AddressType
 from ..models.transaction import Tx
 
 
@@ -34,12 +30,12 @@ class Transaction:
     async def get_current_block_number(self) -> int:
         return await self.w3.eth.block_number
 
-    async def get_nonce(self, address: ChecksumAddress | None = None) -> int:
+    async def get_nonce(self, address: AddressType | None = None) -> Nonce:
         """
         Get the nonce for a given Ethereum address.
 
         Args:
-            - `address` (ChecksumAddress | None): The Ethereum address for which to retrieve the nonce.
+            - `address` (str | Address | ChecksumAddress | None): The Ethereum address for which to retrieve the nonce.
                 If None, the address from the account manager will be used.
 
         Returns:
@@ -48,8 +44,7 @@ class Transaction:
         if not address:
             address = self.account.address
 
-        nonce = await self.w3.eth.get_transaction_count(address)
-        return nonce
+        return await self.w3.eth.get_transaction_count(address) #type: ignore
 
     async def get_gas_price(self) -> Wei:
         """
@@ -58,8 +53,7 @@ class Transaction:
         Returns:
             - `Wei`: the current gas price
         """
-        amount = await self.w3.eth.gas_price
-        return int(amount)
+        return await self.w3.eth.gas_price
 
     async def get_base_fee(self, increase_gas: float = 1.) -> Wei:
         """
@@ -69,55 +63,40 @@ class Transaction:
             - `Wei`: the current base fee
         """
         last_block = await self.w3.eth.get_block('latest')
-        return int(last_block['baseFeePerGas'] * increase_gas)
-
+        return Wei(last_block['baseFeePerGas'] * increase_gas) #type: ignore
+        
     async def get_max_priority_fee_(
         self,
-        block: dict | None = None
-    ) -> TokenAmount:
+        block_number: BlockIdentifier = 'latest'
+    ) -> Wei:
         """
         Get the current max priority fee
 
         Returns:
             - `TokenAmount`: the current max priority fee
         """
-        if not block:
-            block = await self.w3.eth.get_block('latest')
-
-        block_number = block['number']
-        latest_block_transaction_count = (
-            await self.w3.eth.get_block_transaction_count(
-                block_number)
-        )
+        block_data = await self.w3.eth.get_block(block_number, full_transactions=True)
         max_priority_fee_per_gas_lst = []
 
-        for i in range(latest_block_transaction_count):
-            try:
-                transaction = (
-                    await self.w3.eth.get_transaction_by_block(
-                        block_number, i
-                    )
+        for transaction in block_data.get('transactions', []):
+            if isinstance(transaction, dict):
+                max_priority_fee_per_gas_lst.append(
+                    transaction.get('maxPriorityFeePerGas')
                 )
-                if 'maxPriorityFeePerGas' in transaction:
-                    max_priority_fee_per_gas_lst.append(
-                        transaction['maxPriorityFeePerGas']
-                    )
-            except Exception:
-                continue
 
-        if not max_priority_fee_per_gas_lst:
-            # max_priority_fee_per_gas = w3.eth.max_priority_fee
-            max_priority_fee_per_gas = 0
+        if len(max_priority_fee_per_gas_lst) == 0:
+            max_priority_fee_per_gas = Wei(0)
         else:
-            max_priority_fee_per_gas_lst.sort()
-            max_priority_fee_per_gas = max_priority_fee_per_gas_lst[len(
-                max_priority_fee_per_gas_lst) // 2]
+            clear_list = [
+                item for item in max_priority_fee_per_gas_lst
+                if item
+            ]
+            clear_list.sort()
+            max_priority_fee_per_gas = clear_list[len(
+                clear_list) // 2]
 
-        return TokenAmount(
-            amount=max_priority_fee_per_gas,
-            decimals=self.network.decimals,
-            wei=True
-        )
+        return max_priority_fee_per_gas
+    
 
     async def get_max_priority_fee(self) -> Wei:
         """
@@ -126,10 +105,9 @@ class Transaction:
         Returns:
             - `Wei`: the current max priority fee
         """
-        max_priority_fee = await self.w3.eth.max_priority_fee
-        return int(max_priority_fee)
+        return await self.w3.eth.max_priority_fee
 
-    async def get_estimate_gas(self, tx_params: TxParams) -> Wei:
+    async def get_estimate_gas(self, tx_params: TxParams) -> int:
         """
         Get the estimate gas limit for a transaction with specified parameters.
 
@@ -137,10 +115,9 @@ class Transaction:
             - `tx_params` (TxParams): parameters of the transaction.
 
         Returns:
-            - `Wei`: the estimate gas.
+            - `int`: the estimate gas.
         """
-        gas_price = await self.w3.eth.estimate_gas(transaction=tx_params)
-        return int(gas_price)
+        return await self.w3.eth.estimate_gas(transaction=tx_params)
     
     async def get_tx_cost(self, gas_price_multiplier: float = 1.5) -> Wei:
         """
@@ -158,10 +135,10 @@ class Transaction:
                 "nonce": await self.get_nonce(),
             }
 
-            tx_params['gas'] = await self.get_estimate_gas(tx_params)
+            tx_params['gas'] = await self.get_estimate_gas(tx_params) #type: ignore
         except Exception:
             tx_params['gas'] = 21_000
-        return int(
+        return Wei(
             tx_params['gas'] 
             * tx_params['gasPrice'] 
             * gas_price_multiplier
@@ -179,7 +156,7 @@ class Transaction:
             - `TxParams`: parameters of the transaction with added values.
         """
         if 'chainId' not in tx_params:
-            tx_params['chainId'] = self.network.chain_id
+            tx_params['chainId'] = await self.w3.eth.chain_id
 
         if 'nonce' not in tx_params:
             tx_params['nonce'] = await self.get_nonce()
@@ -200,17 +177,17 @@ class Transaction:
             tx_params['maxPriorityFeePerGas'] = (
                 await self.get_max_priority_fee()
             )
-            tx_params['maxFeePerGas'] += tx_params['maxPriorityFeePerGas']
+            tx_params['maxFeePerGas'] += tx_params['maxPriorityFeePerGas'] #type: ignore
 
-        multiplier_of_gas = tx_params.pop('multiplier', 1)
+        multiplier_of_gas = tx_params.pop('multiplier', 1) #type: ignore
 
-        if not tx_params.get('gas') or not int(tx_params['gas']):
-            gas = await self.get_estimate_gas(tx_params=tx_params)
+        if not tx_params.get('gas'):
+            gas = await self.get_estimate_gas(cast(TxParams, tx_params))
             tx_params['gas'] = int(gas * multiplier_of_gas)
 
         return tx_params
 
-    async def sign_transaction(self, tx_params: TxParams) -> SignedTransaction:
+    async def sign_transaction(self, tx_params: TxParams | dict) -> SignedTransaction:
         """
         Sign a transaction.
 
@@ -221,14 +198,12 @@ class Transaction:
             - `SignedTransaction`: the signed transaction.
 
         """
-        signed_tx = self.account.sign_transaction(tx_params)
-
-        return signed_tx
+        return self.account.sign_transaction(tx_params)
 
     async def sign_message(self, message: str):
         pass
 
-    async def sign_and_send(self, tx_params: TxParams) -> Tx:
+    async def sign_and_send(self, tx_params: TxParams | dict) -> Tx:
         """
         Sign and send a transaction. Additionally, add 'chainId', 'nonce', 'from', 'gasPrice' or
             'maxFeePerGas' + 'maxPriorityFeePerGas' and 'gas' parameters to transaction parameters if they are missing.
@@ -242,7 +217,7 @@ class Transaction:
         tx_params = await self.auto_add_params(tx_params)
         return await self.sign_and_send_prepared_tx_params(tx_params)
     
-    async def sign_and_send_prepared_tx_params(self, tx_params: TxParams) -> Tx:
+    async def sign_and_send_prepared_tx_params(self, tx_params: TxParams | dict) -> Tx:
         """
         Signs the prepared transaction parameters and sends the prepared transaction.
 
@@ -255,92 +230,94 @@ class Transaction:
         signed_tx = await self.sign_transaction(tx_params)
         tx_hash = await self.w3.eth.send_raw_transaction(transaction=signed_tx.rawTransaction)
 
-        return Tx(w3=self.w3, tx_hash=tx_hash, params=tx_params)
+        return Tx(w3=self.w3, hash=tx_hash, params=tx_params)
 
-    async def find_tx_by_function_name(
-        self,
-        contract_address: Address | list[Address],
-        function_name: str,
-        address: Address | None = None,
-        after_timestamp: int = 0,
-        before_timestamp: int = 999_999_999_999 
-    ) -> dict[str, Any]:
-        """
-        Find all transactions of interaction with the contract, in addition, you can filter transactions by
-            the name of the contract function.
+    # async def find_tx_by_function_name(
+    #     self,
+    #     contract_address: Address | list[Address],
+    #     function_name: str,
+    #     address: Address | None = None,
+    #     after_timestamp: int = 0,
+    #     before_timestamp: int = 999_999_999_999 
+    # ) -> dict[str, Any]:
+    #     """
+    #     Find all transactions of interaction with the contract, in addition, you can filter transactions by
+    #         the name of the contract function.
 
-        Args:
-            - `contract_address` (Address | list[Address]): the contract or a list of contracts with which
-                the interaction took place.
-            - `function_name` (str): the function name for sorting. (any)
-            - `address` (Address | None): the address to get the transaction list. (imported to client address)
-            - `after_timestamp` (int): after what time to filter transactions. (0)
-            - `before_timestamp` (int): before what time to filter transactions. (infinity)
+    #     Args:
+    #         - `contract_address` (Address | list[Address]): the contract or a list of contracts with which
+    #             the interaction took place.
+    #         - `function_name` (str): the function name for sorting. (any)
+    #         - `address` (Address | None): the address to get the transaction list. (imported to client address)
+    #         - `after_timestamp` (int): after what time to filter transactions. (0)
+    #         - `before_timestamp` (int): before what time to filter transactions. (infinity)
 
-        Returns:
-            - `Dict[str, CoinTx]`: transactions found.
-        """
-        addresses = []
-        if isinstance(contract_address, list):
-            for addr in contract_address:
-                addresses.append(addr.lower())
+    #     Returns:
+    #         - `Dict[str, CoinTx]`: transactions found.
+    #     """
+    #     addresses = []
+    #     if isinstance(contract_address, list):
+    #         for addr in contract_address:
+    #             addresses.append(addr.lower())
                 
-        else:
-            addresses.append(contract_address.lower())
+    #     else:
+    #         addresses.append(contract_address.lower())
             
-        txs = {}
+    #     txs = {}
         
-        coin_txs = (await self.network.api.account.get_tx_list(address))['result']
-        for tx in coin_txs:
-            if (
-                after_timestamp < int(tx.get('timeStamp')) < before_timestamp
-                and tx.get('isError') == '0'
-                and tx.get('to') in addresses 
-                and function_name in tx.get('functionName')
-            ):
-                txs[tx.get('hash')] = tx
+    #     if (coin_txs := await self.network.api.account.get_tx_list(address)) is None:
+    #         return {}
         
-        return txs
+    #     for tx in coin_txs:
+    #         if (
+    #             after_timestamp < int(tx.get('timeStamp')) < before_timestamp
+    #             and tx['result'].get('isError') == '0'
+    #             and tx['result'].get('to') in addresses 
+    #             and function_name in tx.get('functionName')
+    #         ):
+    #             txs[tx.get('hash')] = tx
+        
+    #     return txs
     
-    async def find_tx_by_method_id(
-        self,
-        contract_address: Address | list[Address],
-        method_id: str,
-        address: Address | None = None,
-    ) -> dict[str, Any]:
-        """
-        Find all transactions of interaction with the contract, in addition, you can filter transactions by
-            the function method id
+    # async def find_tx_by_method_id(
+    #     self,
+    #     contract_address: Address | list[Address],
+    #     method_id: str,
+    #     address: Address | None = None,
+    # ) -> dict[str, Any]:
+    #     """
+    #     Find all transactions of interaction with the contract, in addition, you can filter transactions by
+    #         the function method id
 
-        Args:
-            - `contract_address` (Address | list[Address]): the contract or a list of contracts with which
-                the interaction took place.
-            - `method_id` (str): the function method id to search.
-            - `address` (Address | None): the address to get the transaction list. (imported to client address)
+    #     Args:
+    #         - `contract_address` (Address | list[Address]): the contract or a list of contracts with which
+    #             the interaction took place.
+    #         - `method_id` (str): the function method id to search.
+    #         - `address` (Address | None): the address to get the transaction list. (imported to client address)
 
-        Returns:
-            - `Dict[str, CoinTx]`: transactions found.
-        """
-        txs = {}
-        addresses = []
+    #     Returns:
+    #         - `Dict[str, CoinTx]`: transactions found.
+    #     """
+    #     txs = {}
+    #     addresses = []
         
-        if not address:
-            address = self.account.address
+    #     if not address:
+    #         address = self.account.address
 
-        if isinstance(contract_address, list):
-            for addr in contract_address:
-                addresses.append(addr.lower())
+    #     if isinstance(contract_address, list):
+    #         for addr in contract_address:
+    #             addresses.append(addr.lower())
                 
-        else:
-            addresses.append(contract_address.lower())
+    #     else:
+    #         addresses.append(contract_address.lower())
         
-        coin_txs = (await self.network.api.account.get_tx_list(address))['result']
-        for tx in coin_txs:
-            if (
-                tx.get('isError') == '0'
-                and tx.get('to') in addresses
-                and tx.get('methodId') == method_id
-            ):
-                txs[tx.get('hash')] = tx
+    #     coin_txs = (await self.network.api.account.get_tx_list(address))['result']
+    #     for tx in coin_txs:
+    #         if (
+    #             tx.get('isError') == '0'
+    #             and tx.get('to') in addresses
+    #             and tx.get('methodId') == method_id
+    #         ):
+    #             txs[tx.get('hash')] = tx
         
-        return txs
+    #     return txs

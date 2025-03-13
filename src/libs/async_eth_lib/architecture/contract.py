@@ -1,31 +1,24 @@
-from typing import Any
+import json
+from typing import cast
 
 from web3 import Web3
-from web3.types import (
-    Wei,
-    TxParams,
-    TxReceipt,
-)
-from web3.contract import (
-    Contract as web3_Contract,
-    AsyncContract as web3_AsyncContract
-)
+from web3.contract.async_contract import AsyncContract 
+from web3.types import Wei, TxParams, TxReceipt
 
 from .transaction import Transaction
-from ..models.contract import RawContract, TokenContract, TokenContractBase
-from ..models.dataclasses import (
-    CommonValues, DefaultAbis
-)
+from ..models.contract import NativeTokenContract, RawContract, TokenContract
+from ..models.dataclasses import CommonValues, DefaultAbis
+from ..models.exceptions import HTTPException
 from ..models.others import TokenAmount
-from ..models.params_types import (
+from ..models.type_alias import (
+    AbiType,
     AddressType,
     AmountType,
     GasLimitType,
     GasPriceType,
-    Web3ContractType,
 )
 from ..utils.helpers import (
-    make_async_request, read_json, text_between
+    make_async_request, read_json
 )
 
 
@@ -49,73 +42,73 @@ class Contract:
             response = await make_async_request(url=url)
             results = response['results']
             return [m['text_signature'] for m in sorted(results, key=lambda result: result['created_at'])]
-        except:
+        except HTTPException:
             return
 
-    @staticmethod
-    async def parse_function(text_signature: str) -> dict:
+    # @staticmethod
+    # async def parse_function(text_signature: str) -> dict:
+    #     """
+    #     Construct a function dictionary for the ABI based on the provided text signature.
+
+    #     Args:
+    #         - `text_signature` (str): A text signature, e.g. approve(address,uint256).
+
+    #     Returns:
+    #         - `dict`: The function dictionary for the ABI.
+    #     """
+    #     name, sign = text_signature.split('(', 1)
+    #     sign = sign[:-1]
+    #     tuples = []
+    #     while '(' in sign:
+    #         tuple_ = text_between(text=sign[:-1], begin='(', end=')')
+    #         tuples.append(tuple_.split(',') or [])
+    #         sign = sign.replace(f'({tuple_})', 'tuple')
+
+    #     inputs = sign.split(',')
+    #     if inputs == ['']:
+    #         inputs = []
+
+    #     function = {
+    #         'type': 'function',
+    #         'name': name,
+    #         'inputs': [],
+    #         'outputs': [{'type': 'uint256'}]
+    #     }
+    #     i = 0
+    #     for type_ in inputs:
+    #         input_ = {'type': type_}
+    #         if type_ == 'tuple':
+    #             input_['components'] = [ #type: ignore
+    #                 {'type': comp_type}
+    #                 for comp_type in tuples[i]
+    #             ]
+    #             i += 1
+
+    #         function['inputs'].append(input_)
+
+    #     return function
+        
+    def load_json_abi(self, abi: str) -> list[dict] | None:
         """
-        Construct a function dictionary for the ABI based on the provided text signature.
+        Attempts to parse a string as JSON to load an ABI.
 
         Args:
-            - `text_signature` (str): A text signature, e.g. approve(address,uint256).
+            - `abi` (str): The ABI string to parse as JSON.
 
         Returns:
-            - `dict`: The function dictionary for the ABI.
+            - `list[dict] | None`: The parsed ABI as a list of dictionaries if valid JSON,
+              None if parsing fails.
         """
-        name, sign = text_signature.split('(', 1)
-        sign = sign[:-1]
-        tuples = []
-        while '(' in sign:
-            tuple_ = text_between(text=sign[:-1], begin='(', end=')')
-            tuples.append(tuple_.split(',') or [])
-            sign = sign.replace(f'({tuple_})', 'tuple')
-
-        inputs = sign.split(',')
-        if inputs == ['']:
-            inputs = []
-
-        function = {
-            'type': 'function',
-            'name': name,
-            'inputs': [],
-            'outputs': [{'type': 'uint256'}]
-        }
-        i = 0
-        for type_ in inputs:
-            input_ = {'type': type_}
-            if type_ == 'tuple':
-                input_['components'] = [{'type': comp_type}
-                                        for comp_type in tuples[i]]
-                i += 1
-
-            function['inputs'].append(input_)
-
-        return function
-
-    def get_abi(
-        self,
-        abi_or_path: str | tuple | list[dict]
-    ) -> list[dict]:
-        """
-        Retrieve the ABI from a given path or return the default ABI.
-
-        Args:
-            - `abi_or_path` (list | tuple | str | list[dict] | None): The ABI or path to the ABI.
-
-        Returns:
-            - `list[dict] | None`: The ABI as a list of dictionaries or None if not found.
-        """
-        if all(isinstance(item, dict) for item in abi_or_path):
-            return abi_or_path
-        else:
-            return read_json(abi_or_path)
-
+        try:
+            return json.loads(abi)
+        except ValueError:
+            return None
+    
     def get_evm_contract(
         self,
         address: AddressType,
-        abi_or_path: str | list[dict[str, Any]]
-    ) -> web3_Contract | web3_AsyncContract:
+        abi_or_path: AbiType
+    ) -> AsyncContract:
         """
         Retrieves an EVM contract instance from a given address and ABI or ABI path.
 
@@ -124,11 +117,31 @@ class Contract:
             - `abi_or_path` (str | list[dict[str, Any]]): The ABI of the contract or a path to the ABI file.
 
         Returns:
-            - `Contract | AsyncContract`: The contract instance.
+            - `AsyncContract`: The contract instance.
+
+        Example:
+            - `abi_or_path` (dict): {'type': 'function', 'name': 'approve', 'inputs': [{'type': 'address'}, {'type': 'uint256'}]}
+            - `abi_or_path` (list[dict]): [{'type': 'function', 'name': 'approve', 'inputs': [{'type': 'address'}, {'type': 'uint256'}]}]
+            - `abi_or_path` (list[str]): ['src', 'libs', 'async_eth_lib', 'abis', 'erc20.json']
+            - `abi_or_path` (str): '[{"type": "function", "name": "approve", "inputs": [{"type": "address"}, {"type": "uint256"}]}]'
+            - `abi_or_path` (str): 'src/libs/async_eth_lib/abis/erc20.json'
         """
+        if isinstance(abi_or_path, str):
+            if (json_abi := self.load_json_abi(abi_or_path)):
+                abi = json_abi
+            else:
+                abi = read_json(abi_or_path)
+        elif isinstance(abi_or_path, dict):
+            abi = abi_or_path
+        elif isinstance(abi_or_path, list):
+            if all(isinstance(item, dict) for item in abi_or_path):
+                abi = abi_or_path
+            elif all(isinstance(item, str) for item in abi_or_path):
+                abi = read_json(cast(list[str], abi_or_path))
+       
         contract = self.transaction.w3.eth.contract(
             address=Web3.to_checksum_address(address),
-            abi=self.get_abi(abi_or_path)
+            abi=abi
         )
 
         return contract
@@ -136,7 +149,7 @@ class Contract:
     def get_evm_contract_from_raw(
         self,
         contract: RawContract
-    ) -> web3_Contract | web3_AsyncContract:
+    ) -> AsyncContract:
         """
         Retrieves an EVM contract instance from a given RawContract object.
 
@@ -144,17 +157,17 @@ class Contract:
             - `contract` (RawContract): The RawContract object containing the contract's address and ABI path.
 
         Returns:
-            - `Contract | AsyncContract`: The contract instance.
+            - `AsyncContract`: The contract instance.
         """
         return self.get_evm_contract(
             contract.address,
-            contract.abi_path
+            contract.abi_or_path
         )
 
     def get_token_evm_contract(
         self,
         contract: TokenContract | AddressType,
-    ) -> web3_Contract | web3_AsyncContract:
+    ) -> AsyncContract:
         """
         Retrieves an EVM token contract instance for a token contract with ERC-20 standard.
 
@@ -166,7 +179,7 @@ class Contract:
         """
         if isinstance(contract, TokenContract):
             address = contract.address
-            contract_abi = contract.abi_path
+            contract_abi = contract.abi_or_path
 
         else:
             address = contract
@@ -197,7 +210,6 @@ class Contract:
             - `TxReceipt`: The transaction receipt.
         """
         web3_contract = self.get_token_evm_contract(token_address)
-        spender_address = Web3.to_checksum_address(tx_params['to'])
 
         if not amount:
             amount_wei = (
@@ -211,23 +223,13 @@ class Contract:
 
         data = web3_contract.encodeABI(
             fn_name='approve',
-            args=(spender_address, amount_wei)
+            args=(tx_params.get('to'), amount_wei)
         )
 
-        keys_to_include = [
-            'gas', 'gasPrice', 'multiplier', 'maxPriorityFeePerGas'
-        ]
-
-        if tx_params:
-            new_tx_params = {key: tx_params[key]
-                             for key in keys_to_include if key in tx_params}
-        else:
-            new_tx_params = {}
-
-        new_tx_params.update({
+        new_tx_params = {
             'to': token_address,
             'data': data
-        })
+        }
 
         tx = await self.transaction.sign_and_send(tx_params=new_tx_params)
         return await tx.wait_for_tx_receipt(timeout=240)
@@ -324,7 +326,7 @@ class Contract:
             - If `token_address` is provided, it retrieves the token balance.
             - If `token_address` is None, it retrieves the native token balance.
         """
-        if not account_address:
+        if account_address is None:
             account_address = self.transaction.account.address
 
         if token_address:
@@ -332,11 +334,11 @@ class Contract:
             return await web3_contract.functions.balanceOf(account_address).call()
 
         else:
-            return await self.transaction.w3.eth.get_balance(account=account_address)
+            return await self.transaction.w3.eth.get_balance(account=account_address) #type: ignore
 
     async def get_decimals(
         self,
-        token: AddressType | TokenContractBase | Web3ContractType
+        token: AddressType | TokenContract | NativeTokenContract | AsyncContract
     ) -> int:
         """
         Retrieve the decimals of a token contract or token address.
@@ -350,7 +352,7 @@ class Contract:
             - `int`: The number of decimals for the token
         """
         if isinstance(token, TokenContract):
-            if getattr(token, 'decimals', None) is not None:
+            if token.decimals is not None:
                 return token.decimals
 
             web3_contract = self.get_token_evm_contract(token)
@@ -358,12 +360,15 @@ class Contract:
             token.decimals = decimals
             return decimals
 
-        if isinstance(token, AddressType):
-            web3_contract = self.get_token_evm_contract(token)
-            return await web3_contract.functions.decimals().call()
+        elif isinstance(token, NativeTokenContract):
+            return self.transaction.network.decimals
 
-        return await token.functions.decimals().call()
+        elif isinstance(token, str):
+            token = self.get_token_evm_contract(token)
 
+        return await token.functions.decimals().call()  #type: ignore
+        
+        
     def add_multiplier_of_gas(
         self,
         tx_params: TxParams | dict,
@@ -379,7 +384,8 @@ class Contract:
         Returns:
             - `TxParams | dict`: The updated transaction parameters.
         """
-        tx_params['gas'] = int(tx_params['gas'] * multiplier)
+        tx_params['gas'] = int(tx_params.get('gas', 0) * multiplier)
+        return tx_params
 
     def set_gas_price(
         self,
@@ -402,7 +408,8 @@ class Contract:
                 decimals=self.transaction.network.decimals,
                 set_gwei=True
             )
-        tx_params['gasPrice'] = gas_price.GWei
+        tx_params['gasPrice'] = Wei(gas_price.GWei)
+        return tx_params
 
     def set_gas_limit(
         self,
@@ -423,6 +430,7 @@ class Contract:
             gas_limit = TokenAmount(
                 amount=gas_limit,
                 decimals=self.transaction.network.decimals,
-                wei=True
+                is_wei=True
             )
         tx_params['gas'] = gas_limit.Wei
+        return tx_params

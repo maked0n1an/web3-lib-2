@@ -6,7 +6,7 @@ from datetime import (
 
 from fake_useragent import UserAgent
 
-from ...models.params_types import Address
+from ...models.type_alias import Address
 from ...utils.helpers import make_async_request
 
 
@@ -80,7 +80,7 @@ class Module:
         self,
         params: dict[str, Any],
         **kwargs
-    ):
+    ) -> dict:
         return await make_async_request(
             url=self.api_url,
             params=params,
@@ -97,7 +97,7 @@ class Account(Module):
         address: str,
         page_size: int = 10,
         page: int = 1
-    ) -> dict[str, Any]:
+    ) -> dict:
         headers = {
             'authority': 'block-explorer-api.mainnet.zksync.io',
             'accept': '*/*',
@@ -125,6 +125,7 @@ class Account(Module):
         }
 
         return await make_async_request(
+            method='GET',
             url='https://block-explorer-api.mainnet.zksync.io/transactions',
             headers=headers,
             params=params
@@ -132,10 +133,10 @@ class Account(Module):
 
     async def get_tx_list(
         self,
-        address: str,
+        address: Address,
         page: int = 1,
         limit: int = 50,
-    ) -> list[dict]:
+    ) -> list[dict] | None:
         """
         Query address transaction list information
 
@@ -151,28 +152,24 @@ class Account(Module):
             'page': page
         }
 
-        res = await make_async_request(
+        if (res := await make_async_request(
             url=self.api_url + f'/api/v5/explorer/{self.MODULE_NAME}/{action}',
             params=params,
             headers=self.headers
-        )
+        )) is None:
+            return None
 
         return res['data'][0]['transactionLists']
 
     async def get_all_tx_list(
         self,
-        address: str,
-    ) -> list[dict]:
+        address: Address,
+    ) -> list[dict] | None:
         page = 1
         limit = 50
-        txs_list = []
+        txs_list: list[dict] = []
 
-        txs = await self.get_tx_list(address, page, limit)
-        page += 1
-        txs_list += txs
-
-        while len(txs) == limit:
-            txs = await self.get_tx_list(address, page, limit)
+        while (txs := await self.get_tx_list(address, page, limit)) is not None:
             page += 1
             txs_list += txs
         
@@ -182,8 +179,8 @@ class Account(Module):
         self,
         contract_address: Address | list[Address],
         method_id: str,
-        address: Address | None = None,
-    ) -> dict[str, Any]:
+        address: Address,
+    ) -> dict[str, Any] | None:
         """
         Find all transactions of interaction with the contract, in addition, you can filter transactions by
             the function method id
@@ -209,6 +206,9 @@ class Account(Module):
             addresses.append(contract_address.lower())
         
         coin_txs = await self.get_all_tx_list(address)
+        if coin_txs is None:
+            return None
+
         for tx in coin_txs:
             if (
                 tx.get('state') == 'success'

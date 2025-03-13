@@ -1,10 +1,12 @@
 import random
-from typing import List
+from typing import List, TypedDict
+from typing_extensions import NotRequired
 
-from _types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
 
 from . import exceptions as exceptions
-from .contract import TokenContractBase
+from .contract import NativeTokenContract, TokenContract
 from .others import TokenAmount
 
 
@@ -12,26 +14,26 @@ from .others import TokenAmount
 class OperationInfo:
     def __init__(
         self,
-        from_token_name: str,
-        to_token_name: str,
+        from_token_name: TokenSymbol,
+        to_token_name: TokenSymbol,
         slippage: float = 0.5,
-        to_network_name: NetworkNames = None,
+        to_network: NetworkNamesEnum = NetworkNamesEnum.ETH_GOERLI,
         amount: float = 0,
         amount_from: float = 0,
-        amount_to: float = None,
+        amount_to: float | None = None,
         ndigits: int = 5,
         min_percent: float = 0,
         max_percent: float = 100,
-        gas_price: float = None,
-        gas_limit: int = None,
-        multiplier_of_gas: float = None
+        gas_price: float | None = None,
+        gas_limit: int | None = None,
+        multiplier_of_gas: float | None = None
     ):
         """
         Initialize the OperationInfo class.
 
         Args:
-            from_token_name (str): The token to swap from.
-            to_token_name (str): The token to swap to.
+            from_token_name (TokenSymbol): The token to swap from.
+            to_token_name (TokenSymbol): The token to swap to.
             slippage (float): The slippage tolerance (default is 0.5).
             to_network_name (NetworkNames | None): The destination network name (default is Goerli).
             amount (float | None): The amount to swap (default is None).
@@ -46,9 +48,9 @@ class OperationInfo:
 
         """
         #  from_network (Network | None): The source network for the swap (default is None).
-        self.from_token_name = from_token_name
-        self.to_token_name = to_token_name
-        self.to_network_name = to_network_name
+        self.from_token_symbol = from_token_name
+        self.to_token_symbol = to_token_name
+        self.to_network_name = to_network
         self.amount = abs(amount)
         self.slippage = slippage
         self.amount_by_percent = 0
@@ -65,24 +67,33 @@ class OperationInfo:
 
 
 # region Class to prepare data for swap/bridge/deposit/borrow etc.
+class OperationProposal1(TypedDict):
+    from_token: TokenContract | NativeTokenContract
+    amount_from: TokenAmount
+    to_token: TokenContract | NativeTokenContract
+    min_amount_to: NotRequired[TokenAmount]
+    
+
+class InitOperationProposal:
+    def __init__(
+        self,
+        from_token: TokenContract | NativeTokenContract,
+        amount_from: TokenAmount,
+        to_token: TokenContract | NativeTokenContract,
+    ):
+        self.from_token = from_token
+        self.to_token = to_token
+        self.amount_from = amount_from
+
+
 class OperationProposal:
     def __init__(
         self,
-        from_token: TokenContractBase,
+        from_token: TokenContract | NativeTokenContract,
         amount_from: TokenAmount,
-        to_token: TokenContractBase,
+        to_token: TokenContract | NativeTokenContract,
         min_amount_to: TokenAmount
     ):
-        """
-        Initialize the OperationProposal class.
-
-        Args:
-            from_token (TokenContract): The contract of the token to swap from.
-            amount_from (TokenAmount): The amount of the from token.
-            to_token (TokenContract | None): The contract of the token to swap to (default is None).
-            min_amount_to (TokenAmount | None): The minimum amount of the to token (default is None).
-
-        """
         self.from_token = from_token
         self.to_token = to_token
         self.amount_from = amount_from
@@ -115,24 +126,22 @@ class TxPayloadDetails:
             self.function_signature = function_signature
         if bool_list:
             self.bool_list = bool_list
-            
+
+
 class TxPayloadDetailsFetcher:
     """
     Derived classes should reassigned 
         PATHS: dict[str, dict[str: TxPayloadDetails]] = {}
     from TxPayloadDetailsFetcher to use it's methods
     """
-    PATHS: dict[str, dict[str: TxPayloadDetails]] = {}
+    PATHS: dict[str, dict[str, TxPayloadDetails]] = {}
 
     @classmethod
     def get_tx_payload_details(
         cls,
-        first_token: str,
-        second_token: str
+        first_token: TokenSymbol,
+        second_token: TokenSymbol
     ) -> TxPayloadDetails:
-        first_token = first_token.upper()
-        second_token = second_token.upper()
-
         if first_token not in cls.PATHS:
             raise exceptions.TxPayloadDetailsNotAdded(
                 f"The '{first_token}' token has not been "

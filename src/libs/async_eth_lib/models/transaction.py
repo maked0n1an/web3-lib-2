@@ -5,7 +5,8 @@ from web3 import Web3, AsyncWeb3
 from web3.types import (
     TxReceipt,
     _Hash32,
-    TxData
+    TxData,
+    TxParams
 )
 
 from . import exceptions as exceptions
@@ -60,8 +61,8 @@ class Tx(AutoRepr):
     def __init__(
         self,
         w3: Web3 | AsyncWeb3,
-        tx_hash: str | _Hash32 | None = None,
-        params: dict | None = None
+        hash: str | _Hash32,
+        params: TxParams | dict
     ) -> None:
         """
         Initialize the class.
@@ -71,15 +72,15 @@ class Tx(AutoRepr):
             params (Optional[dict]): a dictionary with transaction parameters. (None)
 
         """
-        if not tx_hash and not params:
+        if not hash and not params:
             raise exceptions.TransactionException(
-                "Specify 'tx_hash' or 'params' argument values!")
+                "Specify 'tx_hash' and 'params' argument values!")
 
-        if isinstance(tx_hash, str):
-            tx_hash = HexBytes(tx_hash)
+        if isinstance(hash, str):
+            hash = HexBytes(hash)
 
         self.w3 = w3
-        self.hash = tx_hash
+        self.hash = hash
         self.params = params
         self.receipt = None
         self.function_identifier = None
@@ -96,16 +97,20 @@ class Tx(AutoRepr):
             Dict[str, Any]: the parameters of a sent transaction.
 
         """
-        tx_data: TxData = await self.w3.eth.get_transaction(transaction_hash=self.hash)
+        tx_data = await self.w3.eth.get_transaction(self.hash) #type: ignore
+        
+        if tx_data is None:
+            raise exceptions.TransactionException("Transaction not found!")
+
         self.params = {
-            'chainId': await self.w3.eth.chain_id,
-            'nonce': int(tx_data.get('nonce')),
-            'gasPrice': int(tx_data.get('gasPrice')),
-            'gas': int(tx_data.get('gas')),
+            'chainId': self.w3.eth.chain_id,
+            'nonce': tx_data.get('nonce'),
+            'gasPrice': tx_data.get('gasPrice'),
+            'gas': tx_data.get('gas'),
             'from': tx_data.get('from'),
             'to': tx_data.get('to'),
             'data': tx_data.get('input'),
-            'value': int(tx_data.get('value'))
+            'value': tx_data.get('value')
         }
 
         return self.params
@@ -126,11 +131,9 @@ class Tx(AutoRepr):
             Dict[str, Any]: the transaction receipt.
 
         """
-        self.receipt = await self.w3.eth.wait_for_transaction_receipt(
+        return await self.w3.eth.wait_for_transaction_receipt( #type: ignore
             transaction_hash=self.hash, timeout=timeout, poll_latency=poll_latency
         )
-
-        return self.receipt
 
     async def decode_input_data(self):
         pass

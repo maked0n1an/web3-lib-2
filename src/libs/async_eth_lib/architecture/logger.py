@@ -1,8 +1,9 @@
-import inspect
 import logging
 import os
 import sys
 from pathlib import Path
+
+from src._types.networks import NetworkNamesEnum
 
 from ..models.others import LogStatus
 
@@ -12,14 +13,15 @@ class CustomLogger:
 
     def __init__(
         self,
-        account_id: str | int,
+        account_id: str | int | None,
         address: str,
-        network_name: str,
+        network_name: NetworkNamesEnum,
         create_log_file_per_account: bool = False
     ) -> None:
-        self.account_id = account_id
+        self.account_id = str(account_id)
+
         self.masked_address = f"{address[:6]}...{address[-4:]}"
-        self.network_name = network_name.capitalize()
+        self.network_name = network_name
         self.create_log_file_per_account = create_log_file_per_account
         if create_log_file_per_account:
             self._create_log_folder()
@@ -78,14 +80,6 @@ class CustomLogger:
         message: str,
         call_depth_or_custom_call_place: str | int = 1,
     ) -> None:
-        if isinstance(call_depth_or_custom_call_place, int):
-            caller_frame = inspect.currentframe()
-            for _ in range(call_depth_or_custom_call_place):
-                caller_frame = caller_frame.f_back
-            calling_line = f"{os.path.basename(caller_frame.f_code.co_filename)}:{caller_frame.f_lineno}"
-        else:
-            calling_line = call_depth_or_custom_call_place
-            
         message_with_calling_line = f"{calling_line:<17} | {message}"
         extra = {
             "account_id": self.account_id,
@@ -147,7 +141,7 @@ class SettingsLogFormatter(CustomLogData):
     def __init__(
         self,
         log_levelname_format: str | dict,
-    ) -> logging.Formatter:
+    ):
         self.log_levelname_format = log_levelname_format
 
     def format(self, record):

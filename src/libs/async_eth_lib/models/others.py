@@ -1,35 +1,5 @@
 from decimal import Decimal
-
-
-# region Constants
-class TokenSymbol:
-    ETH = 'ETH'
-
-    ARB = 'ARB'
-    AVAX = 'AVAX'
-    BNB = 'BNB'
-    BTC_B = 'BTC_B'
-    BUSD = 'BUSD'
-    CELO = 'CELO'
-    CORE = 'CORE'
-    DAI = 'DAI'
-    FRAX = 'FRAX'
-    FTM = 'FTM'
-    GETH = 'GETH'
-    GETH_LZ = 'GETH_LZ'
-    GLMR = 'GLMR'
-    HECO = 'HECO'
-    KAVA = 'KAVA'
-    POL = 'POL'
-    STG = 'STG'
-    USDT = 'USDT'
-    USDC = 'USDC'
-    USDC_E = 'USDC_E'
-    USDV = 'USDV'
-    WBTC = 'WBTC'
-    WCORE = 'WCORE'
-    WETH = 'WETH'
-    XDAI = 'xDAI'
+from web3.types import Wei
 
 
 class LogStatus:
@@ -46,7 +16,6 @@ class LogStatus:
     MINTED = 'MINTED'
     BRIDGED = 'BRIDGED'
     SWAPPED = 'SWAPPED'
-# endregion Constants
 
 
 # region TokenAmount
@@ -54,23 +23,12 @@ class TokenAmount:
     """
     A class representing a token amount.
 
-    Attributes:
-        Wei (int): The amount in Wei.
-        Ether (Decimal): The amount in Ether.
-        decimals (int): The number of decimal places.
-        GWei (int): The amount in Gwei.
-
     """
-    Wei: int
-    Ether: Decimal
-    decimals: int
-    GWei: int
-
     def __init__(
         self,
         amount: int | float | Decimal | str,
         decimals: int = 18,
-        wei: bool = False,
+        is_wei: bool = False,
         set_gwei: bool = False
     ) -> None:
         """
@@ -79,31 +37,27 @@ class TokenAmount:
         Args:
             amount (int | float | Decimal | str): The amount.
             decimals (int): The number of decimal places (default is 18).
-            wei (bool): If True, the amount is in Wei; otherwise, it's in Ether (default is False).
+            is_wei (bool): If True, the amount is in Wei; otherwise, it's in Ether (default is False).
             set_gwei (bool): If True, the GWei attribute will be calculated and set (default is False).
 
         """
-        if wei:
-            self.Wei: int = int(amount)
-            self.Ether: Decimal = Decimal(str(amount)) / 10 ** decimals
+        if is_wei:
+            wei = Wei(int(amount))
+            ether = Decimal(str(amount)) / 10 ** decimals
 
             if set_gwei:
-                self.GWei: Decimal = int(amount / 10 ** 9)
+                gwei = int(Decimal(str(amount)) / 10 ** 9)
         else:
-            self.Wei: int = int(Decimal(str(amount)) * 10 ** decimals)
-            self.Ether: Decimal = Decimal(str(amount))
+            wei = Wei(int(Decimal(str(amount)) * 10 ** decimals))
+            ether = Decimal(str(amount)) / 10 ** decimals
 
             if set_gwei:
-                self.GWei: Decimal = int(Decimal(str(amount)) * 10 ** 9)
+                gwei = int(Decimal(str(amount)) * 10 ** 9)
 
+        self.Wei: Wei = wei
+        self.Ether: Decimal = ether
+        self.GWei: int = gwei
         self.decimals = decimals
 
     def __str__(self) -> str:
-        """
-        Return a string representation of the TokenAmount.
-
-        Returns:
-            str: A string representation of the TokenAmount.
-
-        """
         return str(self.Ether)

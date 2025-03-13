@@ -5,7 +5,6 @@ from fake_useragent import UserAgent
 from .utils import api_key_required
 from ...models import exceptions as exceptions
 from ...models.explorer import Sort, Tag
-from ...models.params_types import Address
 from ...utils.helpers import make_async_request
 
 
@@ -77,7 +76,7 @@ class Module:
     async def fetch_data_async(
         self,
         params: dict[str, Any]
-    ):
+    ) -> dict:
         return await make_async_request(
             url=self.api_url,
             params=params,
@@ -95,7 +94,7 @@ class Account(Module):
         self,
         address: str,
         tag: str = Tag.Latest
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         """
         Return the Ether balance of a given address.
 
@@ -126,7 +125,7 @@ class Account(Module):
         self,
         addresses: list[str],
         tag: str = Tag.Latest
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         action_name = 'balancemulti'
         self._check_valid_tag(tag)
 
@@ -149,7 +148,7 @@ class Account(Module):
         page: int | None = None,
         offset: int | None = None,
         sort: str = Sort.Ascending
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         action_name = 'txlist'
         self._check_valid_sort(sort)
 
@@ -176,7 +175,7 @@ class Account(Module):
         page: int | None = None,
         offset: int | None = None,
         sort: str = Sort.Ascending
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         action_name = 'txlistinternal'
         self._check_valid_sort(sort)
 
@@ -196,14 +195,14 @@ class Account(Module):
 
     async def get_token_tx(
         self,
-        contract_address: Address,
-        address: Address,
+        contract_address: str,
+        address: str,
         page: int = 1,
         offset: int = 0,
         startblock: int | None = None,
         endblock: int | None = None,
         sort: str = Sort.Ascending
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         action_name = 'tokentx'
 
         self._check_valid_sort(sort)
@@ -222,6 +221,9 @@ class Account(Module):
         }
 
         result = await self.fetch_data_async(params)
+        if result is None:
+            return None
+
         return result['result']
 
     def _check_valid_tag(self, tag: str):
@@ -242,7 +244,7 @@ class Contract(Module):
     """
     MODULE_NAME: str = 'contract'
 
-    async def get_abi(self, contract_address: str) -> dict[str, Any]:
+    async def get_abi(self, contract_address: str) -> dict[str, Any] | None:
         """
         Return the Contract Application Binary Interface (ABI) of a verified smart contract.
 
@@ -264,12 +266,15 @@ class Contract(Module):
         }
 
         response = await self.fetch_data_async(params)
+        if response is None:
+            return None
+
         return response['result']
 
     async def get_source_code(
         self,
         contract_address: str,
-    ) -> dict[str, Any]:
+    ) -> dict[str, Any] | None:
         action_name = 'getsourcecode'
 
         params = {
@@ -280,13 +285,16 @@ class Contract(Module):
         }
 
         response = await self.fetch_data_async(params)
+        if response is None:
+            return None
+
         return response['result']
 
 
 class Transaction(Module):
     MODULE_NAME: str = 'transaction'
 
-    async def get_tx_status(self, tx_hash: str):
+    async def get_tx_status(self, tx_hash: str) -> dict[str, Any] | None:
         action_name = 'getstatus'
 
         params = {
@@ -302,7 +310,7 @@ class Transaction(Module):
 class Block(Module):
     MODULE_NAME: str = 'block'
 
-    async def get_block(self, block_number: int):
+    async def get_block(self, block_number: int) -> dict[str, Any] | None:
         action_name = 'getblock'
 
         params = {

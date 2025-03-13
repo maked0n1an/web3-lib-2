@@ -3,13 +3,12 @@ import random
 
 from curl_cffi import requests
 from fake_useragent import UserAgent
-from web3 import Web3, AsyncWeb3
-from web3.eth import AsyncEth
-from web3.middleware import async_geth_poa_middleware
+from web3 import AsyncWeb3
+from web3.eth.async_eth import AsyncEth
+from web3.middleware.geth_poa import async_geth_poa_middleware
 from eth_account.signers.local import LocalAccount
 
-from _types.networks import NetworkNames
-
+from src._types.networks import NetworkNamesEnum
 from .transaction import Transaction
 from .contract import Contract
 from .logger import CustomLogger
@@ -20,9 +19,9 @@ from ..data.networks import Networks
 class EvmClient:
     def __init__(
         self,
-        account_id: int | str = None,
+        account_id: int | str | None = None,
         private_key: str | None = None,
-        network_name: NetworkNames = NetworkNames.Goerli,
+        network_name: str = NetworkNamesEnum.ETHEREUM,
         proxy: str | None = None,
         check_proxy: bool = True,
         create_log_file_per_account: bool = False
@@ -67,7 +66,7 @@ class EvmClient:
             'User-Agent': UserAgent().random
         }
 
-    def _init_web3(self) -> Web3:
+    def _init_web3(self):
         self.w3 = AsyncWeb3(
             AsyncWeb3.AsyncHTTPProvider(
                 endpoint_uri=(
