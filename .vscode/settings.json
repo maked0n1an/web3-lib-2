@@ -2,5 +2,6 @@
     "python.experiments.enabled": false,
     "python.envFile": "${workspaceFolder}/.venv",
     "python.languageServer": "Pylance",
-    "python.analysis.typeCheckingMode": "basic"
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.diagnosticMode": "workspace",
 }

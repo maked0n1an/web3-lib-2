@@ -1,16 +1,16 @@
-from _types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
 
 
 PUBLIC_RPCS = {
     # region EVM Mainnets
-    NetworkNames.Ethereum: [
+    NetworkNamesEnum.ETHEREUM: [
         # 'https://eth-mainnet.public.blastapi.io',
         # 'https://ethereum.publicnode.com',
         'https://rpc.ankr.com/eth',
         'https://eth.llamarpc.com',
     ],
 
-    NetworkNames.Arbitrum: [
+    NetworkNamesEnum.ARBITRUM: [
         # 'https://arbitrum-one.public.blastapi.io',
         # 'https://arbitrum-one.publicnode.com',
         'https://arb1.arbitrum.io/rpc',
@@ -18,71 +18,71 @@ PUBLIC_RPCS = {
         'https://arbitrum.llamarpc.com'
     ],
 
-    NetworkNames.Arbitrum_Nova: [
+    NetworkNamesEnum.ARBITRUM_NOVA: [
         'https://nova.arbitrum.io/rpc/'
     ],
 
-    NetworkNames.Avalanche: [
+    NetworkNamesEnum.AVALANCHE: [
         'https://rpc.ankr.com/avalanche/'
     ],
 
-    NetworkNames.Base: [
+    NetworkNamesEnum.BASE: [
         # 'https://base-mainnet.public.blastapi.io',
         # 'https://base.publicnode.com',
         'https://base.llamarpc.com'
     ],
 
-    NetworkNames.BSC: [
+    NetworkNamesEnum.BSC: [
         # 'https://bsc-mainnet.public.blastapi.io',
         # 'https://bsc.publicnode.com',
         # 'https://rpc.ankr.com/bsc',
         'https://bsc-pokt.nodies.app',
     ],
 
-    NetworkNames.Celo: [
+    NetworkNamesEnum.CELO: [
         'https://1rpc.io/celo',
         'https://rpc.ankr.com/celo'
     ],
 
-    NetworkNames.Core: [
+    NetworkNamesEnum.CORE: [
         'https://1rpc.io/core',
         'https://rpc.ankr.com/core'
     ],
 
-    NetworkNames.Fantom: [
+    NetworkNamesEnum.FANTOM: [
         'https://fantom.publicnode.com',
         'https://rpc.ankr.com/fantom',
     ],
 
-    NetworkNames.Gnosis: [
+    NetworkNamesEnum.GNOSIS: [
         'https://rpc.ankr.com/gnosis'
     ],
 
-    NetworkNames.Heco: [
+    NetworkNamesEnum.HECO: [
         'https://http-mainnet.hecochain.com'
     ],
 
-    NetworkNames.Kava: [
+    NetworkNamesEnum.KAVA: [
         'https://rpc.ankr.com/kava_evm'
     ],
 
-    NetworkNames.Moonbeam: [
+    NetworkNamesEnum.MOONBEAM: [
         'https://rpc.api.moonbeam.network/'
     ],
 
-    NetworkNames.opBNB: [
+    NetworkNamesEnum.OP_BNB: [
         'https://opbnb.publicnode.com',
         # 'https://opbnb-mainnet-rpc.bnbchain.org'
     ],
 
-    NetworkNames.Optimism: [
+    NetworkNamesEnum.OPTIMISM: [
         # 'https://optimism-mainnet.public.blastapi.io',
         # 'https://optimism.publicnode.com',
         # 'https://mainnet.optimism.io',
         'https://rpc.ankr.com/optimism/'
     ],
 
-    NetworkNames.Polygon: [
+    NetworkNamesEnum.POLYGON: [
         # 'https://polygon-mainnet.public.blastapi.io',
         # 'https://polygon-rpc.com',
         'https://rpc.ankr.com/polygon'
@@ -90,17 +90,17 @@ PUBLIC_RPCS = {
     # endregion EVM Mainnets
 
     # region EVM Testnets
-    NetworkNames.Goerli: [
+    NetworkNamesEnum.ETH_GOERLI: [
         'https://rpc.ankr.com/eth_goerli/'
     ],
 
-    NetworkNames.Sepolia: [
+    NetworkNamesEnum.ETH_SEPOLIA: [
         'https://rpc.sepolia.org',
         # 'https://ethereum-sepolia-rpc.publicnode.com',
         # 'https://1rpc.io/sepolia',
     ],
 
-    NetworkNames.Holesky: [
+    NetworkNamesEnum.ETH_HOLESKY: [
         'https://ethereum-holesky-rpc.publicnode.com',
         'https://endpoints.omniatech.io/v1/eth/holesky/public',
         'https://ethereum-holesky.blockpi.network/v1/rpc/public',
@@ -108,11 +108,11 @@ PUBLIC_RPCS = {
     # endregion EVM Testnets
 
     # region ZK Mainnets
-    NetworkNames.zkSync_Era: [
+    NetworkNamesEnum.ZKSYNC_ERA: [
         'https://zksync-era.blockpi.network/v1/rpc/public'
     ],
 
-    NetworkNames.Starknet: [
+    NetworkNamesEnum.STARKNET: [
         'https://starknet-mainnet.public.blastapi.io',
     ]
     # endregion ZK Mainnets
