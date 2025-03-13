@@ -1,8 +1,8 @@
 import asyncio
 from datetime import datetime, timezone
 
-from libs.db_management.business_logic.uow import ServiceUnitOfWork
-from libs.db_management.core.dtos import AccountDTO
+from src.libs.db_management.business_logic.uow import ServiceUnitOfWork
+from src.libs.db_management.core.dtos import AccountDTO
 
 async def main():
     account = AccountDTO(

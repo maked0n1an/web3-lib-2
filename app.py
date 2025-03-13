@@ -14,7 +14,7 @@
 # from data.models import Settings
 # from functions.activity import activity
 # from functions.Import import Import
-# from libs.py_eth_async.data import config
+# from src.libs.py_eth_async.data import config
 # from loguru import logger
 # from utils.miscellaneous.create_files import create_files
 
