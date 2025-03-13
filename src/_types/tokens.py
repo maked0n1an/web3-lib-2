@@ -1,4 +1,7 @@
-class TokenSymbol(str):
+from .common import strEnum
+
+
+class TokenSymbol(strEnum):
     ETH = 'ETH'
 
     ARB = 'ARB'
@@ -26,3 +29,6 @@ class TokenSymbol(str):
     WCORE = 'WCORE'
     WETH = 'WETH'
     XDAI = 'xDAI'
+    ZRO = 'ZRO'
+    SPACE = 'SPACE'
+    STRK = 'STRK'

@@ -1,25 +1,29 @@
-class NetworkNames(str):
-    Ethereum = 'Ethereum'
-    Arbitrum = 'Arbitrum'
-    Arbitrum_Nova = 'Arbitrum_Nova'
-    Avalanche = 'Avalanche'
-    Base = 'Base'
-    BSC = 'BSC'
-    Celo = 'Celo'
-    Core = 'Core'
-    Fantom = 'Fantom'
-    Gnosis = 'Gnosis'
-    Heco = 'Heco'
-    Kava = 'Kava'
-    Mantle = 'Mantle'
-    Moonbeam = 'Moonbeam'
-    opBNB = 'opBNB'
-    Optimism = 'Optimism'
-    Polygon = 'Polygon'
-    zkSync_Era = 'zkSync_Era'
+from .common import strEnum
 
-    Goerli = 'Goerli'
-    Sepolia = 'Sepolia'
-    Holesky = 'Holesky'
-    
-    Starknet = 'Starknet'
+
+class NetworkNamesEnum(strEnum):
+    # Mainnets
+    ETHEREUM = 'Ethereum'
+    ARBITRUM = 'Arbitrum'
+    ARBITRUM_NOVA = 'Arbitrum Nova'
+    AVALANCHE = 'Avalanche'
+    BASE = 'Base'
+    BSC = 'BSC'
+    CELO = 'Celo'
+    CORE = 'Core'
+    FANTOM = 'Fantom'
+    GNOSIS = 'Gnosis'
+    HECO = 'Heco'
+    KAVA = 'Kava'
+    MANTLE = 'Mantle'
+    MOONBEAM = 'Moonbeam'
+    OP_BNB = 'opBNB'
+    OPTIMISM = 'Optimism'
+    POLYGON = 'Polygon'
+    STARKNET = 'Starknet'
+    ZKSYNC_ERA = 'zkSync Era'
+
+    # Testnets
+    ETH_GOERLI = 'Ethereum Goerli'
+    ETH_SEPOLIA = 'Ethereum Sepolia'
+    ETH_HOLESKY = 'Ethereum Holesky'
