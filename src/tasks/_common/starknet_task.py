@@ -1,6 +1,6 @@
 from src.libs.async_starknet_lib.data.token_contracts import StarknetTokenContracts
 from src.libs.async_starknet_lib.models.operation import (
-    OperationInfo, OperationProposal
+    OperationInfo, OperationProposal, InitOperationProposal
 )
 from src.libs.async_starknet_lib.models.others import TokenAmount
 from src.libs.async_starknet_lib.architecture.client import StarknetClient
@@ -13,7 +13,7 @@ class StarknetTask:
 
     async def create_operation_proposal(
         self,
-        swap_info: OperationInfo
+        operation_info: OperationInfo
     ) -> OperationProposal:
         """
         Create an operation proposal for a given operation information using prices from CEX.
@@ -24,24 +24,24 @@ class StarknetTask:
         Returns:
             - `OperationProposal`: The operation proposal.
         """
-        swap_proposal = await self.init_operation_proposal(swap_info)
+        operation_proposal = await self.init_operation_proposal(operation_info)
 
-        first_price = await PriceUtils.get_cex_price(swap_info.from_token_name)
-        second_price = await PriceUtils.get_cex_price(swap_info.to_token_name)
+        first_price = await PriceUtils.get_cex_price(operation_info.from_token_name)
+        second_price = await PriceUtils.get_cex_price(operation_info.to_token_name)
 
-        min_amount_to_wei = swap_proposal.amount_from.Wei \
+        min_amount_to_wei = operation_proposal.amount_from.Wei \
             * first_price / second_price
 
         return await self.complete_operation_proposal(
-            operation_proposal=swap_proposal,
-            min_to_amount=min_amount_to_wei,
-            swap_info=swap_info
+            init_op_proposal=operation_proposal,
+            slippage=operation_info.slippage,
+            min_amount_to_wei=min_amount_to_wei
         )
 
     async def init_operation_proposal(
         self,
         op_info: OperationInfo
-    ) -> OperationProposal:
+    ) -> InitOperationProposal:
         """
         Compute the source token amount for a given swap.
 
@@ -80,16 +80,15 @@ class StarknetTask:
             wei=True
         )
 
-        return OperationProposal(
+        return InitOperationProposal(
             from_token=from_token,
             amount_from=amount_from,
             to_token=to_token,
-            min_amount_to=None
         )
 
     async def complete_operation_proposal(
         self,
-        operation_proposal: OperationProposal,
+        init_op_proposal: InitOperationProposal,
         slippage: float,
         min_amount_to_wei: int | float | None = None,
     ) -> OperationProposal:
@@ -110,11 +109,15 @@ class StarknetTask:
             amount=(
                 min_amount_to_wei 
                 or 
-                operation_proposal.amount_from.Wei * (1 - slippage / 100)
+                init_op_proposal.amount_from.Wei * (1 - slippage / 100)
             ),
-            decimals=await self.client.contract.get_decimals(operation_proposal.to_token),
+            decimals=await self.client.contract.get_decimals(init_op_proposal.to_token),
             wei=True
         )
         
-        operation_proposal.min_amount_to = min_amount_to
-        return operation_proposal
+        return OperationProposal(
+            from_token=init_op_proposal.from_token,
+            amount_from=init_op_proposal.amount_from,
+            to_token=init_op_proposal.to_token,
+            min_amount_to=min_amount_to
+        )

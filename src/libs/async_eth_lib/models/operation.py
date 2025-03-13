@@ -47,7 +47,6 @@ class OperationInfo:
             gas_limit (int | None): Gas limit for the transaction (default is None).
 
         """
-        #  from_network (Network | None): The source network for the swap (default is None).
         self.from_token_symbol = from_token_name
         self.to_token_symbol = to_token_name
         self.to_network_name = to_network

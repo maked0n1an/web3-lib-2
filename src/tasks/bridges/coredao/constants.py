@@ -1,7 +1,8 @@
 from enum import Enum
+from typing import cast
 
 from src.libs.async_eth_lib.utils.helpers import read_json
-from src._types.networks import NetworkNames
+from src._types.networks import NetworkNamesEnum
 from src._types.tokens import TokenSymbol
 from src.tasks._common.utils import StandardSettings
 from user_data._inputs.settings._global import MODULES_SETTINGS_FILE_PATH
@@ -12,7 +13,7 @@ class CoreDaoBridgeSettings():
         settings = read_json(path=MODULES_SETTINGS_FILE_PATH)
 
         self.bridge = StandardSettings(
-            settings=settings,
+            settings=cast(dict, settings),
             module_name='coredao',
             action_name='bridge'
         )
@@ -20,96 +21,95 @@ class CoreDaoBridgeSettings():
 
 
 class CoreDaoBridgeABIs:
-    TO_CORE_BRIDGE_ABI =    ('src', 'data', 'abis', 'coredao', 'to_core_bridge_abi.json')
-    FROM_CORE_BRIDGE_ABI =  ('src', 'data', 'abis', 'coredao', 'from_core_bridge_abi.json')
+    TO_CORE_BRIDGE_ABI =    ['src', 'data', 'abis', 'coredao', 'to_core_bridge_abi.json']
+    FROM_CORE_BRIDGE_ABI =  ['src', 'data', 'abis', 'coredao', 'from_core_bridge_abi.json']
 
 
 class CoreDaoBridgeData:
     def __init__(self):
         self.contracts = {
-            NetworkNames.Arbitrum: {
+            NetworkNamesEnum.ARBITRUM: {
                 TokenSymbol.USDT: '0x29d096cD18C0dA7500295f082da73316d704031A',
                 TokenSymbol.USDC: '0x29d096cD18C0dA7500295f082da73316d704031A',
             },
-            NetworkNames.Avalanche: {
+            NetworkNamesEnum.AVALANCHE: {
                 TokenSymbol.USDT: '0x29d096cD18C0dA7500295f082da73316d704031A',
                 TokenSymbol.USDC: '0x29d096cD18C0dA7500295f082da73316d704031A',
             },
-            NetworkNames.BSC: {
+            NetworkNamesEnum.BSC: {
                 TokenSymbol.USDT: '0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
                 TokenSymbol.USDC: '0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
             },
-            NetworkNames.Core: {
+            NetworkNamesEnum.CORE: {
                 TokenSymbol.USDT: '0xA4218e1F39DA4AaDaC971066458Db56e901bcbdE',
                 TokenSymbol.USDC: '0xA4218e1F39DA4AaDaC971066458Db56e901bcbdE',
             },
-            NetworkNames.Optimism: {
+            NetworkNamesEnum.OPTIMISM: {
                 TokenSymbol.USDT: '0x29d096cD18C0dA7500295f082da73316d704031A',
                 TokenSymbol.USDC: '0x29d096cD18C0dA7500295f082da73316d704031A',
             },
-            NetworkNames.Polygon: {
+            NetworkNamesEnum.POLYGON: {
                 TokenSymbol.USDT: '0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
                 TokenSymbol.USDC: '0x52e75D318cFB31f9A2EdFa2DFee26B161255B233',
             }
         }
 
-def get_coredao_bridge_routes(
-) -> dict[NetworkNames, dict[TokenSymbol, list[tuple[NetworkNames, TokenSymbol]]]]:
+def get_coredao_bridge_routes():
     return {
-        NetworkNames.Arbitrum: {
+        NetworkNamesEnum.ARBITRUM: {
             TokenSymbol.USDT: [
-                (NetworkNames.Core, TokenSymbol.USDT),
+                (NetworkNamesEnum.CORE, TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Core, TokenSymbol.USDC)
+                (NetworkNamesEnum.CORE, TokenSymbol.USDC)
             ]
         },
-        NetworkNames.Avalanche: {
+        NetworkNamesEnum.AVALANCHE: {
             TokenSymbol.USDT: [
-                (NetworkNames.Core, TokenSymbol.USDT),
+                (NetworkNamesEnum.CORE, TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Core, TokenSymbol.USDC)
+                (NetworkNamesEnum.CORE, TokenSymbol.USDC)
             ]
         },
-        NetworkNames.BSC: {
+        NetworkNamesEnum.BSC: {
             TokenSymbol.USDT: [
-                (NetworkNames.Core, TokenSymbol.USDT),
+                (NetworkNamesEnum.CORE, TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Core, TokenSymbol.USDC)
+                (NetworkNamesEnum.CORE, TokenSymbol.USDC)
             ]
         },
-        NetworkNames.Optimism: {
+        NetworkNamesEnum.OPTIMISM: {
             TokenSymbol.USDT: [
-                (NetworkNames.Core, TokenSymbol.USDT),
+                (NetworkNamesEnum.CORE, TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Core, TokenSymbol.USDC)
+                (NetworkNamesEnum.CORE, TokenSymbol.USDC)
             ]
         },
-        NetworkNames.Polygon: {
+        NetworkNamesEnum.POLYGON: {
             TokenSymbol.USDT: [
-                (NetworkNames.Core, TokenSymbol.USDT),
+                (NetworkNamesEnum.CORE, TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Core, TokenSymbol.USDC)
+                (NetworkNamesEnum.CORE, TokenSymbol.USDC)
             ]
         },
-        NetworkNames.Core: {
+        NetworkNamesEnum.CORE: {
             TokenSymbol.USDT: [
-                (NetworkNames.Arbitrum,     TokenSymbol.USDT),
-                (NetworkNames.Avalanche,    TokenSymbol.USDT),
-                (NetworkNames.BSC,          TokenSymbol.USDT),
-                (NetworkNames.Optimism,     TokenSymbol.USDT),
-                (NetworkNames.Polygon,      TokenSymbol.USDT),
+                (NetworkNamesEnum.ARBITRUM,     TokenSymbol.USDT),
+                (NetworkNamesEnum.AVALANCHE,    TokenSymbol.USDT),
+                (NetworkNamesEnum.BSC,          TokenSymbol.USDT),
+                (NetworkNamesEnum.OPTIMISM,     TokenSymbol.USDT),
+                (NetworkNamesEnum.POLYGON,      TokenSymbol.USDT),
             ],
             TokenSymbol.USDC: [
-                (NetworkNames.Arbitrum,     TokenSymbol.USDC),
-                (NetworkNames.Avalanche,    TokenSymbol.USDC),
-                (NetworkNames.BSC,          TokenSymbol.USDC),
-                (NetworkNames.Optimism,     TokenSymbol.USDC),
-                (NetworkNames.Polygon,      TokenSymbol.USDC),
+                (NetworkNamesEnum.ARBITRUM,     TokenSymbol.USDC),
+                (NetworkNamesEnum.AVALANCHE,    TokenSymbol.USDC),
+                (NetworkNamesEnum.BSC,          TokenSymbol.USDC),
+                (NetworkNamesEnum.OPTIMISM,     TokenSymbol.USDC),
+                (NetworkNamesEnum.POLYGON,      TokenSymbol.USDC),
             ],
         }
     }
@@ -117,30 +117,30 @@ def get_coredao_bridge_routes(
 
 L0_IDS = {
     'v1': {
-        NetworkNames.Ethereum: 101,
-        NetworkNames.Arbitrum: 110,
-        NetworkNames.Avalanche: 103,
-        NetworkNames.Base: 184,
-        NetworkNames.BSC: 102,
-        NetworkNames.Celo: 125,
-        NetworkNames.Core: 153,
-        NetworkNames.Fantom: 112,
-        NetworkNames.Gnosis: 145,
-        NetworkNames.Optimism: 111,
-        NetworkNames.Polygon: 109,
-        NetworkNames.zkSync_Era: 165,
+        NetworkNamesEnum.ETHEREUM: 101,
+        NetworkNamesEnum.ARBITRUM: 110,
+        NetworkNamesEnum.AVALANCHE: 103,
+        NetworkNamesEnum.BASE: 184,
+        NetworkNamesEnum.BSC: 102,
+        NetworkNamesEnum.CELO: 125,
+        NetworkNamesEnum.CORE: 153,
+        NetworkNamesEnum.FANTOM: 112,
+        NetworkNamesEnum.GNOSIS: 145,
+        NetworkNamesEnum.OPTIMISM: 111,
+        NetworkNamesEnum.POLYGON: 109,
+        NetworkNamesEnum.ZKSYNC_ERA: 165,
     },
     'v2': {
-        NetworkNames.Arbitrum: 30110,
-        NetworkNames.Avalanche: 30103,
-        NetworkNames.Base: 30184,
-        NetworkNames.BSC: 30102,
-        NetworkNames.Celo: 30125,
-        NetworkNames.Core: 30153,
-        NetworkNames.Fantom: 30112,
-        NetworkNames.Gnosis: 30145,
-        NetworkNames.Optimism: 30111,
-        NetworkNames.Polygon: 30109,
-        NetworkNames.zkSync_Era: 30165,
+        NetworkNamesEnum.ARBITRUM: 30110,
+        NetworkNamesEnum.AVALANCHE: 30103,
+        NetworkNamesEnum.BASE: 30184,
+        NetworkNamesEnum.BSC: 30102,
+        NetworkNamesEnum.CELO: 30125,
+        NetworkNamesEnum.CORE: 30153,
+        NetworkNamesEnum.FANTOM: 30112,
+        NetworkNamesEnum.GNOSIS: 30145,
+        NetworkNamesEnum.OPTIMISM: 30111,
+        NetworkNamesEnum.POLYGON: 30109,
+        NetworkNamesEnum.ZKSYNC_ERA: 30165,
     }
 }

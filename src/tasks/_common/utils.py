@@ -1,20 +1,22 @@
 import asyncio
 import random
 from dataclasses import dataclass
-from typing import Union, Any
+from typing import Any
 
 from curl_cffi.requests import AsyncSession
 
+from src._types.networks import NetworkNamesEnum
+from src._types.tokens import TokenSymbol
 from src.libs.async_eth_lib.architecture.client import EvmClient
 from src.libs.async_eth_lib.data.token_contracts import ContractsFactory
-from src.libs.async_eth_lib.models.others import LogStatus, TokenAmount, TokenSymbol
+from src.libs.async_eth_lib.models.others import LogStatus, TokenAmount
 from src.libs.async_eth_lib.models.operation import OperationInfo
 
 
 @dataclass
 class FromTo:
-    from_: Union[int, float]
-    to_: Union[int, float]
+    from_: int | float
+    to_: int | float
 
 
 # region To construct tx
@@ -46,7 +48,7 @@ class HexUtils:
 
 # region To get prices
 class PriceUtils:
-    STABLES = [
+    STABLES: list[TokenSymbol] = [
         TokenSymbol.USDT,
         TokenSymbol.USDC,
         TokenSymbol.USDC_E,
@@ -57,15 +59,15 @@ class PriceUtils:
     async def get_cex_price(
         first_token: str = TokenSymbol.ETH,
         second_token: str = TokenSymbol.USDT
-    ) -> float | None:
+    ) -> float:
         first_token = (
             first_token.lstrip('W')
-            if len(first_token) > 2
+            if len(first_token) > 3
             else first_token
         )
         second_token = (
             second_token.lstrip('W')
-            if len(second_token) > 2
+            if len(second_token) > 3
             else second_token
         )
 
@@ -80,7 +82,7 @@ class PriceUtils:
                     session, first_token, second_token)
             ]
 
-            for price in await asyncio.gather(*tasks, return_exceptions=True):
+            for price in await asyncio.gather(*tasks, return_exceptions=False):
                 if isinstance(price, float):
                     return price
 
@@ -200,10 +202,10 @@ class StandardSettings:
         upper_bound: str,
         lower_bound: str,
     ) -> FromTo | None:
-        from_value = section[key].get(upper_bound)
-        to_value = section[key].get(lower_bound)
+        from_value: float | None = section[key].get(upper_bound)
+        to_value: float | None = section[key].get(lower_bound)
 
-        if from_value or to_value:
+        if from_value and to_value:
             return FromTo(
                 from_=from_value,
                 to_=to_value,
@@ -216,10 +218,11 @@ class RandomChoiceHelper:
     '''To get random token from available options for operation'''
     @staticmethod
     async def get_partial_operation_info_and_dst_data(
-        op_data: dict[str, dict[str, list[Any]]],
+        op_data: dict[NetworkNamesEnum, dict[TokenSymbol, list[Any]]],
         op_settings: StandardSettings,
         client: EvmClient,
     ) -> tuple[OperationInfo | None, list | None]:
+
         tokens_dict = list(op_data[client.network.name].keys())
         random.shuffle(tokens_dict)
 
@@ -233,12 +236,12 @@ class RandomChoiceHelper:
             )
 
             if partial_op:
-                dst_data = op_data[client.network.name][partial_op.from_token_name]
+                dst_data = op_data[client.network.name][partial_op.from_token_symbol]
 
                 client.custom_logger.log_message(
                     status=LogStatus.INFO,
                     message=(
-                        f'Found {partial_op.amount} {partial_op.from_token_name}'
+                        f'Found {partial_op.amount} {partial_op.from_token_symbol}'
                         f' in {client.network.name} for {op_settings.action_name}()'
                     ),
                     call_depth_or_custom_call_place=2
@@ -249,7 +252,7 @@ class RandomChoiceHelper:
 
     @staticmethod
     async def get_partial_operation_info(
-        token_name: str,
+        token_name: TokenSymbol,
         op_settings: StandardSettings,
         client: EvmClient,
     ) -> OperationInfo | None:
@@ -273,7 +276,7 @@ class RandomChoiceHelper:
         balance = TokenAmount(
             amount=balance_wei,
             decimals=decimals,
-            wei=True
+            is_wei=True
         )
 
         if amount_setting and float(balance.Ether) > amount_setting.from_:
@@ -281,12 +284,14 @@ class RandomChoiceHelper:
 
             return OperationInfo(
                 from_token_name=token_name,
+                to_token_name=TokenSymbol(''),
                 amount_from=amount_setting.from_,
                 amount_to=amount_setting.to_
             )
         if amount_percent_setting and balance.Ether > 0:
             op_info = OperationInfo(
                 from_token_name=token_name,
+                to_token_name=TokenSymbol(''),
                 min_percent=amount_percent_setting.from_,
                 max_percent=amount_percent_setting.to_
             )
