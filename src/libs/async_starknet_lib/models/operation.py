@@ -1,6 +1,8 @@
 import random
 
-from .contract import TokenContractBase
+from src._types.tokens import TokenSymbol
+
+from .contract import NativeTokenContract, TokenContract
 from .others import TokenAmount
 
 
@@ -8,18 +10,18 @@ from .others import TokenAmount
 class OperationInfo:
     def __init__(
         self,
-        from_token_name: str,
-        to_token_name: str,
+        from_token_name: TokenSymbol,
+        to_token_name: TokenSymbol,
         slippage: float = 0.5,
         amount: float = 0,
         amount_from: float = 0,
-        amount_to: float = None,
+        amount_to: float | None = None,
         ndigits: int = 5,
         min_percent: int = 0,
         max_percent: int = 100,
-        gas_price: float = None,
-        gas_limit: int = None,
-        multiplier_of_gas: float = None
+        gas_price: float | None = None,
+        gas_limit: int | None = None,
+        multiplier_of_gas: float | None = None
     ) -> None:
         """
         Initialize the OperationInfo class.
@@ -37,7 +39,7 @@ class OperationInfo:
             gas_price (float | None): The gas price for the transaction.
             gas_limit (int | None): The gas limit for the transaction.
             multiplier_of_gas (float | None): The multiplier for gas calculation.
-        
+
         """
         self.from_token_name = from_token_name
         self.to_token_name = to_token_name
@@ -56,15 +58,14 @@ class OperationInfo:
 # endregion Class to get info about swap
 
 
-# region Class to prepare swap
 class OperationProposal:
     def __init__(
         self,
-        from_token: TokenContractBase,
+        from_token: TokenContract | NativeTokenContract,
         amount_from: TokenAmount,
-        to_token: TokenContractBase,
+        to_token: TokenContract | NativeTokenContract,
         min_amount_to: TokenAmount
-    ) -> None:
+    ):
         """
         Initialize the OperationProposal class.
 
@@ -79,4 +80,15 @@ class OperationProposal:
         self.to_token = to_token
         self.amount_from = amount_from
         self.min_amount_to = min_amount_to
-# endregion Class to prepare swap
+
+
+class InitOperationProposal:
+    def __init__(
+        self,
+        from_token: TokenContract | NativeTokenContract,
+        amount_from: TokenAmount,
+        to_token: TokenContract | NativeTokenContract,
+    ):
+        self.from_token = from_token
+        self.to_token = to_token
+        self.amount_from = amount_from

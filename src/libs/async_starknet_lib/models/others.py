@@ -2,16 +2,6 @@ from decimal import Decimal
 
 
 # region Constants
-class TokenSymbol:
-    STRK    = 'STRK'
-    
-    ETH     = 'ETH'
-    USDT    = 'USDT'
-    DAI     = 'DAI'
-    USDC    = 'USDC'
-    WBTC    = 'WBTC'
-    WETH    = 'WETH'
-    
 class LogStatus:
     DELAY = 'DELAY'
     DEBUG = 'DEBUG'
@@ -35,19 +25,7 @@ class LogStatus:
 class TokenAmount:
     """
     A class representing a token amount.
-
-    Attributes:
-        Wei (int): The amount in Wei.
-        Ether (Decimal): The amount in Ether.
-        decimals (int): The number of decimal places.
-        GWei (int): The amount in Gwei.
-
     """
-    Wei: int
-    Ether: Decimal
-    decimals: int
-    GWei: int
-
     def __init__(
         self,
         amount: int | float | Decimal | str,
@@ -70,13 +48,13 @@ class TokenAmount:
             self.Ether: Decimal = Decimal(str(amount)) / 10 ** decimals
 
             if set_gwei:
-                self.GWei: Decimal = int(amount / 10 ** 9)
+                self.GWei: int = int(Decimal(str(amount)) / 10 ** 9)
         else:
             self.Wei: int = int(Decimal(str(amount)) * 10 ** decimals)
             self.Ether: Decimal = Decimal(str(amount))
 
             if set_gwei:
-                self.GWei: Decimal = int(Decimal(str(amount)) * 10 ** 9)
+                self.GWei: int = int(Decimal(str(amount)) * 10 ** 9)
 
         self.decimals = decimals
 

@@ -15,9 +15,9 @@ class StarknetClient(StarknetNodeClient):
 
     def __init__(
         self,
+        account_id: str | int,
         address: str,
         private_key: str,
-        account_id: int | None = None,
         proxy: str | None = None,
         check_proxy: bool = False,
         create_log_file_per_account: bool = True
@@ -41,8 +41,7 @@ class StarknetClient(StarknetNodeClient):
         self.network_decimals = 18
 
     async def __aexit__(self, exc_type, exc, tb):
-        if self.proxy:
-            await self.session.close()
+        await super().__aexit__(exc_type, exc, tb)
 
     def _init_logger(
         self,

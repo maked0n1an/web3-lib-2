@@ -9,7 +9,7 @@ def get_base_path():
     return "m/44'/9004'/0'/0/0"
 
 
-def get_class_hashes():
+def get_class_hash(contract_name: str) -> int:
     return {
         'braavos_proxy': 0x03131fa018d520a037686ce3efddeab8f28895662f019ca3ca18a626650f7d1e,
         'braavos_implementation': 0x5aa23d5bb71ddaa783da7ea79d405315bafa7cf0387a74f4593578c3e9e6570,
@@ -19,4 +19,4 @@ def get_class_hashes():
         'argentx_implementation_cairo_2_0_0': 0x01a736d6ed154502257f02b1ccdf4d9d1089f80811cd6acad48e6b6a9d1f2003,
         'argentx_implementation_cairo_2_4_3': 0x029927c8af6bccf3f6fda035981e765a7bdbf18a2dc0d630494f8758aa908e2b,
         'argentx_implementation_cairo_2_6_3': 0x36078334509b514626504edc9fb252328d1a240e4e948bef8d0c08dff45927f
-    }
+    }[contract_name]

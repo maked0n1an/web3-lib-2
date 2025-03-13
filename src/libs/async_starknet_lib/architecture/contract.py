@@ -1,4 +1,5 @@
-from typing import Any
+import json
+from typing import Any, cast
 
 from starknet_py.net.account.account import Account
 from starknet_py.contract import (
@@ -6,8 +7,11 @@ from starknet_py.contract import (
     AddressRepresentation
 )
 
+from src.libs.async_eth_lib.models.type_alias import AbiType
+
 from ..data.config import DEFAULT_TOKEN_ABI_PATH
-from ..models.contract import RawContract, TokenContract
+from ..models.contract import NativeTokenContract, RawContract, TokenContract
+from ..models.type_alias import TokenContractType
 from ..utils.helpers import read_json
 
 
@@ -19,28 +23,26 @@ class Contract:
     def __init__(self, account: Account):
         self.account = account
 
-    def get_abi(
-        self,
-        abi_or_path: str | tuple | list[dict]
-    ) -> list[dict]:
+    def load_json_abi(self, abi: str) -> list[dict] | None:
         """
-        Retrieve the ABI from a given path or return the default ABI.
+        Attempts to parse a string as JSON to load an ABI.
 
         Args:
-            abi_or_path (list | tuple | str | list[dict] | None): The ABI or path to the ABI.
+            - `abi` (str): The ABI string to parse as JSON.
 
         Returns:
-            list[dict] | None: The ABI as a list of dictionaries or None if not found.
+            - `list[dict] | None`: The parsed ABI as a list of dictionaries if valid JSON,
+              None if parsing fails.
         """
-        if all(isinstance(item, dict) for item in abi_or_path):
-            return abi_or_path
-        else:
-            return read_json(abi_or_path)
+        try:
+            return json.loads(abi)
+        except ValueError:
+            return None
 
     def get_starknet_contract(
         self,
         address: AddressRepresentation,
-        abi_or_path: str | list[str] | tuple[str] | list[dict[str, Any]]
+        abi_or_path: AbiType
     ) -> stark_Contract:
         """
         Retrieves a Starknet contract instance from a given address and ABI or ABI path.
@@ -51,10 +53,30 @@ class Contract:
 
         Returns:
             - `stark_Contract`: The Starknet contract instance.
+            
+        Example:
+            - `abi_or_path` (dict): {'type': 'function', 'name': 'approve', 'inputs': [{'type': 'address'}, {'type': 'uint256'}]}
+            - `abi_or_path` (list[dict]): [{'type': 'function', 'name': 'approve', 'inputs': [{'type': 'address'}, {'type': 'uint256'}]}]
+            - `abi_or_path` (list[str]): ['src', 'libs', 'async_eth_lib', 'abis', 'erc20.json']
+            - `abi_or_path` (str): '[{"type": "function", "name": "approve", "inputs": [{"type": "address"}, {"type": "uint256"}]}]'
+            - `abi_or_path` (str): 'src/libs/async_eth_lib/abis/erc20.json'
         """
+        if isinstance(abi_or_path, str):
+            if (json_abi := self.load_json_abi(abi_or_path)):
+                abi = json_abi
+            else:
+                abi = read_json(abi_or_path)
+        elif isinstance(abi_or_path, dict):
+            abi = abi_or_path
+        elif isinstance(abi_or_path, list):
+            if all(isinstance(item, dict) for item in abi_or_path):
+                abi = abi_or_path
+            elif all(isinstance(item, str) for item in abi_or_path):
+                abi = read_json(cast(list[str], abi_or_path))
+
         contract = stark_Contract(
             address=address,
-            abi=self.get_abi(abi_or_path),
+            abi=abi, #type: ignore
             provider=self.account
         )
 
@@ -75,12 +97,12 @@ class Contract:
         """
         return self.get_starknet_contract(
             contract.address, 
-            contract.abi_path
+            contract.abi_or_path
         )
     
     def get_token_starknet_contract(
         self,
-        contract: TokenContract | AddressRepresentation,
+        contract: TokenContractType | AddressRepresentation,
     ) -> stark_Contract:
         """
         Retrieves a Starknet token contract instance from a given address.
@@ -91,45 +113,46 @@ class Contract:
         Returns:
             - `stark_Contract`: The Starknet token contract instance.
         """
-        if isinstance(contract, TokenContract):
+        if isinstance(contract, TokenContractType):
             address = contract.address
-            abi_or_path = contract.abi_path
-
         else:
             address = contract
-            abi_or_path = DEFAULT_TOKEN_ABI_PATH
 
         return self.get_starknet_contract(
             address=address,
-            abi_or_path=abi_or_path
+            abi_or_path=DEFAULT_TOKEN_ABI_PATH
         )
 
     async def get_decimals(
         self,
-        token: AddressRepresentation | TokenContract | stark_Contract
+        token: TokenContractType | AddressRepresentation | stark_Contract
     ) -> int:
         """
         Retrieve the decimals of a token contract or token address.
 
         Args:
-            - `token` (str | int | TokenContract | stark_Contract): The token to get decimals for. Can be:
+            - `token` (TokenContract | NativeTokenContract | str | int | stark_Contract): The token to get decimals for. Can be:
+                - A TokenContract instance
+                - A NativeTokenContract instance
                 - An address of the token contract
-                - A tokenContract instance
-                - A starknet contract instance
+                - A Starknet contract instance
 
         Returns:
             - `int`: The number of decimals for the token.
         """
         if isinstance(token, TokenContract):
-            if getattr(token, 'decimals', None) is not None:
+            if token.decimals is not None:
                 return token.decimals
             
             contract = self.get_token_starknet_contract(token)
             decimals = int((await contract.functions['decimals'].call())[0])
             token.decimals = decimals
             return decimals
+        
+        elif isinstance(token, NativeTokenContract):
+            return 18
     
-        if isinstance(token, AddressRepresentation):
+        elif isinstance(token, AddressRepresentation):
             contract = self.get_token_starknet_contract(token)
             return int((await contract.functions['decimals'].call())[0])
 

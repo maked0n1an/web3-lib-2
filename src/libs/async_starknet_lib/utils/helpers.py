@@ -27,34 +27,36 @@ def count_lines(file_path: str) -> int:
         return sum(1 for _ in file)
 
 
-def join_path(path: str | tuple | list) -> str:
-    if isinstance(path, str):
-        return path
+def join_path(path: list[str]) -> str:
     return str(os.path.join(*path))
 
 
-def read_txt(path: str | tuple | list) -> List[str]:
-    path = join_path(path)
+def read_txt(path: str | list[str]) -> List[str]:
+    if isinstance(path, list):
+        path = join_path(path)
     with open(path, 'r') as file:
         return [row.strip() for row in file if row.strip()]
 
 
 def read_json(
-    path: str | tuple | list,
+    path: str | list[str],
     encoding: str | None = None
-) -> list | dict:
-    path = join_path(path)
+) -> list[dict] | dict:
+    if isinstance(path, list):
+        path = join_path(path)
     return json.load(open(path, encoding=encoding))
 
 
 def write_json(
-    path: str | tuple | list,
+    path: str | list[str],
     data: Any,
     indent: int = 4,
-) -> list | dict:
-    path = join_path(path)
+) -> None:
+    if isinstance(path, list):
+        path = join_path(path)
     with open(path, 'w') as file:
         json.dump(data, file, indent=indent)
+
 
 
 def to_cut_hex_prefix_and_zfill(hex_data: str, length: int = 64):
@@ -90,32 +92,25 @@ def text_between(text: str, begin: str = '', end: str = '') -> str:
     :param str end: a string at the beginning of which the extraction should end
     :return str: the extracted text or empty string if nothing is found
     """
+    end_value = 0
+    
     try:
-        if not begin:
-            start = 0
-        else:
-            start = text.index(begin) + len(begin)
+        if begin: start = text.index(begin) + len(begin)
+        else: start = 0
     except:
         start = 0
 
     try:
-        if end:
-            end = text.index(end, start)
-        else:
-            end = len(text)
+        if end: end_value = text.index(end, start)
+        else: end_value = -1
     except:
-        end = len(text)
+        end_value = -1
 
-    extract = text[start:end]
+    extract = text[start:end_value]
     if extract == text:
         return ''
 
     return extract
-
-
-async def sleep(sleep_from: int, sleep_to: int):
-    random_value = random.randint(sleep_from, sleep_to)
-    await asyncio.sleep(random_value)
 
 
 async def make_request(

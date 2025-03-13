@@ -14,10 +14,10 @@ class CustomLogger:
     def __init__(
         self,
         account_id: str | int,
-        address: str,
+        address: int,
         create_log_file_per_account: bool = False
     ) -> None:
-        self.account_id = account_id
+        self.account_id = str(account_id)
         self.masked_address = (
             f"{hex(address)[:6]}...{hex(address)[-4:]}"
             if address else ''
@@ -150,7 +150,7 @@ class SettingsLogFormatter(CustomLogData):
     def __init__(
         self,
         log_levelname_format: str | dict,
-    ) -> logging.Formatter:
+    ):
         self.log_levelname_format = log_levelname_format
 
     def format(self, record):

@@ -1,9 +1,10 @@
+from typing import Literal
 from ..architecture.logger import console_logger
 from ..models.operation import OperationInfo
 
 
 def validate_operation_tokens(
-    available_tokens: list[str],
+    available_token: str,
     op_name: str,
     class_name: str
 ):
@@ -13,9 +14,9 @@ def validate_operation_tokens(
             to_token = swap_info.to_token_name
             
             if (
-                from_token not in available_tokens
+                from_token != available_token
                 or
-                to_token not in available_tokens
+                to_token != available_token
             ):
                 console_logger.error(
                     f'Not supported tokens to {op_name} in {class_name}:'

@@ -6,12 +6,9 @@ from .exceptions import InvalidProxy
 class ProxyManager:
     @staticmethod
     def init_proxy(
-        proxy: str = '',
+        proxy: str,
         check_proxy: bool = False
     ) -> str | None:
-        if not proxy:
-            return None
-
         proxy = ProxyManager.normalize_proxy(proxy)
 
         if check_proxy:
